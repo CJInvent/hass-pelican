@@ -1,0 +1,19 @@
+version: 2
+updates:
+  # Action majors move without warning; a pinned major that goes stale is a
+  # gate that quietly stops matching CI.
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: "ci"
+
+  # Dev tooling only -- rule 1 keeps runtime requirements empty, so there is
+  # nothing else here to update.
+  - package-ecosystem: pip
+    directory: "/"
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: "ci"

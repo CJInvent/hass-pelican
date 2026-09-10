@@ -1,0 +1,98 @@
+name: Dev Release
+
+# Cuts a numbered, traceable prerelease from every push to `dev`, behind the
+# full gate set.
+#
+# Two decisions worth knowing about, both learned the hard way on other repos:
+#
+# 1. `target_commitish: ${{ github.sha }}` is NOT optional. Omit it and GitHub
+#    defaults it to the repository's DEFAULT branch, so every dev tag points at
+#    main and the release list sorts by main's frozen created_at. Dozens of
+#    real prereleases then sort out of view, and the release list starts
+#    reporting a CI failure that never happened. See dev rule 21.
+#
+# 2. This is a `workflow_call` consumer of ci.yml, not a `workflow_run`
+#    consumer. `workflow_run` resolves the workflow file from the DEFAULT
+#    branch, so a workflow_run trigger defined on `dev` silently never fires
+#    until it reaches main -- wired to nothing, which rule 23 forbids.
+
+on:
+  push:
+    branches: [dev]
+
+permissions:
+  contents: write
+
+concurrency:
+  # A newer push supersedes an in-flight dev build; the older artifact would be
+  # stale before it finished publishing.
+  group: dev-release
+  cancel-in-progress: true
+
+jobs:
+  gates:
+    uses: ./.github/workflows/ci.yml
+
+  publish:
+    needs: gates
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Derive the dev version
+        id: version
+        run: |
+          # Base comes from the committed manifest; the dev suffix comes from
+          # the run number, so no source file is edited per build and no commit
+          # ever lands carrying a dev version (rule 16).
+          BASE=$(python -c "import json;print(json.load(open('custom_components/pelican/manifest.json'))['version'])")
+          BASE=${BASE%%-*}
+          VERSION="${BASE}-dev.${{ github.run_number }}"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "tag=v${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "Building ${VERSION} from ${GITHUB_SHA}"
+
+      - name: Stamp the version into the workspace copy only
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          path = "custom_components/pelican/manifest.json"
+          with open(path) as handle:
+              manifest = json.load(handle)
+          manifest["version"] = os.environ["VERSION"]
+          with open(path, "w") as handle:
+              json.dump(manifest, handle, indent=2)
+              handle.write("\n")
+          PY
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+
+      - name: Build the installable zip
+        run: |
+          # Contents at the zip root, so it drops straight into
+          # <config>/custom_components/pelican/ on an air-gapped box.
+          cd custom_components/pelican
+          zip -r "${GITHUB_WORKSPACE}/pelican.zip" . -x '*__pycache__*'
+
+      - name: Publish prerelease
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: ${{ steps.version.outputs.tag }}
+          target_commitish: ${{ github.sha }}
+          prerelease: true
+          generate_release_notes: true
+          files: pelican.zip
+          body: |
+            Automated development build from `dev`.
+
+            | | |
+            |---|---|
+            | Version | `${{ steps.version.outputs.version }}` |
+            | Commit | ${{ github.sha }} |
+            | Run | [#${{ github.run_number }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) |
+
+            Gated on lint, consistency, typecheck, tests, hassfest, hacs and
+            gitleaks. Not a stable release — install from a `v*.*.*` tag for
+            production sites.

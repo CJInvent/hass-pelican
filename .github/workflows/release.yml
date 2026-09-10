@@ -1,0 +1,63 @@
+name: Release
+
+# Publishes a stable release from a `vX.Y.Z` tag, behind the same gate set as
+# every other build. Nothing is published from a tag that did not pass.
+
+on:
+  push:
+    tags: ["v[0-9]+.[0-9]+.[0-9]+"]
+
+permissions:
+  contents: write
+
+jobs:
+  gates:
+    uses: ./.github/workflows/ci.yml
+
+  publish:
+    needs: gates
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Assert the tag matches the manifest
+        id: version
+        run: |
+          # Rule 16: manifest.json is the source of truth and a release must
+          # agree with its tag exactly. Catching the mismatch here is the whole
+          # point -- a release whose manifest says 0.2.0 while the tag says
+          # v0.3.0 installs, reports the wrong version forever, and never
+          # prompts an update in HACS.
+          TAG="${GITHUB_REF_NAME#v}"
+          MANIFEST=$(python -c "import json;print(json.load(open('custom_components/pelican/manifest.json'))['version'])")
+          if [ "$TAG" != "$MANIFEST" ]; then
+            echo "::error::tag v${TAG} does not match manifest version ${MANIFEST}."
+            echo "::error::Bump manifest.json and CHANGELOG.md, then re-tag (rule 17)."
+            exit 1
+          fi
+          echo "version=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "Releasing ${TAG}"
+
+      - name: Assert the changelog has an entry
+        run: |
+          # Rule 17. A release with no changelog line means someone tagged
+          # without writing down what changed.
+          if ! grep -q "## \[${{ steps.version.outputs.version }}\]" CHANGELOG.md; then
+            echo "::error::CHANGELOG.md has no '## [${{ steps.version.outputs.version }}]' section (rule 17)."
+            exit 1
+          fi
+
+      - name: Build the installable zip
+        run: |
+          cd custom_components/pelican
+          zip -r "${GITHUB_WORKSPACE}/pelican.zip" . -x '*__pycache__*'
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
+          target_commitish: ${{ github.sha }}
+          prerelease: false
+          generate_release_notes: true
+          files: pelican.zip

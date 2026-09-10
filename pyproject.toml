@@ -1,0 +1,62 @@
+[tool.ruff]
+target-version = "py314"
+line-length = 88
+src = ["custom_components", "tests", "scripts"]
+
+[tool.ruff.lint]
+select = [
+    "ASYNC", # blocking calls in async context (rule 10)
+    "B",     # bugbear
+    "C4",
+    "D",     # docstrings
+    "E",
+    "F",
+    "I",     # import sorting
+    "N",
+    "PIE",
+    "PT",
+    "RET",
+    "RUF",
+    "SIM",
+    "T20",   # no stray print() in the integration
+    "UP",
+    "W",
+]
+ignore = [
+    "D203", # incompatible with D211
+    "D213", # incompatible with D212
+    # Home Assistant entity classes declare _attr_* list defaults at class
+    # level throughout core; matching that convention is more valuable than
+    # satisfying this rule.
+    "RUF012",
+]
+
+[tool.ruff.lint.per-file-ignores]
+# The gates are command line tools; printing is the whole point.
+"scripts/*" = ["T20"]
+"tests/*" = ["D100", "D103", "SLF001"]
+
+[tool.ruff.lint.isort]
+force-sort-within-sections = true
+known-first-party = ["custom_components"]
+combine-as-imports = true
+
+[tool.mypy]
+python_version = "3.14"
+follow_imports = "silent"
+check_untyped_defs = true
+disallow_untyped_defs = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_unused_configs = true
+
+[[tool.mypy.overrides]]
+# Test helpers lean on fixtures whose types come from pytest plugins.
+module = "tests.*"
+disallow_untyped_defs = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+addopts = "-q --strict-markers"

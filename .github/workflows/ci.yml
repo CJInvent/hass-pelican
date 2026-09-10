@@ -1,0 +1,123 @@
+name: CI
+
+# The gate set. Every job here must pass before dev-release.yml or release.yml
+# will publish anything.
+#
+# Tool versions are pinned HERE and only here (dev rule 19).
+# scripts/local-gates.sh parses these values out of this file at runtime, so a
+# bump in one place moves local and CI together. Never add a second copy of a
+# version number.
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
+  workflow_call:
+
+env:
+  PYTHON_VERSION: "3.14"
+  RUFF_VERSION: "0.16.6"
+  MYPY_VERSION: "2.3.1"
+  GITLEAKS_VERSION: "8.30.1"
+  PHCC_VERSION: "0.13.364"
+  AIORESPONSES_VERSION: "0.7.9"
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - run: pip install "ruff==${RUFF_VERSION}"
+      - name: ruff check
+        run: ruff check --output-format=github custom_components scripts tests
+      - name: ruff format
+        run: ruff format --check --diff custom_components scripts tests
+
+  consistency:
+    name: consistency
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      # Enforces dev rules 3, 14, 15 and 16. Pure stdlib, no install step.
+      - run: python scripts/check-consistency.py
+
+  typecheck:
+    name: typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+      # mypy needs the real Home Assistant package to resolve entity base
+      # classes; pytest-homeassistant-custom-component pins the matching
+      # homeassistant release, so one pin governs both this job and tests.
+      - run: |
+          pip install "mypy==${MYPY_VERSION}" \
+                      "pytest-homeassistant-custom-component==${PHCC_VERSION}"
+      - run: mypy custom_components/pelican
+
+  tests:
+    name: tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+      - run: |
+          pip install "pytest-homeassistant-custom-component==${PHCC_VERSION}" \
+                      "aioresponses==${AIORESPONSES_VERSION}"
+      - run: pytest --cov=custom_components.pelican --cov-report=term-missing
+
+  hassfest:
+    name: hassfest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      # Home Assistant's own manifest and brand validator. Catches manifest
+      # fields that look fine to us and are rejected at load time.
+      - uses: home-assistant/actions/hassfest@master
+
+  hacs:
+    name: hacs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: hacs/action@main
+        with:
+          category: integration
+          # This repo is intentionally not submitted to the HACS default store;
+          # it installs as a custom repository. That check would always fail.
+          ignore: brands
+
+  gitleaks:
+    name: gitleaks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # Full history: credentials are only interesting if they were ever
+          # committed, and a shallow clone cannot see that.
+          fetch-depth: 0
+      - name: Install gitleaks
+        run: |
+          curl -sSfL \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" \
+            | tar -xz -C /usr/local/bin gitleaks
+          gitleaks version
+      - name: Scan full history
+        run: gitleaks detect --source . --redact --verbose
