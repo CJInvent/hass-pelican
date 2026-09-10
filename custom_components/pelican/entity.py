@@ -5,26 +5,45 @@ from __future__ import annotations
 from typing import Any
 
 from homeassistant.helpers.device_registry import DeviceInfo
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from homeassistant.helpers.update_coordinator import (
+    CoordinatorEntity,
+    DataUpdateCoordinator,
+)
 
 from .const import DOMAIN, MANUFACTURER, STATUS_UNREACHABLE
-from .coordinator import PelicanCoordinator
+from .coordinator import PelicanData
 
 
-class PelicanEntity(CoordinatorEntity[PelicanCoordinator]):
-    """One entity attached to one Pelican thermostat."""
+class PelicanEntity(CoordinatorEntity[DataUpdateCoordinator[Any]]):
+    """One entity attached to one Pelican thermostat.
+
+    Entities bind to whichever coordinator drives them (thermostat or schedule)
+    but always read identity and availability from the thermostat coordinator,
+    so a schedule-backed entity still goes unavailable when its thermostat does.
+    """
 
     _attr_has_entity_name = True
 
-    def __init__(self, coordinator: PelicanCoordinator, serial: str) -> None:
+    def __init__(
+        self,
+        data: PelicanData,
+        serial: str,
+        coordinator: DataUpdateCoordinator[Any] | None = None,
+    ) -> None:
         """Initialize the entity for a given thermostat serial number."""
-        super().__init__(coordinator)
+        super().__init__(coordinator or data.thermostats)
+        self.data = data
         self._serial = serial
+
+    @property
+    def serial(self) -> str:
+        """Return the thermostat serial number this entity belongs to."""
+        return self._serial
 
     @property
     def thermostat(self) -> dict[str, Any]:
         """Return this thermostat's latest payload."""
-        return (self.coordinator.data or {}).get(self._serial, {})
+        return (self.data.thermostats.data or {}).get(self._serial, {})
 
     def attr(self, key: str) -> str | None:
         """Return a raw attribute as a string, or None when absent/blank."""
@@ -58,8 +77,8 @@ class PelicanEntity(CoordinatorEntity[PelicanCoordinator]):
     def available(self) -> bool:
         """Mark entities unavailable when the site drops the thermostat."""
         return (
-            super().available
-            and self._serial in (self.coordinator.data or {})
+            self.data.thermostats.last_update_success
+            and self._serial in (self.data.thermostats.data or {})
             and self.attr("statusDisplay") != STATUS_UNREACHABLE
         )
 
@@ -73,5 +92,5 @@ class PelicanEntity(CoordinatorEntity[PelicanCoordinator]):
             model=self.attr("modelNo"),
             sw_version=self.attr("version"),
             serial_number=self._serial,
-            configuration_url=f"https://{self.coordinator.api.host}/",
+            configuration_url=f"https://{self.data.api.host}/",
         )
