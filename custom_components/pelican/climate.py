@@ -16,13 +16,15 @@ from homeassistant.components.climate import (
 )
 from homeassistant.const import ATTR_TEMPERATURE, UnitOfTemperature
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import HomeAssistantError
+from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from . import PelicanConfigEntry
-from .api import PelicanError
-from .coordinator import PelicanCoordinator
+from .const import DOMAIN
+from .coordinator import PelicanData
 from .entity import PelicanEntity
+from .errors import PelicanError
+from .repairs import thermostat_has_cloud_schedule
 
 PELICAN_TO_HVAC_MODE = {
     "Off": HVACMode.OFF,
@@ -48,6 +50,8 @@ RUN_STATUS_TO_ACTION = {
 DEFAULT_MIN_TEMP = 40
 DEFAULT_MAX_TEMP = 95
 
+PARALLEL_UPDATES = 0
+
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -55,9 +59,9 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up one climate entity per thermostat found at the site."""
-    coordinator = entry.runtime_data
+    data = entry.runtime_data
     async_add_entities(
-        PelicanClimate(coordinator, serial) for serial in coordinator.data
+        PelicanClimate(data, serial) for serial in (data.thermostats.data or {})
     )
 
 
@@ -69,9 +73,9 @@ class PelicanClimate(PelicanEntity, ClimateEntity):
     _attr_fan_modes = [FAN_AUTO, FAN_ON]
     _attr_hvac_modes = [HVACMode.OFF, HVACMode.HEAT, HVACMode.COOL, HVACMode.HEAT_COOL]
 
-    def __init__(self, coordinator: PelicanCoordinator, serial: str) -> None:
+    def __init__(self, data: PelicanData, serial: str) -> None:
         """Initialize the thermostat entity."""
-        super().__init__(coordinator, serial)
+        super().__init__(data, serial)
         self._attr_unique_id = serial
 
     @property
@@ -168,15 +172,26 @@ class PelicanClimate(PelicanEntity, ClimateEntity):
             "status_display": self.attr("statusDisplay"),
             "schedule": self.attr("schedule"),
             "serial_number": self._serial,
+            # Surfaced here as well as on the binary sensor because this is the
+            # entity people put on a dashboard and automate against.
+            "cloud_schedule_active": thermostat_has_cloud_schedule(
+                self.thermostat,
+                bool((self.data.schedules.data or {}).get(self._serial)),
+            ),
         }
 
     async def _apply(self, values: dict[str, Any]) -> None:
         """Send a set request, translating API failures into HA errors."""
         try:
-            await self.coordinator.async_apply(self._serial, values)
+            await self.data.thermostats.async_apply(self._serial, values)
         except PelicanError as err:
             raise HomeAssistantError(
-                f"Pelican rejected the change for {self.name or self._serial}: {err}"
+                translation_domain=DOMAIN,
+                translation_key="write_failed",
+                translation_placeholders={
+                    "name": str(self.name or self._serial),
+                    "error": str(err),
+                },
             ) from err
 
     async def async_set_hvac_mode(self, hvac_mode: HVACMode) -> None:
@@ -219,9 +234,13 @@ class PelicanClimate(PelicanEntity, ClimateEntity):
             elif target_mode == HVACMode.COOL:
                 values["coolSetting"] = round(temperature)
             else:
-                raise HomeAssistantError(
-                    "Set target_temp_low and target_temp_high instead of temperature "
-                    "when the thermostat is in Auto or Off"
+                raise ServiceValidationError(
+                    translation_domain=DOMAIN,
+                    translation_key="single_setpoint_in_auto",
+                    translation_placeholders={
+                        "name": str(self.name or self._serial),
+                        "mode": str(target_mode),
+                    },
                 )
 
         if not values:

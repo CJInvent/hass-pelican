@@ -1,0 +1,80 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect to your Pelican site",
+        "description": "Enter your Pelican Site Manager hostname and the credentials of a Pelican user account. Create a dedicated non-personal user in Site Manager under User Management for this.",
+        "data": {
+          "host": "Site hostname",
+          "username": "Username (email)",
+          "password": "Password"
+        },
+        "data_description": {
+          "host": "For example: yoursite.officeclimatecontrol.net"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Re-authenticate with Pelican",
+        "description": "The credentials for {host} were rejected. Enter working credentials.",
+        "data": {
+          "username": "Username (email)",
+          "password": "Password"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Could not reach the site. Check the hostname, DNS, and outbound internet access. See the log for the exact network error.",
+      "invalid_auth": "The site rejected those credentials. Check the user exists in Site Manager under User Management.",
+      "bad_response": "The site answered with something unexpected instead of API data. Check the hostname and that the OpenAPI is available on this account. See the log for details.",
+      "api_error": "The site understood the request and refused it. The reason is in the log.",
+      "no_thermostats": "Connected, but the site reported no thermostats for this user.",
+      "unknown": "Unexpected error. Check the Home Assistant log."
+    },
+    "abort": {
+      "already_configured": "This Pelican site is already set up.",
+      "reauth_successful": "Re-authentication was successful."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Pelican options",
+        "data": {
+          "scan_interval": "Poll interval (seconds)"
+        },
+        "data_description": {
+          "scan_interval": "How often to poll the site. The Pelican API has no rate limit, and one request covers every thermostat. Schedules are polled separately every 30 minutes."
+        }
+      }
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "cloud_schedule": { "name": "Cloud schedule" }
+    },
+    "sensor": {
+      "status_display": { "name": "Status" },
+      "run_status": { "name": "Run status" },
+      "set_by": { "name": "Set by" },
+      "next_schedule_change": { "name": "Next schedule change" }
+    },
+    "switch": {
+      "schedule": { "name": "Schedule" },
+      "keypad": { "name": "Keypad unlocked" }
+    }
+  },
+  "exceptions": {
+    "write_failed": {
+      "message": "Pelican rejected the change for {name}: {error}"
+    },
+    "single_setpoint_in_auto": {
+      "message": "{name} is in {mode}, which uses a heat and a cool setpoint. Set target_temp_low and target_temp_high instead of temperature."
+    }
+  },
+  "issues": {
+    "cloud_schedule_active": {
+      "title": "Pelican schedules will override Home Assistant",
+      "description": "{count} thermostat(s) at {site} are running a schedule configured in Pelican Site Manager: {thermostats}.\n\nA temperature set from a Home Assistant automation or dashboard holds only until the schedule's next set time, then reverts. The API call succeeds either way, so nothing appears to fail.\n\nTo let Home Assistant own the setpoints, turn off the Schedule switch for those thermostats. To keep the Pelican schedule authoritative, gate your automations on the Cloud schedule binary sensor and use the Next schedule change sensor to see when it acts. Either choice clears this warning only in the first case; it is informational and will return if a schedule is re-enabled."
+    }
+  }
+}

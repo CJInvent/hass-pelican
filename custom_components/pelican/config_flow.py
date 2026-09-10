@@ -23,8 +23,15 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
 
-from .api import PelicanApi, PelicanAuthError, PelicanError, normalize_host
+from .api import PelicanApi, normalize_host
 from .const import DEFAULT_SCAN_INTERVAL, DOMAIN, MAX_SCAN_INTERVAL, MIN_SCAN_INTERVAL
+from .errors import (
+    PelicanApiError,
+    PelicanAuthError,
+    PelicanConnectionError,
+    PelicanError,
+    PelicanResponseError,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -44,6 +51,47 @@ async def _validate(hass, host: str, username: str, password: str) -> int:
     return len(thermostats)
 
 
+async def _try_validate(
+    hass, host: str, username: str, password: str
+) -> tuple[int | None, str | None]:
+    """Validate, returning the thermostat count or a form error key.
+
+    Every failure is logged as well as shown, because the form only has room for
+    one sentence and the log is where the actual site message lives.
+    """
+    try:
+        found = await _validate(hass, host, username, password)
+    except PelicanAuthError as err:
+        _LOGGER.error("Pelican site %s rejected the credentials: %s", host, err)
+        return None, "invalid_auth"
+    except PelicanConnectionError as err:
+        _LOGGER.error("Cannot reach Pelican site %s: %s", host, err)
+        return None, "cannot_connect"
+    except PelicanResponseError as err:
+        _LOGGER.error("Unexpected response from Pelican site %s: %s", host, err)
+        return None, "bad_response"
+    except PelicanApiError as err:
+        _LOGGER.error("Pelican site %s refused the request: %s", host, err)
+        return None, "api_error"
+    except PelicanError as err:
+        _LOGGER.error("Pelican site %s failed validation: %s", host, err)
+        return None, "cannot_connect"
+    except Exception:
+        _LOGGER.exception("Unexpected error validating Pelican site %s", host)
+        return None, "unknown"
+
+    if not found:
+        _LOGGER.error(
+            "Pelican site %s accepted the credentials but reported no "
+            "thermostats for that user",
+            host,
+        )
+        return None, "no_thermostats"
+
+    _LOGGER.debug("Pelican site %s validated with %s thermostat(s)", host, found)
+    return found, None
+
+
 class PelicanConfigFlow(ConfigFlow, domain=DOMAIN):
     """Handle adding a Pelican site."""
 
@@ -60,32 +108,23 @@ class PelicanConfigFlow(ConfigFlow, domain=DOMAIN):
             await self.async_set_unique_id(host.lower())
             self._abort_if_unique_id_configured()
 
-            try:
-                found = await _validate(
-                    self.hass,
-                    host,
-                    user_input[CONF_USERNAME],
-                    user_input[CONF_PASSWORD],
-                )
-            except PelicanAuthError:
-                errors["base"] = "invalid_auth"
-            except PelicanError:
-                errors["base"] = "cannot_connect"
-            except Exception:
-                _LOGGER.exception("Unexpected error validating Pelican site")
-                errors["base"] = "unknown"
+            _found, error = await _try_validate(
+                self.hass,
+                host,
+                user_input[CONF_USERNAME],
+                user_input[CONF_PASSWORD],
+            )
+            if error:
+                errors["base"] = error
             else:
-                if not found:
-                    errors["base"] = "no_thermostats"
-                else:
-                    return self.async_create_entry(
-                        title=host,
-                        data={
-                            CONF_HOST: host,
-                            CONF_USERNAME: user_input[CONF_USERNAME],
-                            CONF_PASSWORD: user_input[CONF_PASSWORD],
-                        },
-                    )
+                return self.async_create_entry(
+                    title=host,
+                    data={
+                        CONF_HOST: host,
+                        CONF_USERNAME: user_input[CONF_USERNAME],
+                        CONF_PASSWORD: user_input[CONF_PASSWORD],
+                    },
+                )
 
         return self.async_show_form(
             step_id="user",
@@ -109,17 +148,14 @@ class PelicanConfigFlow(ConfigFlow, domain=DOMAIN):
         entry = self._get_reauth_entry()
 
         if user_input is not None:
-            try:
-                await _validate(
-                    self.hass,
-                    entry.data[CONF_HOST],
-                    user_input[CONF_USERNAME],
-                    user_input[CONF_PASSWORD],
-                )
-            except PelicanAuthError:
-                errors["base"] = "invalid_auth"
-            except PelicanError:
-                errors["base"] = "cannot_connect"
+            _found, error = await _try_validate(
+                self.hass,
+                entry.data[CONF_HOST],
+                user_input[CONF_USERNAME],
+                user_input[CONF_PASSWORD],
+            )
+            if error:
+                errors["base"] = error
             else:
                 return self.async_update_reload_and_abort(
                     entry,
