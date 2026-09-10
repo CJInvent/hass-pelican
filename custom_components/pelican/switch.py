@@ -11,9 +11,12 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from . import PelicanConfigEntry
-from .api import PelicanError
-from .coordinator import PelicanCoordinator
+from .const import DOMAIN, SCHEDULE_OFF
+from .coordinator import PelicanData
 from .entity import PelicanEntity
+from .errors import PelicanError
+
+PARALLEL_UPDATES = 0
 
 
 async def async_setup_entry(
@@ -22,11 +25,11 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up the schedule and keypad switches for every thermostat."""
-    coordinator = entry.runtime_data
+    data = entry.runtime_data
     entities: list[PelicanEntity] = []
-    for serial in coordinator.data:
-        entities.append(PelicanScheduleSwitch(coordinator, serial))
-        entities.append(PelicanKeypadSwitch(coordinator, serial))
+    for serial in data.thermostats.data or {}:
+        entities.append(PelicanScheduleSwitch(data, serial))
+        entities.append(PelicanKeypadSwitch(data, serial))
     async_add_entities(entities)
 
 
@@ -38,10 +41,17 @@ class PelicanSwitchBase(PelicanEntity, SwitchEntity):
     async def _apply(self, value: str) -> None:
         """Write one attribute, converting API failures into HA errors."""
         try:
-            await self.coordinator.async_apply(self._serial, {self._attribute: value})
+            await self.data.thermostats.async_apply(
+                self._serial, {self._attribute: value}
+            )
         except PelicanError as err:
             raise HomeAssistantError(
-                f"Pelican rejected the change for {self._serial}: {err}"
+                translation_domain=DOMAIN,
+                translation_key="write_failed",
+                translation_placeholders={
+                    "name": str(self.name or self._serial),
+                    "error": str(err),
+                },
             ) from err
 
 
@@ -56,9 +66,9 @@ class PelicanScheduleSwitch(PelicanSwitchBase):
     _attr_translation_key = "schedule"
     _attr_entity_category = EntityCategory.CONFIG
 
-    def __init__(self, coordinator: PelicanCoordinator, serial: str) -> None:
+    def __init__(self, data: PelicanData, serial: str) -> None:
         """Initialize the schedule switch."""
-        super().__init__(coordinator, serial)
+        super().__init__(data, serial)
         self._attr_unique_id = f"{serial}_schedule"
         self._last_active_schedule = "On"
 
@@ -68,7 +78,7 @@ class PelicanScheduleSwitch(PelicanSwitchBase):
         value = self.attr("schedule")
         if value is None:
             return None
-        if value != "Off":
+        if value != SCHEDULE_OFF:
             # Remember shared schedule names so turning the switch back on
             # restores the same schedule rather than falling back to "On".
             self._last_active_schedule = value
@@ -81,7 +91,7 @@ class PelicanScheduleSwitch(PelicanSwitchBase):
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Disable the schedule so manual setpoints hold."""
-        await self._apply("Off")
+        await self._apply(SCHEDULE_OFF)
 
 
 class PelicanKeypadSwitch(PelicanSwitchBase):
@@ -91,9 +101,9 @@ class PelicanKeypadSwitch(PelicanSwitchBase):
     _attr_translation_key = "keypad"
     _attr_entity_category = EntityCategory.CONFIG
 
-    def __init__(self, coordinator: PelicanCoordinator, serial: str) -> None:
+    def __init__(self, data: PelicanData, serial: str) -> None:
         """Initialize the keypad switch."""
-        super().__init__(coordinator, serial)
+        super().__init__(data, serial)
         self._attr_unique_id = f"{serial}_keypad"
 
     @property

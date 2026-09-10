@@ -1,9 +1,10 @@
-"""Diagnostic sensors for Pelican thermostats."""
+"""Sensors for Pelican thermostats."""
 
 from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
+from datetime import datetime
 
 from homeassistant.components.sensor import (
     SensorDeviceClass,
@@ -16,16 +17,29 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from . import PelicanConfigEntry
-from .coordinator import PelicanCoordinator
+from .coordinator import PelicanData
 from .entity import PelicanEntity
+from .schedule import next_change
+
+PARALLEL_UPDATES = 0
 
 
 @dataclass(frozen=True, kw_only=True)
 class PelicanSensorDescription(SensorEntityDescription):
     """Describes a Pelican sensor and how to read it off the payload."""
 
-    value_fn: Callable[[PelicanEntity], str | float | None]
+    value_fn: Callable[[PelicanEntity], str | float | datetime | None]
     exists_fn: Callable[[PelicanEntity], bool] = lambda entity: True
+    # Schedule-backed sensors follow the slow schedule coordinator instead of
+    # the 60 second thermostat poll.
+    from_schedules: bool = False
+
+
+def _next_schedule_change(entity: PelicanEntity) -> datetime | None:
+    """Return when this thermostat's schedule next changes its settings."""
+    entries = (entity.data.schedules.data or {}).get(entity.serial, [])
+    upcoming = next_change(entries)
+    return upcoming[0] if upcoming is not None else None
 
 
 SENSORS: tuple[PelicanSensorDescription, ...] = (
@@ -48,6 +62,14 @@ SENSORS: tuple[PelicanSensorDescription, ...] = (
         value_fn=lambda entity: entity.attr("setBy"),
     ),
     PelicanSensorDescription(
+        key="next_schedule_change",
+        translation_key="next_schedule_change",
+        device_class=SensorDeviceClass.TIMESTAMP,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        from_schedules=True,
+        value_fn=_next_schedule_change,
+    ),
+    PelicanSensorDescription(
         key="co2",
         device_class=SensorDeviceClass.CO2,
         state_class=SensorStateClass.MEASUREMENT,
@@ -64,12 +86,12 @@ async def async_setup_entry(
     entry: PelicanConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up the diagnostic sensors for every thermostat."""
-    coordinator = entry.runtime_data
+    """Set up the sensors for every thermostat."""
+    data = entry.runtime_data
     entities: list[PelicanSensor] = []
-    for serial in coordinator.data:
+    for serial in data.thermostats.data or {}:
         for description in SENSORS:
-            sensor = PelicanSensor(coordinator, serial, description)
+            sensor = PelicanSensor(data, serial, description)
             if description.exists_fn(sensor):
                 entities.append(sensor)
     async_add_entities(entities)
@@ -82,16 +104,20 @@ class PelicanSensor(PelicanEntity, SensorEntity):
 
     def __init__(
         self,
-        coordinator: PelicanCoordinator,
+        data: PelicanData,
         serial: str,
         description: PelicanSensorDescription,
     ) -> None:
         """Initialize the sensor."""
-        super().__init__(coordinator, serial)
+        super().__init__(
+            data,
+            serial,
+            coordinator=data.schedules if description.from_schedules else None,
+        )
         self.entity_description = description
         self._attr_unique_id = f"{serial}_{description.key}"
 
     @property
-    def native_value(self) -> str | float | None:
+    def native_value(self) -> str | float | datetime | None:
         """Return the current value."""
         return self.entity_description.value_fn(self)
