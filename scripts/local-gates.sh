@@ -12,7 +12,8 @@
 #   hassfest  - a containerized Home Assistant action; there is no supported
 #               standalone invocation. It only ever fails on manifest edits.
 #   hacs      - likewise a container action. Fails only on repo-structure or
-#               hacs.json changes.
+#               hacs.json changes, or on repository metadata such as topics,
+#               which live in GitHub settings rather than in the repo.
 # Both are cheap and run on every push. If you touched manifest.json, hacs.json
 # or moved files around, push to a branch and read those two jobs rather than
 # assuming this script covered you.
@@ -47,7 +48,6 @@ RUFF_VERSION="$(pin RUFF_VERSION)"
 MYPY_VERSION="$(pin MYPY_VERSION)"
 GITLEAKS_VERSION="$(pin GITLEAKS_VERSION)"
 PHCC_VERSION="$(pin PHCC_VERSION)"
-AIORESPONSES_VERSION="$(pin AIORESPONSES_VERSION)"
 
 echo "pins from ${CI_FILE}: python=${PYTHON_VERSION} ruff=${RUFF_VERSION} mypy=${MYPY_VERSION} phcc=${PHCC_VERSION} gitleaks=${GITLEAKS_VERSION}"
 
@@ -60,7 +60,7 @@ if ! command -v "$PY" >/dev/null 2>&1; then
 fi
 
 STAMP="${VENV}/.pins"
-WANT="${RUFF_VERSION} ${MYPY_VERSION} ${PHCC_VERSION} ${AIORESPONSES_VERSION}"
+WANT="${RUFF_VERSION} ${MYPY_VERSION} ${PHCC_VERSION}"
 if [[ ! -f "$STAMP" || "$(cat "$STAMP")" != "$WANT" ]]; then
   echo "==> creating ${VENV} at the pinned versions (first run takes a few minutes)"
   rm -rf "$VENV"
@@ -69,8 +69,7 @@ if [[ ! -f "$STAMP" || "$(cat "$STAMP")" != "$WANT" ]]; then
   "${VENV}/bin/pip" install -q \
     "ruff==${RUFF_VERSION}" \
     "mypy==${MYPY_VERSION}" \
-    "pytest-homeassistant-custom-component==${PHCC_VERSION}" \
-    "aioresponses==${AIORESPONSES_VERSION}"
+    "pytest-homeassistant-custom-component==${PHCC_VERSION}"
   printf '%s' "$WANT" > "$STAMP"
 fi
 BIN="${REPO_ROOT}/${VENV}/bin"
@@ -112,7 +111,7 @@ gate "gitleaks" "$GITLEAKS_BIN" detect --source . --redact --verbose
 echo
 if (( ${#FAILED[@]} )); then
   echo "GATES FAILED: ${FAILED[*]}"
-  echo "hassfest and hacs were not run here — see the header if you touched manifest.json or hacs.json."
+  echo "hassfest and hacs were not run here \u2014 see the header if you touched manifest.json or hacs.json."
   exit 1
 fi
 

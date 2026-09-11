@@ -21,7 +21,6 @@ env:
   MYPY_VERSION: "2.3.1"
   GITLEAKS_VERSION: "8.30.1"
   PHCC_VERSION: "0.13.364"
-  AIORESPONSES_VERSION: "0.7.9"
 
 permissions:
   contents: read
@@ -78,9 +77,10 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
-      - run: |
-          pip install "pytest-homeassistant-custom-component==${PHCC_VERSION}" \
-                      "aioresponses==${AIORESPONSES_VERSION}"
+      # No HTTP mocking library: the tests use Home Assistant's own
+      # aioclient_mock, which ships with PHCC and tracks the aiohttp actually
+      # in use. A third-party mock broke on an aiohttp internal once already.
+      - run: pip install "pytest-homeassistant-custom-component==${PHCC_VERSION}"
       - run: pytest --cov=custom_components.pelican --cov-report=term-missing
 
   hassfest:

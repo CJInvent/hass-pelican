@@ -1,15 +1,24 @@
-"""Tests for the raw api.cgi client."""
+"""Tests for the raw api.cgi client.
+
+These use Home Assistant's own `aioclient_mock` fixture rather than a
+third-party HTTP mock. The third-party one broke against the aiohttp that
+Home Assistant ships (`ClientResponse.__init__() missing 'stream_writer'`),
+which is the standard failure mode for anything that reimplements aiohttp
+internals. `aioclient_mock` is maintained against the exact aiohttp in use, so
+it cannot drift out from under us, and it removes a dev dependency.
+"""
 
 from __future__ import annotations
 
-import re
+import logging
 
 import aiohttp
-from aioresponses import aioresponses
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 import pytest
 
 from custom_components.pelican.api import (
     SCHEDULE_ATTRIBUTES,
+    SITE_ATTRIBUTES,
     THERMOSTAT_ATTRIBUTES,
     PelicanApi,
     normalize_host,
@@ -24,7 +33,22 @@ from custom_components.pelican.errors import (
 
 from .conftest import THERMOSTAT_LOBBY, THERMOSTAT_SHOP
 
-ANY_API = re.compile(r"^https://[^/]+/api\.cgi.*$")
+HOST = "site.example.com"
+API_URL = f"https://{HOST}/api.cgi"
+
+
+def _api(hass) -> PelicanApi:
+    """Build a client bound to the Home Assistant session the mocker patches."""
+    return PelicanApi(async_get_clientsession(hass), HOST, "u", "p")
+
+
+def _query(aioclient_mock, index: int = 0):
+    """Return the query string of a recorded request.
+
+    The mocker records the URL with params already merged in, so this is what
+    the site would actually have received.
+    """
+    return aioclient_mock.mock_calls[index][1].query
 
 
 @pytest.mark.parametrize(
@@ -45,189 +69,200 @@ def test_normalize_host(supplied: str, expected: str) -> None:
     assert normalize_host(supplied) == expected
 
 
-async def test_get_single_thermostat_is_wrapped_in_a_list(hass) -> None:
+async def test_get_single_thermostat_is_wrapped_in_a_list(hass, aioclient_mock) -> None:
     """A site with one thermostat returns an object, not an array."""
-    api = PelicanApi(_session(hass), "site.example.com", "u", "p")
-    with aioresponses() as mocked:
-        mocked.get(
-            ANY_API,
-            payload={"Thermostat": dict(THERMOSTAT_LOBBY), "success": "1"},
-        )
-        result = await api.async_get_thermostats()
+    aioclient_mock.get(
+        API_URL, json={"Thermostat": dict(THERMOSTAT_LOBBY), "success": "1"}
+    )
+
+    result = await _api(hass).async_get_thermostats()
 
     assert len(result) == 1
     assert result[0]["serialNo"] == "41111"
 
 
-async def test_get_multiple_thermostats(hass) -> None:
+async def test_get_multiple_thermostats(hass, aioclient_mock) -> None:
     """Several thermostats come back as a list and are passed through."""
-    api = PelicanApi(_session(hass), "site.example.com", "u", "p")
-    with aioresponses() as mocked:
-        mocked.get(
-            ANY_API,
-            payload={
-                "Thermostat": [dict(THERMOSTAT_LOBBY), dict(THERMOSTAT_SHOP)],
-                "success": "1",
-            },
-        )
-        result = await api.async_get_thermostats()
+    aioclient_mock.get(
+        API_URL,
+        json={
+            "Thermostat": [dict(THERMOSTAT_LOBBY), dict(THERMOSTAT_SHOP)],
+            "success": "1",
+        },
+    )
+
+    result = await _api(hass).async_get_thermostats()
 
     assert [item["serialNo"] for item in result] == ["41111", "41112"]
 
 
-async def test_request_asks_for_every_polled_attribute(hass) -> None:
+async def test_request_asks_for_every_polled_attribute(hass, aioclient_mock) -> None:
     """The value list sent to the site matches THERMOSTAT_ATTRIBUTES (rule 3)."""
-    api = PelicanApi(_session(hass), "site.example.com", "u", "p")
-    with aioresponses() as mocked:
-        mocked.get(ANY_API, payload={"Thermostat": [], "success": "1"})
-        await api.async_get_thermostats()
-        request = next(iter(mocked.requests.values()))[0]
+    aioclient_mock.get(API_URL, json={"Thermostat": [], "success": "1"})
 
-    sent = request.kwargs["params"]["value"].split(";")
-    assert sent == list(THERMOSTAT_ATTRIBUTES)
+    await _api(hass).async_get_thermostats()
+
+    query = _query(aioclient_mock)
+    assert query["object"] == "Thermostat"
+    assert query["value"].split(";") == list(THERMOSTAT_ATTRIBUTES)
 
 
-async def test_bad_credentials_raise_auth_error(hass) -> None:
+async def test_schedule_request_asks_for_every_polled_attribute(
+    hass, aioclient_mock
+) -> None:
+    """The schedule value list matches SCHEDULE_ATTRIBUTES (rule 3)."""
+    aioclient_mock.get(API_URL, json={"ThermostatSchedule": [], "success": "1"})
+
+    await _api(hass).async_get_schedules()
+
+    query = _query(aioclient_mock)
+    assert query["object"] == "ThermostatSchedule"
+    assert query["value"].split(";") == list(SCHEDULE_ATTRIBUTES)
+
+
+async def test_site_request_asks_for_every_polled_attribute(
+    hass, aioclient_mock
+) -> None:
+    """The site value list matches SITE_ATTRIBUTES (rule 3)."""
+    aioclient_mock.get(
+        API_URL, json={"Site": {"timeZone": "US/Central"}, "success": "1"}
+    )
+
+    site = await _api(hass).async_get_site()
+
+    query = _query(aioclient_mock)
+    assert query["object"] == "Site"
+    assert query["value"].split(";") == list(SITE_ATTRIBUTES)
+    assert site["timeZone"] == "US/Central"
+
+
+async def test_site_with_no_row_returns_empty(hass, aioclient_mock) -> None:
+    """A site that reports nothing is an empty dict, not a crash."""
+    aioclient_mock.get(API_URL, json={"success": "1"})
+
+    assert await _api(hass).async_get_site() == {}
+
+
+async def test_bad_credentials_raise_auth_error(hass, aioclient_mock) -> None:
     """An authentication message is distinguished from a generic failure."""
-    api = PelicanApi(_session(hass), "site.example.com", "u", "p")
-    with aioresponses() as mocked:
-        mocked.get(
-            ANY_API,
-            payload={"success": "0", "message": "Invalid username or password."},
-        )
-        with pytest.raises(PelicanAuthError):
-            await api.async_get_thermostats()
+    aioclient_mock.get(
+        API_URL, json={"success": "0", "message": "Invalid username or password."}
+    )
+
+    with pytest.raises(PelicanAuthError):
+        await _api(hass).async_get_thermostats()
 
 
-async def test_other_failure_raises_generic_error(hass) -> None:
-    """A non-auth failure stays a PelicanError so it retries rather than reauths."""
-    api = PelicanApi(_session(hass), "site.example.com", "u", "p")
-    with aioresponses() as mocked:
-        mocked.get(
-            ANY_API,
-            payload={
-                "success": "0",
-                "message": "No thermostats found matching selection criteria.",
-            },
-        )
-        with pytest.raises(PelicanApiError) as err:
-            await api.async_get_thermostats()
-        assert not isinstance(err.value, PelicanAuthError)
+async def test_permission_message_is_treated_as_auth(hass, aioclient_mock) -> None:
+    """A permission refusal routes to reauth rather than being retried forever."""
+    aioclient_mock.get(
+        API_URL, json={"success": "0", "message": "User does not have permission."}
+    )
+
+    with pytest.raises(PelicanAuthError):
+        await _api(hass).async_get_thermostats()
 
 
-async def test_non_json_response_raises(hass) -> None:
-    """A login page instead of JSON is reported as a site problem, not a crash."""
-    api = PelicanApi(_session(hass), "site.example.com", "u", "p")
-    with aioresponses() as mocked:
-        mocked.get(ANY_API, body="<html><body>Sign in</body></html>")
-        with pytest.raises(PelicanResponseError, match="non-JSON"):
-            await api.async_get_thermostats()
+async def test_other_failure_raises_generic_error(hass, aioclient_mock) -> None:
+    """A non-auth refusal stays retryable rather than triggering reauth."""
+    aioclient_mock.get(
+        API_URL,
+        json={
+            "success": "0",
+            "message": "No thermostats found matching selection criteria.",
+        },
+    )
 
-
-async def test_set_builds_semicolon_delimited_pairs(hass) -> None:
-    """Set requests select by serial and send colon/semicolon delimited pairs."""
-    api = PelicanApi(_session(hass), "site.example.com", "u", "p")
-    with aioresponses() as mocked:
-        mocked.get(ANY_API, payload={"success": "1", "message": "Updated 1"})
-        await api.async_set_thermostat("41111", {"system": "Cool", "coolSetting": 72})
-        request = next(iter(mocked.requests.values()))[0]
-
-    params = request.kwargs["params"]
-    assert params["request"] == "set"
-    assert params["selection"] == "serialNo:41111;"
-    assert params["value"] == "system:Cool;coolSetting:72"
-
-
-async def test_set_with_no_values_makes_no_request(hass) -> None:
-    """An empty change is a no-op, not an empty write."""
-    api = PelicanApi(_session(hass), "site.example.com", "u", "p")
-    with aioresponses() as mocked:
-        await api.async_set_thermostat("41111", {})
-        assert not mocked.requests
-
-
-def _session(hass):
-    """Return the shared Home Assistant aiohttp session."""
-    from homeassistant.helpers.aiohttp_client import async_get_clientsession
-
-    return async_get_clientsession(hass)
-
-
-async def test_http_401_is_an_auth_error(hass) -> None:
-    """An HTTP 401 becomes reauth, not a retry loop."""
-    api = PelicanApi(_session(hass), "site.example.com", "u", "p")
-    with aioresponses() as mocked:
-        mocked.get(ANY_API, status=401, body="Unauthorized")
-        with pytest.raises(PelicanAuthError, match="401"):
-            await api.async_get_thermostats()
-
-
-async def test_http_500_is_a_response_error(hass) -> None:
-    """A server error is reported as a response problem, not bad credentials."""
-    api = PelicanApi(_session(hass), "site.example.com", "u", "p")
-    with aioresponses() as mocked:
-        mocked.get(ANY_API, status=500, body="boom")
-        with pytest.raises(PelicanResponseError, match="500"):
-            await api.async_get_thermostats()
-
-
-async def test_connection_failure_is_distinct(hass) -> None:
-    """An unreachable host is a connection error, distinguishable from the rest."""
-    api = PelicanApi(_session(hass), "site.example.com", "u", "p")
-    with aioresponses() as mocked:
-        mocked.get(
-            ANY_API, exception=aiohttp.ClientConnectorError(None, OSError("no route"))
-        )
-        with pytest.raises(PelicanConnectionError) as err:
-            await api.async_get_thermostats()
+    with pytest.raises(PelicanApiError) as err:
+        await _api(hass).async_get_thermostats()
     assert not isinstance(err.value, PelicanAuthError)
 
 
-async def test_timeout_is_distinct(hass) -> None:
+async def test_non_json_response_raises(hass, aioclient_mock) -> None:
+    """A login page instead of JSON is reported as a site problem, not a crash."""
+    aioclient_mock.get(API_URL, text="<html><body>Sign in</body></html>")
+
+    with pytest.raises(PelicanResponseError, match="non-JSON"):
+        await _api(hass).async_get_thermostats()
+
+
+async def test_non_object_payload_raises(hass, aioclient_mock) -> None:
+    """Valid JSON of the wrong shape is called out as an API change."""
+    aioclient_mock.get(API_URL, text="[1, 2, 3]")
+
+    with pytest.raises(PelicanResponseError, match="list"):
+        await _api(hass).async_get_thermostats()
+
+
+async def test_http_401_is_an_auth_error(hass, aioclient_mock) -> None:
+    """An HTTP 401 becomes reauth, not a retry loop."""
+    aioclient_mock.get(API_URL, status=401, text="Unauthorized")
+
+    with pytest.raises(PelicanAuthError, match="401"):
+        await _api(hass).async_get_thermostats()
+
+
+async def test_http_500_is_a_response_error(hass, aioclient_mock) -> None:
+    """A server error is reported as a response problem, not bad credentials."""
+    aioclient_mock.get(API_URL, status=500, text="boom")
+
+    with pytest.raises(PelicanResponseError, match="500"):
+        await _api(hass).async_get_thermostats()
+
+
+async def test_connection_failure_is_distinct(hass, aioclient_mock) -> None:
+    """An unreachable host is a connection error, distinguishable from the rest.
+
+    A bare aiohttp.ClientConnectionError is used rather than the more specific
+    ClientConnectorError: the latter's constructor takes an internal
+    ConnectionKey whose shape changes between aiohttp releases, so building one
+    in a test couples the suite to aiohttp internals for no added coverage. Both
+    reach the same handler and produce PelicanConnectionError; only the message
+    text differs.
+    """
+    aioclient_mock.get(API_URL, exc=aiohttp.ClientConnectionError("no route to host"))
+
+    with pytest.raises(PelicanConnectionError) as err:
+        await _api(hass).async_get_thermostats()
+    assert not isinstance(err.value, PelicanAuthError)
+
+
+async def test_timeout_is_distinct(hass, aioclient_mock) -> None:
     """A hung site is a timeout, not a generic network error."""
-    api = PelicanApi(_session(hass), "site.example.com", "u", "p")
-    with aioresponses() as mocked:
-        mocked.get(ANY_API, exception=TimeoutError())
-        with pytest.raises(PelicanTimeoutError):
-            await api.async_get_thermostats()
+    aioclient_mock.get(API_URL, exc=TimeoutError())
+
+    with pytest.raises(PelicanTimeoutError):
+        await _api(hass).async_get_thermostats()
 
 
-async def test_permission_message_is_treated_as_auth(hass) -> None:
-    """A permission refusal routes to reauth rather than being retried forever."""
-    api = PelicanApi(_session(hass), "site.example.com", "u", "p")
-    with aioresponses() as mocked:
-        mocked.get(
-            ANY_API,
-            payload={"success": "0", "message": "User does not have permission."},
-        )
-        with pytest.raises(PelicanAuthError):
-            await api.async_get_thermostats()
+async def test_set_builds_semicolon_delimited_pairs(hass, aioclient_mock) -> None:
+    """Set requests select by serial and send colon/semicolon delimited pairs."""
+    aioclient_mock.get(API_URL, json={"success": "1", "message": "Updated 1"})
+
+    await _api(hass).async_set_thermostat("41111", {"system": "Cool", "coolSetting": 72})
+
+    query = _query(aioclient_mock)
+    assert query["request"] == "set"
+    assert query["selection"] == "serialNo:41111;"
+    assert query["value"] == "system:Cool;coolSetting:72"
 
 
-async def test_no_credential_reaches_the_log(hass, caplog) -> None:
+async def test_set_with_no_values_makes_no_request(hass, aioclient_mock) -> None:
+    """An empty change is a no-op, not an empty write."""
+    await _api(hass).async_set_thermostat("41111", {})
+
+    assert aioclient_mock.call_count == 0
+
+
+async def test_no_credential_reaches_the_log(hass, aioclient_mock, caplog) -> None:
     """Rule 11: the request URL carries credentials and must never be logged."""
-    import logging
+    aioclient_mock.get(API_URL, json={"Thermostat": [], "success": "1"})
+    api = PelicanApi(async_get_clientsession(hass), HOST, "user@example.com", "sekrit")
 
-    api = PelicanApi(_session(hass), "site.example.com", "user@example.com", "sekrit")
-    with (
-        caplog.at_level(logging.DEBUG, logger="custom_components.pelican.api"),
-        aioresponses() as mocked,
-    ):
-        mocked.get(ANY_API, payload={"Thermostat": [], "success": "1"})
+    with caplog.at_level(logging.DEBUG, logger="custom_components.pelican.api"):
         await api.async_get_thermostats()
 
     assert "sekrit" not in caplog.text
     assert "user@example.com" not in caplog.text
-
-
-async def test_schedule_request_asks_for_every_polled_attribute(hass) -> None:
-    """The schedule value list matches SCHEDULE_ATTRIBUTES (rule 3)."""
-    api = PelicanApi(_session(hass), "site.example.com", "u", "p")
-    with aioresponses() as mocked:
-        mocked.get(ANY_API, payload={"ThermostatSchedule": [], "success": "1"})
-        await api.async_get_schedules()
-        request = next(iter(mocked.requests.values()))[0]
-
-    params = request.kwargs["params"]
-    assert params["object"] == "ThermostatSchedule"
-    assert params["value"].split(";") == list(SCHEDULE_ATTRIBUTES)
+    # The request was still described, just without the credential-bearing URL.
+    assert "Requesting get Thermostat" in caplog.text
