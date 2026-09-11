@@ -28,6 +28,10 @@ section.
   gone from the API, so a restart between turning it off and back on would
   previously have sent a literal `On` and detached the thermostat from a shared
   schedule other people at the site rely on.
+- Temperatures keep the tenth of a degree the API reports. Home Assistant
+  defaults Fahrenheit climate entities to whole-degree precision, which was
+  rounding a reported 72.4 F down to 72; setpoints are still whole-degree,
+  because the Pelican API only accepts integers there.
 - The consistency gate covers the new `SITE_ATTRIBUTES` contract, and its
   read-but-not-polled check is now grouped by reader — two contracts share the
   `field()` helper, so checking them independently flagged valid Site attributes

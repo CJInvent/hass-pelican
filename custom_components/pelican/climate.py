@@ -14,7 +14,7 @@ from homeassistant.components.climate import (
     HVACAction,
     HVACMode,
 )
-from homeassistant.const import ATTR_TEMPERATURE, UnitOfTemperature
+from homeassistant.const import ATTR_TEMPERATURE, PRECISION_TENTHS, UnitOfTemperature
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -70,6 +70,12 @@ class PelicanClimate(PelicanEntity, ClimateEntity):
 
     _attr_name = None
     _attr_target_temperature_step = 1
+    # Home Assistant defaults Fahrenheit entities to whole-degree precision,
+    # which would round the 72.4 F the thermostat actually reports down to 72.
+    # Pelican reports tenths and commercial sites care about them for trending,
+    # so keep what the API gives us. Setpoints stay whole-degree via
+    # target_temperature_step, because the API only accepts integers.
+    _attr_precision = PRECISION_TENTHS
     _attr_fan_modes = [FAN_AUTO, FAN_ON]
     _attr_hvac_modes = [HVACMode.OFF, HVACMode.HEAT, HVACMode.COOL, HVACMode.HEAT_COOL]
 
