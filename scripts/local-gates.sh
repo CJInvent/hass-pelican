@@ -111,7 +111,7 @@ gate "gitleaks" "$GITLEAKS_BIN" detect --source . --redact --verbose
 echo
 if (( ${#FAILED[@]} )); then
   echo "GATES FAILED: ${FAILED[*]}"
-  echo "hassfest and hacs were not run here \u2014 see the header if you touched manifest.json or hacs.json."
+  echo "hassfest and hacs were not run here — see the header if you touched manifest.json or hacs.json."
   exit 1
 fi
 
