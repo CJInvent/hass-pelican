@@ -107,6 +107,11 @@ SCHEDULE_ROWS = [
     },
 ]
 
+# The site is in Pacific while the Home Assistant test harness runs in UTC.
+# That mismatch is deliberate: it is the case that silently produced wrong
+# next-change times before the site time zone was read.
+SITE = {"timeZone": "US/Pacific"}
+
 
 @pytest.fixture
 def mock_api() -> Generator[AsyncMock]:
@@ -124,6 +129,7 @@ def mock_api() -> Generator[AsyncMock]:
         api.async_get_schedules = AsyncMock(
             return_value=[dict(row) for row in SCHEDULE_ROWS]
         )
+        api.async_get_site = AsyncMock(return_value=dict(SITE))
         api.async_validate = AsyncMock(
             return_value=[dict(THERMOSTAT_LOBBY), dict(THERMOSTAT_SHOP)]
         )

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime, time
+from zoneinfo import ZoneInfo
 
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.util import dt as dt_util
@@ -17,6 +18,8 @@ from custom_components.pelican.schedule import (
 )
 
 from .conftest import SCHEDULE_ROWS
+
+PACIFIC = ZoneInfo("US/Pacific")
 
 LOBBY_BINARY = "binary_sensor.lobby_cloud_schedule"
 SHOP_BINARY = "binary_sensor.shop_cloud_schedule"
@@ -62,39 +65,68 @@ def test_parse_entries_skips_unusable_rows_without_raising() -> None:
     assert len(parsed["41112"]) == len(SCHEDULE_ROWS)
 
 
-def test_next_change_finds_the_next_set_time() -> None:
-    """The next change is the next future set time, in Home Assistant's timezone."""
+def test_next_change_resolves_against_the_site_timezone() -> None:
+    """A 18:00 set time in Pacific is 01:00 UTC the next day, not 18:00 UTC."""
     entries = [
         ScheduleEntry("Monday", time(7, 0), "Auto", 68, 74, "Auto"),
         ScheduleEntry("Monday", time(18, 0), "Auto", 60, 85, "Auto"),
     ]
-    # A Monday at 09:00.
-    now = datetime(2026, 9, 14, 9, 0, tzinfo=dt_util.UTC)
+    # Monday 2026-09-14, 16:00 UTC == 09:00 Pacific (PDT, UTC-7).
+    now = datetime(2026, 9, 14, 16, 0, tzinfo=dt_util.UTC)
 
-    result = next_change(entries, now=now)
+    result = next_change(entries, PACIFIC, now=now)
     assert result is not None
     moment, entry = result
-    assert moment == datetime(2026, 9, 14, 18, 0, tzinfo=dt_util.UTC)
+
+    assert moment == datetime(2026, 9, 15, 1, 0, tzinfo=dt_util.UTC)
+    assert moment.tzinfo is dt_util.UTC
+    assert moment.astimezone(PACIFIC).hour == 18
     assert entry.heat_setting == 60
+
+
+def test_next_change_is_absolute_not_wall_clock() -> None:
+    """The same schedule in two site zones yields two different instants."""
+    entries = [ScheduleEntry("Monday", time(7, 0), "Auto", 68, 74, "Auto")]
+    now = datetime(2026, 9, 14, 6, 0, tzinfo=dt_util.UTC)
+
+    pacific = next_change(entries, PACIFIC, now=now)
+    utc = next_change(entries, dt_util.UTC, now=now)
+
+    assert pacific is not None
+    assert utc is not None
+    assert pacific[0] != utc[0]
+    assert pacific[0] == datetime(2026, 9, 14, 14, 0, tzinfo=dt_util.UTC)
+    assert utc[0] == datetime(2026, 9, 14, 7, 0, tzinfo=dt_util.UTC)
+
+
+def test_next_change_survives_a_dst_transition() -> None:
+    """Set times stay at their wall clock across a DST boundary."""
+    entries = [ScheduleEntry("Monday", time(7, 0), "Auto", 68, 74, "Auto")]
+    # Friday 2026-10-30, before the US fall-back on 2026-11-01.
+    before = datetime(2026, 10, 30, 12, 0, tzinfo=dt_util.UTC)
+
+    result = next_change(entries, PACIFIC, now=before)
+    assert result is not None
+    # Monday 2026-11-02 is PST (UTC-8), so 07:00 local is 15:00 UTC, not 14:00.
+    assert result[0] == datetime(2026, 11, 2, 15, 0, tzinfo=dt_util.UTC)
+    assert result[0].astimezone(PACIFIC).hour == 7
 
 
 def test_next_change_wraps_to_next_week() -> None:
     """After the last set time of the week it rolls forward, not off the end."""
     entries = [ScheduleEntry("Monday", time(7, 0), "Auto", 68, 74, "Auto")]
-    now = datetime(2026, 9, 14, 9, 0, tzinfo=dt_util.UTC)
+    now = datetime(2026, 9, 14, 16, 0, tzinfo=dt_util.UTC)
 
-    result = next_change(entries, now=now)
+    result = next_change(entries, PACIFIC, now=now)
     assert result is not None
-    assert result[0] == datetime(2026, 9, 21, 7, 0, tzinfo=dt_util.UTC)
+    assert result[0] == datetime(2026, 9, 21, 14, 0, tzinfo=dt_util.UTC)
 
 
 def test_next_change_ignores_vacation_entries() -> None:
     """Vacation entries only apply in site vacation mode, which we cannot see."""
     entries = [ScheduleEntry("Vacation", time(0, 0), "Off", 55, 90, "Auto")]
-    assert (
-        next_change(entries, now=datetime(2026, 9, 14, 9, 0, tzinfo=dt_util.UTC))
-        is None
-    )
+    now = datetime(2026, 9, 14, 9, 0, tzinfo=dt_util.UTC)
+    assert next_change(entries, PACIFIC, now=now) is None
 
 
 async def test_binary_sensor_requires_both_halves(hass, mock_api, config_entry) -> None:
@@ -116,6 +148,7 @@ async def test_binary_sensor_publishes_the_schedule(
     assert attributes["schedule_name"] == "Weekday Hours"
     assert {row["day"] for row in attributes["schedule"]} == {"Monday", "Vacation"}
     assert attributes["next_change"] is not None
+    assert attributes["site_timezone"] == "US/Pacific"
 
 
 async def test_next_change_sensor_exists_and_is_a_timestamp(
@@ -163,3 +196,39 @@ async def test_schedule_failure_does_not_break_climate(
 
     assert hass.states.get("climate.shop") is not None
     assert hass.states.get(SHOP_BINARY).state == "off"
+
+
+async def test_site_timezone_is_used_for_the_sensor(
+    hass, mock_api, config_entry
+) -> None:
+    """The sensor resolves set times against the site's zone, not HA's."""
+    await _setup(hass, config_entry)
+
+    moment = dt_util.parse_datetime(hass.states.get(SHOP_NEXT).state)
+    assert moment is not None
+    # 07:00 and 18:00 are the only set times, both defined in Pacific.
+    assert moment.astimezone(PACIFIC).hour in (7, 18)
+
+
+async def test_unresolvable_site_timezone_falls_back_and_warns(
+    hass, mock_api, config_entry, caplog
+) -> None:
+    """A bad zone degrades to HA's zone loudly rather than breaking the poll."""
+    mock_api.async_get_site.return_value = {"timeZone": "Mars/Olympus_Mons"}
+
+    await _setup(hass, config_entry)
+
+    assert "cannot resolve" in caplog.text
+    # The sensor still produces a value rather than going unknown.
+    assert hass.states.get(SHOP_NEXT).state not in ("unknown", "unavailable")
+
+
+async def test_missing_site_timezone_falls_back_and_warns(
+    hass, mock_api, config_entry, caplog
+) -> None:
+    """A site that reports no zone at all is also called out."""
+    mock_api.async_get_site.return_value = {}
+
+    await _setup(hass, config_entry)
+
+    assert "did not report a time zone" in caplog.text
