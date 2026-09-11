@@ -239,7 +239,9 @@ async def test_set_builds_semicolon_delimited_pairs(hass, aioclient_mock) -> Non
     """Set requests select by serial and send colon/semicolon delimited pairs."""
     aioclient_mock.get(API_URL, json={"success": "1", "message": "Updated 1"})
 
-    await _api(hass).async_set_thermostat("41111", {"system": "Cool", "coolSetting": 72})
+    await _api(hass).async_set_thermostat(
+        "41111", {"system": "Cool", "coolSetting": 72}
+    )
 
     query = _query(aioclient_mock)
     assert query["request"] == "set"

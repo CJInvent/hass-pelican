@@ -13,7 +13,8 @@ from homeassistant.components.climate import (
     HVACMode,
 )
 from homeassistant.const import ATTR_ENTITY_ID, ATTR_TEMPERATURE, STATE_UNAVAILABLE
-from homeassistant.exceptions import HomeAssistantError
+from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
+from homeassistant.util.unit_system import METRIC_SYSTEM, US_CUSTOMARY_SYSTEM
 import pytest
 
 LOBBY = "climate.lobby"
@@ -21,7 +22,16 @@ SHOP = "climate.shop"
 
 
 async def _setup(hass, config_entry):
-    """Load the integration against the mocked API."""
+    """Load the integration against the mocked API, in the site's own units.
+
+    The fixture thermostats report Fahrenheit and the Home Assistant test
+    harness defaults to metric, so without this every assertion below would be
+    against a Celsius value Home Assistant converted for display, and every
+    setpoint written would be converted back the other way. Pinning the harness
+    to US customary keeps these tests about our logic rather than about unit
+    conversion; conversion gets its own test at the bottom of this file.
+    """
+    hass.config.units = US_CUSTOMARY_SYSTEM
     config_entry.add_to_hass(hass)
     assert await hass.config_entries.async_setup(config_entry.entry_id)
     await hass.async_block_till_done()
@@ -95,17 +105,49 @@ async def test_set_range_in_auto_writes_both(hass, mock_api, config_entry) -> No
     )
 
 
-async def test_single_setpoint_in_auto_is_rejected(
+async def test_single_setpoint_in_auto_is_rejected_upstream(
     hass, mock_api, config_entry
 ) -> None:
-    """Auto has no single target; asking for one errors instead of guessing."""
+    """Auto advertises a range, so Home Assistant rejects a bare temperature.
+
+    Our own guard never fires here: because supported_features drops
+    TARGET_TEMPERATURE while in Auto, the service layer refuses the call before
+    the entity is touched. That is the better outcome — the point of this test
+    is that the request cannot reach the site, not which layer stopped it.
+    """
     await _setup(hass, config_entry)
 
-    with pytest.raises(HomeAssistantError, match="target_temp_low"):
+    with pytest.raises(ServiceValidationError, match="does not support it"):
         await hass.services.async_call(
             CLIMATE_DOMAIN,
             SERVICE_SET_TEMPERATURE,
             {ATTR_ENTITY_ID: SHOP, ATTR_TEMPERATURE: 70},
+            blocking=True,
+        )
+
+    mock_api.async_set_thermostat.assert_not_awaited()
+
+
+async def test_single_setpoint_while_switching_into_auto_is_rejected(
+    hass, mock_api, config_entry
+) -> None:
+    """The case our own guard exists for, and the only way to reach it.
+
+    Lobby is in Cool, so it advertises TARGET_TEMPERATURE and the service layer
+    lets the call through. Only once we apply the requested hvac_mode does the
+    single setpoint become meaningless — so the entity has to catch it.
+    """
+    await _setup(hass, config_entry)
+
+    with pytest.raises(ServiceValidationError, match="target_temp_low"):
+        await hass.services.async_call(
+            CLIMATE_DOMAIN,
+            SERVICE_SET_TEMPERATURE,
+            {
+                ATTR_ENTITY_ID: LOBBY,
+                "hvac_mode": HVACMode.HEAT_COOL,
+                ATTR_TEMPERATURE: 70,
+            },
             blocking=True,
         )
 
@@ -168,3 +210,25 @@ async def test_unreachable_thermostat_goes_unavailable(
 
     assert hass.states.get(LOBBY).state == STATE_UNAVAILABLE
     assert hass.states.get(SHOP).state == HVACMode.HEAT_COOL
+
+
+async def test_metric_home_assistant_converts_from_the_site_unit(
+    hass, mock_api, config_entry
+) -> None:
+    """A Fahrenheit site shown in a metric Home Assistant converts for display.
+
+    The thermostat's own temperatureFormat is authoritative for what the API
+    returns; Home Assistant converts from there to whatever the user's system
+    is set to. This is the path every other test in this file deliberately
+    avoids, so it is worth pinning down once.
+    """
+    hass.config.units = METRIC_SYSTEM
+    config_entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(config_entry.entry_id)
+    await hass.async_block_till_done()
+
+    state = hass.states.get(LOBBY)
+
+    # 74 F and 72.4 F, rendered in Celsius.
+    assert state.attributes[ATTR_TEMPERATURE] == pytest.approx(23.3, abs=0.2)
+    assert state.attributes["current_temperature"] == pytest.approx(22.4, abs=0.2)
