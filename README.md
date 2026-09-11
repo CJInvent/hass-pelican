@@ -125,10 +125,33 @@ Two ways to resolve it, depending on which side should win:
           temperature: 68
 ```
 
-Schedule times are interpreted in **Home Assistant's** timezone. If your HA
-instance and your Pelican site are set to different timezones, the next-change
-timestamp will be off by that difference — worth checking on a multi-site MSP
-deployment.
+#### Turning a schedule back on
+
+Pelican's `schedule` attribute holds either `On` (the thermostat's own schedule)
+or the **name** of a shared schedule. Once it is set to `Off`, that name is gone
+from the API entirely.
+
+So the Schedule switch remembers the name and persists it across Home Assistant
+restarts. Turning the switch back on reattaches the same shared schedule rather
+than sending a bare `On`, which would silently move the thermostat onto its own
+local schedule and off the shared one everyone else at the site is using. The
+remembered value is visible as the switch's `schedule_name` attribute.
+
+#### Time zones
+
+Set times are **wall-clock times at the site**: "Monday 07:00" means 07:00 where
+the building is. The integration reads the site's configured zone from the
+Pelican `Site` object and resolves set times against it, then publishes the
+result in **UTC** — so the next-change timestamp is an absolute instant and Home
+Assistant renders it in your local time. DST is handled; a 07:00 set time stays
+07:00 local across the transition.
+
+This matters on multi-site MSP deployments: with Home Assistant in Central and a
+site in Pacific, interpreting set times in Home Assistant's zone would make every
+prediction two hours early, and nothing would look broken. The zone actually used
+is published as `site_timezone` on the Cloud schedule binary sensor. If a site
+reports a zone that can't be resolved, or none at all, the integration falls back
+to Home Assistant's zone and logs a warning saying so.
 
 Schedules are polled every 30 minutes, separately from the 60-second thermostat
 poll, and this integration never writes them. Edit schedules in Site Manager,
@@ -240,8 +263,9 @@ logger:
   INFO. Credentials are never logged: Pelican puts them in the query string, so
   the request URL is itself a secret and is deliberately absent.
 - **Filing a bug** — use **Download diagnostics** on the integration page. It
-  includes coordinator health, the last exception from each poll, the raw
-  thermostat payloads and the parsed schedules, with credentials redacted.
+  includes coordinator health, the last exception from each poll, the resolved
+  site time zone, the raw thermostat payloads and the parsed schedules, with
+  credentials redacted.
 
 ## References
 
@@ -249,6 +273,7 @@ logger:
 - [Pelican OpenAPI — Requests & Responses](https://www.pelicanwireless.com/help-center/request-responses/)
 - [Pelican OpenAPI — Thermostat Attributes](https://www.pelicanwireless.com/help-center/thermostat-attributes/)
 - [Pelican OpenAPI — ThermostatSchedule Attributes](https://www.pelicanwireless.com/help-center/thermostatschedule-attributes/)
+- [Pelican OpenAPI — Site Attributes](https://www.pelicanwireless.com/help-center/site-attributes/)
 
 ## Disclaimer
 
