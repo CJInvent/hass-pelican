@@ -51,12 +51,12 @@ warn_redundant_casts = true
 warn_unused_ignores = true
 warn_unused_configs = true
 
-[[tool.mypy.overrides]]
-# Test helpers lean on fixtures whose types come from pytest plugins.
-module = "tests.*"
-disallow_untyped_defs = false
-
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# The integration is imported as `custom_components.pelican`, which only
+# resolves if the repo root is on sys.path. Home Assistant puts it there at
+# runtime; pytest does not, so it is declared here rather than papered over
+# with a sys.path hack in conftest.
+pythonpath = ["."]
 asyncio_mode = "auto"
 addopts = "-q --strict-markers"

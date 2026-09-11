@@ -18,7 +18,7 @@ from homeassistant.const import (
     CONF_SCAN_INTERVAL,
     CONF_USERNAME,
 )
-from homeassistant.core import callback
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
@@ -44,7 +44,9 @@ STEP_USER_SCHEMA = vol.Schema(
 )
 
 
-async def _validate(hass, host: str, username: str, password: str) -> int:
+async def _validate(
+    hass: HomeAssistant, host: str, username: str, password: str
+) -> int:
     """Confirm the credentials work and return how many thermostats were found."""
     api = PelicanApi(async_get_clientsession(hass), host, username, password)
     thermostats = await api.async_validate()
@@ -52,7 +54,7 @@ async def _validate(hass, host: str, username: str, password: str) -> int:
 
 
 async def _try_validate(
-    hass, host: str, username: str, password: str
+    hass: HomeAssistant, host: str, username: str, password: str
 ) -> tuple[int | None, str | None]:
     """Validate, returning the thermostat count or a form error key.
 
