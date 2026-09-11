@@ -48,12 +48,14 @@ def async_review_cloud_schedules(
     """Raise or clear the cloud-schedule warning for this site."""
     data = entry.runtime_data
     thermostats = data.thermostats.data or {}
-    schedules = data.schedules.data or {}
+    schedules = data.schedules.data
 
     affected = sorted(
         str(thermostat.get("name") or serial)
         for serial, thermostat in thermostats.items()
-        if thermostat_has_cloud_schedule(thermostat, bool(schedules.get(serial)))
+        if thermostat_has_cloud_schedule(
+            thermostat, bool(schedules and schedules.for_serial(serial))
+        )
     )
 
     issue_id = f"{ISSUE_CLOUD_SCHEDULE}_{entry.entry_id}"

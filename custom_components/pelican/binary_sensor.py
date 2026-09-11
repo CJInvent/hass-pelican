@@ -52,7 +52,8 @@ class PelicanCloudScheduleSensor(PelicanEntity, BinarySensorEntity):
     @property
     def _entries(self) -> list[Any]:
         """Return this thermostat's parsed schedule entries."""
-        return (self.data.schedules.data or {}).get(self._serial, [])
+        schedules = self.data.schedules.data
+        return schedules.for_serial(self._serial) if schedules else []
 
     @property
     def is_on(self) -> bool:
@@ -63,18 +64,26 @@ class PelicanCloudScheduleSensor(PelicanEntity, BinarySensorEntity):
     def extra_state_attributes(self) -> dict[str, Any]:
         """Publish the schedule itself, and when it next acts."""
         entries = self._entries
-        upcoming = next_change(entries)
+        schedules = self.data.schedules.data
+        upcoming = (
+            next_change(entries, schedules.timezone) if schedules and entries else None
+        )
 
         attributes: dict[str, Any] = {
             "schedule_name": self.attr("schedule"),
             "entry_count": len(entries),
             "schedule": [entry.as_dict() for entry in entries],
+            # Set times are wall-clock at the site; this names the zone they
+            # were resolved against so a wrong answer is diagnosable.
+            "site_timezone": schedules.timezone_name if schedules else None,
             "next_change": None,
             "next_change_settings": None,
         }
 
         if upcoming is not None:
             moment, entry = upcoming
+            # Always UTC, so it is an absolute instant rather than a wall
+            # clock reading that depends on who is looking at it.
             attributes["next_change"] = moment.isoformat()
             attributes["next_change_settings"] = entry.as_dict()
 

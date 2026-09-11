@@ -25,7 +25,7 @@ async def async_get_config_entry_diagnostics(
 ) -> dict[str, Any]:
     """Return diagnostics for a config entry."""
     data = entry.runtime_data
-    schedules = data.schedules.data or {}
+    schedules = data.schedules.data
 
     return {
         "entry": {
@@ -43,15 +43,16 @@ async def async_get_config_entry_diagnostics(
                 "last_update_success": data.schedules.last_update_success,
                 "last_exception": _describe(data.schedules.last_exception),
                 "update_interval": str(data.schedules.update_interval),
-                "thermostats_with_entries": len(schedules),
+                "thermostats_with_entries": len(schedules.entries) if schedules else 0,
+                "site_timezone": schedules.timezone_name if schedules else None,
             },
         },
         # Thermostat payloads contain no personal data: names, setpoints,
         # temperatures and serials.
         "thermostats": data.thermostats.data or {},
         "schedules": {
-            serial: [entry.as_dict() for entry in entries]
-            for serial, entries in schedules.items()
+            serial: [item.as_dict() for item in entries]
+            for serial, entries in (schedules.entries if schedules else {}).items()
         },
     }
 

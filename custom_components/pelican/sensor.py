@@ -36,9 +36,18 @@ class PelicanSensorDescription(SensorEntityDescription):
 
 
 def _next_schedule_change(entity: PelicanEntity) -> datetime | None:
-    """Return when this thermostat's schedule next changes its settings."""
-    entries = (entity.data.schedules.data or {}).get(entity.serial, [])
-    upcoming = next_change(entries)
+    """Return when this thermostat's schedule next changes its settings.
+
+    Resolved against the SITE's time zone and returned in UTC, so Home Assistant
+    renders it correctly even when it and the building are in different zones.
+    """
+    schedules = entity.data.schedules.data
+    if schedules is None:
+        return None
+    entries = schedules.for_serial(entity.serial)
+    if not entries:
+        return None
+    upcoming = next_change(entries, schedules.timezone)
     return upcoming[0] if upcoming is not None else None
 
 
