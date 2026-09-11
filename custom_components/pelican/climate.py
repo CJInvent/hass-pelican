@@ -176,7 +176,10 @@ class PelicanClimate(PelicanEntity, ClimateEntity):
             # entity people put on a dashboard and automate against.
             "cloud_schedule_active": thermostat_has_cloud_schedule(
                 self.thermostat,
-                bool((self.data.schedules.data or {}).get(self._serial)),
+                bool(
+                    (schedules := self.data.schedules.data)
+                    and schedules.for_serial(self._serial)
+                ),
             ),
         }
 

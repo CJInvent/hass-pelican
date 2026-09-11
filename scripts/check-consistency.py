@@ -51,14 +51,21 @@ def polled_attributes(name: str) -> list[str]:
     return re.findall(r"[\"']([A-Za-z0-9_]+)[\"']", match.group(1))  # type: ignore[union-attr]
 
 
-def _check_contract(
-    label: str,
-    tuple_name: str,
-    reader: re.Pattern[str],
-    consumers: dict[Path, str],
-) -> int:
-    """Check one polled-attribute contract in both directions (rule 3)."""
-    polled = polled_attributes(tuple_name)
+# Each contract is (label, tuple name in api.py, the reader used to read it).
+# Two contracts share the field() reader, so the "read but not polled" direction
+# is checked against every contract that uses the same reader -- otherwise a
+# legitimate Site attribute looks like a missing Schedule one.
+CONTRACTS = (
+    ("thermostat", "THERMOSTAT_ATTRIBUTES", ATTR_CALL),
+    ("schedule", "SCHEDULE_ATTRIBUTES", FIELD_CALL),
+    ("site", "SITE_ATTRIBUTES", FIELD_CALL),
+)
+
+
+def _check_unread(
+    label: str, tuple_name: str, polled: list[str], combined: str
+) -> None:
+    """Fail if anything is polled that nothing reads (rules 3 and 23)."""
     if not polled:
         fail(f"{tuple_name} is empty")
 
@@ -66,7 +73,6 @@ def _check_contract(
     if duplicates:
         fail(f"{tuple_name} has duplicates: {sorted(duplicates)}")
 
-    combined = "\n".join(consumers.values())
     unused = [
         item
         for item in polled
@@ -74,14 +80,22 @@ def _check_contract(
     ]
     if unused:
         fail(
-            f"these {label} attributes are polled but never read — remove them "
+            f"these {label} attributes are polled but never read \u2014 remove them "
             f"from {tuple_name} or wire them up: {unused}"
         )
 
+
+def _check_unpolled(
+    reader: re.Pattern[str],
+    known: set[str],
+    tuple_names: list[str],
+    consumers: dict[Path, str],
+) -> None:
+    """Fail if anything is read through this reader that nothing polls (rule 3)."""
     missing: dict[str, set[str]] = {}
     for path, source in consumers.items():
         for item in reader.findall(source):
-            if item not in polled:
+            if item not in known:
                 missing.setdefault(item, set()).add(path.name)
     if missing:
         detail = ", ".join(
@@ -89,30 +103,41 @@ def _check_contract(
             for item, files in sorted(missing.items())
         )
         fail(
-            f"{label} attributes read but not polled — add them to "
-            f"{tuple_name}: {detail}"
+            "attributes read but not polled \u2014 add them to one of "
+            f"{', '.join(tuple_names)}: {detail}"
         )
-
-    return len(polled)
 
 
 def check_attributes() -> None:
-    """Rule 3, both directions, for both polled objects."""
+    """Rule 3, both directions, for every polled object."""
     consumers = {
         path: path.read_text(encoding="utf-8")
         for path in PACKAGE.rglob("*.py")
         if path != API
     }
-    thermostat_count = _check_contract(
-        "thermostat", "THERMOSTAT_ATTRIBUTES", ATTR_CALL, consumers
+    combined = "\n".join(consumers.values())
+
+    polled_by_contract = {
+        tuple_name: polled_attributes(tuple_name) for _, tuple_name, _ in CONTRACTS
+    }
+
+    for label, tuple_name, _ in CONTRACTS:
+        _check_unread(label, tuple_name, polled_by_contract[tuple_name], combined)
+
+    by_reader: dict[int, tuple[re.Pattern[str], set[str], list[str]]] = {}
+    for _, tuple_name, reader in CONTRACTS:
+        known, names = by_reader.setdefault(id(reader), (reader, set(), []))[1:]
+        known.update(polled_by_contract[tuple_name])
+        names.append(tuple_name)
+
+    for reader, known, names in by_reader.values():
+        _check_unpolled(reader, known, names, consumers)
+
+    counts = " + ".join(
+        f"{len(polled_by_contract[tuple_name])} {label}"
+        for label, tuple_name, _ in CONTRACTS
     )
-    schedule_count = _check_contract(
-        "schedule", "SCHEDULE_ATTRIBUTES", FIELD_CALL, consumers
-    )
-    print(
-        f"  attributes: {thermostat_count} thermostat + {schedule_count} schedule, "
-        "all consumed, none missing"
-    )
+    print(f"  attributes: {counts}, all consumed, none missing")
 
 
 def check_strings() -> None:
@@ -128,7 +153,7 @@ def check_strings() -> None:
 
     if strings_path.read_bytes() != en_path.read_bytes():
         fail(
-            "strings.json and translations/en.json differ — copy strings.json "
+            "strings.json and translations/en.json differ \u2014 copy strings.json "
             "over translations/en.json (rule 15)"
         )
 
@@ -213,7 +238,7 @@ def check_manifest() -> None:
         fail(f"manifest version {version!r} is not semver")
 
     if manifest.get("requirements"):
-        fail("manifest declares runtime requirements — rule 1 says zero")
+        fail("manifest declares runtime requirements \u2014 rule 1 says zero")
 
     print(f"  manifest: domain={manifest['domain']} version={version} requirements=[]")
 
