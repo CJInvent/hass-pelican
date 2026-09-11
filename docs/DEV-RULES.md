@@ -119,8 +119,14 @@ hand-edited for a build.** A tagged release must match its tag exactly
 and stamp it in the workflow workspace only — no commit ever lands carrying a
 dev version number.
 
-**17. A behavior change bumps the version and adds a `CHANGELOG.md` entry in the
-same commit.** Not the commit after.
+**17. A behavior change adds a `CHANGELOG.md` entry under `## [Unreleased]` in
+the same commit.** Not the commit after. The version in `manifest.json` moves
+**once, at release**, when `[Unreleased]` becomes `[X.Y.Z]`.
+
+Amended 2026-09-11: this rule originally said a behavior change bumps the
+version too. Followed literally on unreleased work it walked a
+never-published integration to 0.3.0 in an afternoon, inventing two releases
+nobody ever saw. Version numbers describe what shipped, not how much changed.
 
 **18. `main` only advances by release merge.** Work lands on `dev`. Every push to
 `dev` cuts a numbered prerelease, so `dev` is always installable and always
