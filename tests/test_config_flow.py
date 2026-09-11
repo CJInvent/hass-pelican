@@ -27,7 +27,9 @@ async def test_user_flow_creates_entry(hass, mock_api) -> None:
     )
     assert result["type"] is FlowResultType.FORM
 
-    result = await hass.config_entries.flow.async_configure(result["flow_id"], USER_INPUT)
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], USER_INPUT
+    )
     await hass.async_block_till_done()
 
     assert result["type"] is FlowResultType.CREATE_ENTRY
@@ -52,14 +54,18 @@ async def test_user_flow_errors(hass, mock_api, side_effect, expected) -> None:
     result = await hass.config_entries.flow.async_init(
         DOMAIN, context={"source": SOURCE_USER}
     )
-    result = await hass.config_entries.flow.async_configure(result["flow_id"], USER_INPUT)
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], USER_INPUT
+    )
 
     assert result["type"] is FlowResultType.FORM
     assert result["errors"] == {"base": expected}
 
     # Recovering from the error must still be possible in the same flow.
     mock_api.async_validate = AsyncMock(return_value=[{"serialNo": "41111"}])
-    result = await hass.config_entries.flow.async_configure(result["flow_id"], USER_INPUT)
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], USER_INPUT
+    )
     assert result["type"] is FlowResultType.CREATE_ENTRY
 
 
@@ -70,7 +76,9 @@ async def test_site_with_no_thermostats_is_rejected(hass, mock_api) -> None:
     result = await hass.config_entries.flow.async_init(
         DOMAIN, context={"source": SOURCE_USER}
     )
-    result = await hass.config_entries.flow.async_configure(result["flow_id"], USER_INPUT)
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], USER_INPUT
+    )
 
     assert result["errors"] == {"base": "no_thermostats"}
 
@@ -82,7 +90,9 @@ async def test_duplicate_site_aborts(hass, mock_api, config_entry) -> None:
     result = await hass.config_entries.flow.async_init(
         DOMAIN, context={"source": SOURCE_USER}
     )
-    result = await hass.config_entries.flow.async_configure(result["flow_id"], USER_INPUT)
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], USER_INPUT
+    )
 
     assert result["type"] is FlowResultType.ABORT
     assert result["reason"] == "already_configured"
