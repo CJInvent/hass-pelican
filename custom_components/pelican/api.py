@@ -60,6 +60,11 @@ SCHEDULE_ATTRIBUTES = (
     "fan",
 )
 
+# Site-level attributes. Only the time zone: schedule set times are wall-clock
+# times at the SITE, so resolving them without the site's zone is guesswork the
+# moment Home Assistant and the site disagree.
+SITE_ATTRIBUTES = ("timeZone",)
+
 # Substrings that mark a site refusal as an authentication problem rather than
 # a transient one. Matched case-insensitively against the site's own message.
 _AUTH_HINTS = (
@@ -232,6 +237,18 @@ class PelicanApi:
             }
         )
         return self._collect(data, "ThermostatSchedule")
+
+    async def async_get_site(self) -> dict[str, Any]:
+        """Return the site-level settings, or an empty dict if none came back."""
+        data = await self._request(
+            {
+                "request": "get",
+                "object": "Site",
+                "value": ";".join(SITE_ATTRIBUTES),
+            }
+        )
+        rows = self._collect(data, "Site")
+        return rows[0] if rows else {}
 
     async def async_set_thermostat(self, serial: str, values: dict[str, Any]) -> None:
         """Apply attribute/value pairs to one thermostat, selected by serial number."""
