@@ -2,19 +2,23 @@
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from homeassistant.components.switch import SwitchEntity
 from homeassistant.const import EntityCategory
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.restore_state import RestoreEntity
 
 from . import PelicanConfigEntry
-from .const import DOMAIN, SCHEDULE_OFF
+from .const import ATTR_SCHEDULE_NAME, DOMAIN, SCHEDULE_OFF, SCHEDULE_ON
 from .coordinator import PelicanData
 from .entity import PelicanEntity
 from .errors import PelicanError
+
+_LOGGER = logging.getLogger(__name__)
 
 PARALLEL_UPDATES = 0
 
@@ -55,11 +59,19 @@ class PelicanSwitchBase(PelicanEntity, SwitchEntity):
             ) from err
 
 
-class PelicanScheduleSwitch(PelicanSwitchBase):
+class PelicanScheduleSwitch(PelicanSwitchBase, RestoreEntity):
     """Enables or disables the thermostat's schedule.
 
     Turning this off is what makes a manual setpoint hold indefinitely instead of
     being overwritten at the next scheduled period.
+
+    Turning it back on has to restore the *same* schedule. Pelican's `schedule`
+    attribute holds either "On" (the thermostat's own schedule) or the name of a
+    shared schedule, and once it is set to Off the name is gone from the API —
+    there is nothing left to read it back from. So the name is remembered here
+    and persisted across restarts via RestoreEntity. Without that, a restart
+    between the off and the on would send the literal "On" and quietly detach
+    the thermostat from a shared schedule that other people at the site rely on.
     """
 
     _attribute = "schedule"
@@ -70,7 +82,36 @@ class PelicanScheduleSwitch(PelicanSwitchBase):
         """Initialize the schedule switch."""
         super().__init__(data, serial)
         self._attr_unique_id = f"{serial}_schedule"
-        self._last_active_schedule = "On"
+        self._last_active_schedule = SCHEDULE_ON
+
+    async def async_added_to_hass(self) -> None:
+        """Restore the remembered schedule name, then track the live one."""
+        await super().async_added_to_hass()
+
+        if (last_state := await self.async_get_last_state()) is not None:
+            remembered = last_state.attributes.get(ATTR_SCHEDULE_NAME)
+            if isinstance(remembered, str) and remembered not in ("", SCHEDULE_OFF):
+                self._last_active_schedule = remembered
+                _LOGGER.debug(
+                    "Restored schedule name %r for thermostat %s",
+                    remembered,
+                    self._serial,
+                )
+
+        # A live value from the site always beats a restored one.
+        self._remember_active_schedule()
+
+    def _remember_active_schedule(self) -> None:
+        """Capture the schedule name while it is still visible in the API."""
+        value = self.attr("schedule")
+        if value is not None and value != SCHEDULE_OFF:
+            self._last_active_schedule = value
+
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        """Track the active schedule name on every poll."""
+        self._remember_active_schedule()
+        super()._handle_coordinator_update()
 
     @property
     def is_on(self) -> bool | None:
@@ -78,12 +119,12 @@ class PelicanScheduleSwitch(PelicanSwitchBase):
         value = self.attr("schedule")
         if value is None:
             return None
-        if value != SCHEDULE_OFF:
-            # Remember shared schedule names so turning the switch back on
-            # restores the same schedule rather than falling back to "On".
-            self._last_active_schedule = value
-            return True
-        return False
+        return value != SCHEDULE_OFF
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Expose the remembered name, which is also what RestoreEntity saves."""
+        return {ATTR_SCHEDULE_NAME: self._last_active_schedule}
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Re-enable the last known schedule."""

@@ -12,8 +12,8 @@ the other people who share the site can see the change.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from datetime import datetime, time, timedelta
+from dataclasses import dataclass, field as dataclass_field
+from datetime import datetime, time, timedelta, tzinfo
 import logging
 from typing import Any
 
@@ -86,6 +86,11 @@ def parse_start_time(raw: str | None) -> time | None:
     if not (0 <= hour <= 23 and 0 <= minute <= 59 and 0 <= second <= 59):
         return None
     return time(hour, minute, second)
+
+
+def site_timezone_name(site: dict[str, Any]) -> str | None:
+    """Return the site's configured time zone name, if it reported one."""
+    return field(site, "timeZone")
 
 
 @dataclass(frozen=True, slots=True)
@@ -161,30 +166,59 @@ def parse_entries(rows: list[dict[str, Any]]) -> dict[str, list[ScheduleEntry]]:
 
 
 def next_change(
-    entries: list[ScheduleEntry], now: datetime | None = None
+    entries: list[ScheduleEntry],
+    site_tz: tzinfo,
+    now: datetime | None = None,
 ) -> tuple[datetime, ScheduleEntry] | None:
     """Return when the schedule next changes the thermostat, and to what.
 
-    Walks forward from now through the next seven days. Times are interpreted in
-    Home Assistant's configured timezone; if Home Assistant and the Pelican site
-    are set to different timezones this will be off by the difference, which is
-    why the timezone is stated on the entity rather than assumed to be obvious.
+    A Pelican set time is a WALL CLOCK time at the site: "Monday 07:00" means
+    07:00 where the building is, whatever Home Assistant's own time zone is set
+    to. So the walk forward is done in the site's zone, and the answer is
+    returned in UTC. Everything downstream — the sensor state, the entity
+    attribute, comparisons in automations — is therefore an absolute instant,
+    and Home Assistant renders it in the viewer's local time.
+
+    Getting this wrong is silent: with Home Assistant in Central and a site in
+    Pacific, every predicted set time would be two hours early and nothing would
+    look broken.
     """
     weekly = [entry for entry in entries if not entry.is_vacation]
     if not weekly:
         return None
 
-    now = now or dt_util.now()
+    now = (now or dt_util.utcnow()).astimezone(dt_util.UTC)
+    local_now = now.astimezone(site_tz)
+
     by_day: dict[str, list[ScheduleEntry]] = {}
     for entry in weekly:
         by_day.setdefault(entry.day, []).append(entry)
 
     for offset in range(8):
-        candidate_date = (now + timedelta(days=offset)).date()
+        candidate_date = (local_now + timedelta(days=offset)).date()
         day_name = WEEKDAYS[candidate_date.weekday()]
         for entry in sorted(by_day.get(day_name, []), key=lambda item: item.start):
-            moment = datetime.combine(candidate_date, entry.start, tzinfo=now.tzinfo)
+            # Build the wall-clock moment in the site's zone, then normalize.
+            # Ambiguous times at a DST fall-back resolve to the first pass,
+            # which is what the thermostat itself does.
+            local_moment = datetime.combine(candidate_date, entry.start).replace(
+                tzinfo=site_tz
+            )
+            moment = local_moment.astimezone(dt_util.UTC)
             if moment > now:
                 return moment, entry
 
     return None
+
+
+@dataclass
+class SiteSchedules:
+    """Everything the schedule poll produces for one site."""
+
+    timezone: tzinfo
+    timezone_name: str
+    entries: dict[str, list[ScheduleEntry]] = dataclass_field(default_factory=dict)
+
+    def for_serial(self, serial: str) -> list[ScheduleEntry]:
+        """Return the weekly schedule for one thermostat."""
+        return self.entries.get(serial, [])

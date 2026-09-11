@@ -18,8 +18,15 @@ SCHEDULE_SCAN_INTERVAL = 1800
 # statusDisplay value the site reports when a thermostat has lost its uplink.
 STATUS_UNREACHABLE = "Unreachable"
 
-# Thermostat `schedule` value meaning no schedule is driving the thermostat.
+# Thermostat `schedule` values. Anything other than Off is either "On" (the
+# thermostat's own schedule) or the name of a shared schedule.
 SCHEDULE_OFF = "Off"
+SCHEDULE_ON = "On"
+
+# Attribute the schedule switch publishes and restores across restarts, so that
+# re-enabling a schedule restores a shared schedule by name rather than
+# detaching the thermostat onto its own.
+ATTR_SCHEDULE_NAME = "schedule_name"
 
 # Repairs issue raised while any thermostat still has a cloud schedule running.
 ISSUE_CLOUD_SCHEDULE = "cloud_schedule_active"
