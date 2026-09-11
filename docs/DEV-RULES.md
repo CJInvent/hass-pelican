@@ -22,9 +22,9 @@ fix a bug. If a gate can only be satisfied by editing code we don't own, the
 gate is wrong and gets scoped — see rule 18.
 
 **3. The polled attribute list is a closed contract.** Every name in
-`api.THERMOSTAT_ATTRIBUTES` and `api.SCHEDULE_ATTRIBUTES` must have at least one
-consumer elsewhere in the package, and every attribute an entity reads must
-appear in the matching list. Both directions are checked by
+`api.THERMOSTAT_ATTRIBUTES`, `api.SCHEDULE_ATTRIBUTES` and `api.SITE_ATTRIBUTES`
+must have at least one consumer elsewhere in the package, and every attribute an
+entity reads must appear in the matching list. Both directions are checked by
 `scripts/check-consistency.py`. This exists because the keypad switch shipped
 reading an attribute that was never polled.
 
@@ -57,7 +57,8 @@ successful one.
 
 **10. No blocking I/O in the event loop.** All HTTP goes through the shared
 `async_get_clientsession(hass)`. No `requests`, no `time.sleep`, no file reads in
-a property.
+a property — including `ZoneInfo(...)`, which reads the tz database off disk and
+must go through `dt_util.async_get_time_zone`.
 
 ## Logging
 
@@ -79,6 +80,12 @@ matters.
 not part of config entry setup: a site that refuses `ThermostatSchedule` reads
 still gets working climate entities and a schedule sensor that reports unknown.
 Ask of any new coordinator: if this fails forever, what stops working?
+
+**28. Times from the site are wall-clock times at the site.** A Pelican set time
+of "Monday 07:00" means 07:00 where the building is. Resolve it against the
+zone from the `Site` object, then store and compare in UTC. Never assume Home
+Assistant's zone matches the building's — when they differ, every predicted time
+is wrong by the offset and absolutely nothing looks broken.
 
 ## Secrets and logging
 

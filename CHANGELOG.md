@@ -10,6 +10,34 @@ section.
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-09-11
+
+### Added
+- Schedule set times are now resolved against the **site's own time zone**, read
+  from the Pelican `Site` object, and published in UTC. Previously they were
+  interpreted in Home Assistant's zone, which silently produced wrong
+  next-change times whenever Home Assistant and the building disagreed — nothing
+  looked broken, the answer was just off by the offset. DST transitions are
+  handled: a 07:00 set time stays 07:00 local across the boundary.
+- The resolved zone is published as `site_timezone` on the Cloud schedule binary
+  sensor and included in diagnostics, so a wrong answer is diagnosable.
+- A site that reports an unresolvable zone, or none at all, falls back to Home
+  Assistant's zone and says so at WARNING rather than failing the poll.
+- The schedule switch now persists the active schedule name across restarts via
+  `RestoreEntity`. Once `schedule` is set to Off the shared schedule's name is
+  gone from the API, so a restart between turning it off and back on would
+  previously have sent a literal `On` and detached the thermostat from a shared
+  schedule other people at the site rely on.
+- The consistency gate covers the new `SITE_ATTRIBUTES` contract, and its
+  read-but-not-polled check is now grouped by reader — two contracts share the
+  `field()` helper, so checking them independently flagged valid Site attributes
+  as missing Schedule ones.
+
+### Changed
+- The schedule coordinator now returns a `SiteSchedules` object carrying the
+  resolved time zone alongside the parsed entries, rather than a bare dict.
+- `next_change()` takes the site time zone explicitly and returns UTC.
+
 ## [0.2.0] - 2026-09-10
 
 ### Added
@@ -58,6 +86,7 @@ section.
 - Dev rules, the CI gate set, local gate reproduction and the dev/release
   pipelines.
 
-[Unreleased]: https://github.com/CJInvent/hass-pelican/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/CJInvent/hass-pelican/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/CJInvent/hass-pelican/releases/tag/v0.3.0
 [0.2.0]: https://github.com/CJInvent/hass-pelican/releases/tag/v0.2.0
 [0.1.0]: https://github.com/CJInvent/hass-pelican/releases/tag/v0.1.0
