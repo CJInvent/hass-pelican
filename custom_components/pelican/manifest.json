@@ -1,12 +1,14 @@
 {
   "domain": "pelican",
   "name": "Pelican Wireless",
-  "codeowners": ["@CJInvent"],
+  "codeowners": [
+    "@CJInvent"
+  ],
   "config_flow": true,
   "documentation": "https://github.com/CJInvent/hass-pelican",
   "integration_type": "hub",
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/CJInvent/hass-pelican/issues",
   "requirements": [],
-  "version": "0.3.0"
+  "version": "0.1.0"
 }
