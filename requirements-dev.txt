@@ -1,6 +1,6 @@
 # Dev-only. Rule 1 keeps runtime dependencies at zero; these never ship.
 # Versions here must match the pins in .github/workflows/ci.yml (rule 19) --
 # local-gates.sh reads the pins out of ci.yml and will complain if they drift.
-pytest-homeassistant-custom-component==0.13.364
+pytest-homeassistant-custom-component==0.13.365
 ruff==0.16.6
 mypy==2.3.1
