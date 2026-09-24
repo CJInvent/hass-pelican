@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from homeassistant.const import ATTR_ENTITY_ID, STATE_OFF, STATE_ON
 from homeassistant.core import State
+import pytest
 from pytest_homeassistant_custom_component.common import mock_restore_cache
 
 SHOP_SCHEDULE = "switch.shop_schedule"
@@ -38,7 +39,9 @@ async def test_turning_off_sends_off(hass, mock_api, config_entry) -> None:
 
     await _call(hass, "turn_off", SHOP_SCHEDULE)
 
-    mock_api.async_set_thermostat.assert_awaited_once_with("41112", {"schedule": "Off"})
+    mock_api.async_set_thermostat.assert_awaited_once_with(
+        "thrm1112", {"schedule": "Off"}
+    )
 
 
 async def test_turning_on_restores_the_shared_schedule_name(
@@ -50,7 +53,7 @@ async def test_turning_on_restores_the_shared_schedule_name(
     await _call(hass, "turn_on", SHOP_SCHEDULE)
 
     mock_api.async_set_thermostat.assert_awaited_once_with(
-        "41112", {"schedule": "Weekday Hours"}
+        "thrm1112", {"schedule": "Weekday Hours"}
     )
 
 
@@ -78,7 +81,7 @@ async def test_name_survives_a_restart(hass, mock_api, config_entry) -> None:
     await _call(hass, "turn_on", SHOP_SCHEDULE)
 
     mock_api.async_set_thermostat.assert_awaited_once_with(
-        "41112", {"schedule": "Weekday Hours"}
+        "thrm1112", {"schedule": "Weekday Hours"}
     )
 
 
@@ -95,7 +98,9 @@ async def test_restored_off_is_ignored(hass, mock_api, config_entry) -> None:
     await _setup(hass, config_entry)
     await _call(hass, "turn_on", SHOP_SCHEDULE)
 
-    mock_api.async_set_thermostat.assert_awaited_once_with("41112", {"schedule": "On"})
+    mock_api.async_set_thermostat.assert_awaited_once_with(
+        "thrm1112", {"schedule": "On"}
+    )
 
 
 async def test_live_value_beats_a_restored_one(hass, mock_api, config_entry) -> None:
@@ -108,7 +113,7 @@ async def test_live_value_beats_a_restored_one(hass, mock_api, config_entry) -> 
     await _call(hass, "turn_on", SHOP_SCHEDULE)
 
     mock_api.async_set_thermostat.assert_awaited_once_with(
-        "41112", {"schedule": "Weekday Hours"}
+        "thrm1112", {"schedule": "Weekday Hours"}
     )
 
 
@@ -120,5 +125,52 @@ async def test_keypad_switch_maps_to_front_keypad(hass, mock_api, config_entry) 
     await _call(hass, "turn_on", SHOP_KEYPAD)
 
     mock_api.async_set_thermostat.assert_awaited_once_with(
-        "41112", {"frontKeypad": "On"}
+        "thrm1112", {"frontKeypad": "On"}
     )
+
+
+async def test_write_refused_when_two_thermostats_share_a_name(
+    hass, mock_api, config_entry
+) -> None:
+    """Node names are supposed to be unique; if they collide, refuse.
+
+    A selector matching two thermostats writes to both, so the coordinator
+    refuses rather than guessing which one was meant.
+    """
+    from homeassistant.exceptions import HomeAssistantError
+
+    from .conftest import THERMOSTAT_LOBBY, THERMOSTAT_SHOP
+
+    collision = {**THERMOSTAT_SHOP, "nodeName": THERMOSTAT_LOBBY["nodeName"]}
+    mock_api.async_get_thermostats.return_value = [
+        dict(THERMOSTAT_LOBBY),
+        collision,
+    ]
+
+    await _setup(hass, config_entry)
+
+    with pytest.raises(HomeAssistantError, match="node name"):
+        await _call(hass, "turn_off", SHOP_SCHEDULE)
+
+    mock_api.async_set_thermostat.assert_not_awaited()
+
+
+async def test_write_refused_when_the_name_is_blank(
+    hass, mock_api, config_entry
+) -> None:
+    """A blank selector changes every thermostat at the site, so nothing is sent."""
+    from homeassistant.exceptions import HomeAssistantError
+
+    from .conftest import THERMOSTAT_LOBBY, THERMOSTAT_SHOP
+
+    mock_api.async_get_thermostats.return_value = [
+        dict(THERMOSTAT_LOBBY),
+        {**THERMOSTAT_SHOP, "nodeName": "   "},
+    ]
+
+    await _setup(hass, config_entry)
+
+    with pytest.raises(HomeAssistantError, match="every thermostat"):
+        await _call(hass, "turn_off", SHOP_SCHEDULE)
+
+    mock_api.async_set_thermostat.assert_not_awaited()

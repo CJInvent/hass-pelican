@@ -19,6 +19,7 @@ API_URL = f"https://{HOST}/api.cgi"
 THERMOSTAT_LOBBY = {
     "name": "Lobby",
     "serialNo": "41111",
+    "nodeName": "thrm1111",
     "modelNo": "TC2-W",
     "version": "3.2.1",
     "system": "Cool",
@@ -42,8 +43,9 @@ THERMOSTAT_LOBBY = {
 
 THERMOSTAT_SHOP = {
     **THERMOSTAT_LOBBY,
-    "name": "Shop",
+    "name": "Shop ",  # trailing space: the site treats it as part of the name
     "serialNo": "41112",
+    "nodeName": "thrm1112",
     "system": "Auto",
     "runStatus": "Off",
     "statusDisplay": "Space Satisfied",
@@ -75,44 +77,6 @@ def config_entry() -> MockConfigEntry:
     )
 
 
-# A weekday schedule on the Shop thermostat only. Lobby has schedule "On" but
-# no entries, which is the case that must NOT trigger the warning.
-SCHEDULE_ROWS = [
-    {
-        "serialNo": "41112",
-        "dayOfWeek": "Monday",
-        "startTime": "07:00",
-        "system": "Auto",
-        "heatSetting": "68",
-        "coolSetting": "74",
-        "fan": "Auto",
-    },
-    {
-        "serialNo": "41112",
-        "dayOfWeek": "Monday",
-        "startTime": "18:00",
-        "system": "Auto",
-        "heatSetting": "60",
-        "coolSetting": "85",
-        "fan": "Auto",
-    },
-    {
-        "serialNo": "41112",
-        "dayOfWeek": "Vacation",
-        "startTime": "00:00",
-        "system": "Off",
-        "heatSetting": "55",
-        "coolSetting": "90",
-        "fan": "Auto",
-    },
-]
-
-# The site is in Pacific while the Home Assistant test harness runs in UTC.
-# That mismatch is deliberate: it is the case that silently produced wrong
-# next-change times before the site time zone was read.
-SITE = {"timeZone": "US/Pacific"}
-
-
 @pytest.fixture
 def mock_api() -> Generator[AsyncMock]:
     """Patch the API so entity tests never touch HTTP."""
@@ -126,10 +90,6 @@ def mock_api() -> Generator[AsyncMock]:
         api.async_get_thermostats = AsyncMock(
             return_value=[dict(THERMOSTAT_LOBBY), dict(THERMOSTAT_SHOP)]
         )
-        api.async_get_schedules = AsyncMock(
-            return_value=[dict(row) for row in SCHEDULE_ROWS]
-        )
-        api.async_get_site = AsyncMock(return_value=dict(SITE))
         api.async_validate = AsyncMock(
             return_value=[dict(THERMOSTAT_LOBBY), dict(THERMOSTAT_SHOP)]
         )
