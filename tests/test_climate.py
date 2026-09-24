@@ -82,7 +82,9 @@ async def test_set_temperature_in_cool_writes_cool_setting(
         blocking=True,
     )
 
-    mock_api.async_set_thermostat.assert_awaited_once_with("41111", {"coolSetting": 71})
+    mock_api.async_set_thermostat.assert_awaited_once_with(
+        "thrm1111", {"coolSetting": 71}
+    )
 
 
 async def test_set_range_in_auto_writes_both(hass, mock_api, config_entry) -> None:
@@ -101,7 +103,7 @@ async def test_set_range_in_auto_writes_both(hass, mock_api, config_entry) -> No
     )
 
     mock_api.async_set_thermostat.assert_awaited_once_with(
-        "41112", {"heatSetting": 62, "coolSetting": 80}
+        "thrm1112", {"heatSetting": 62, "coolSetting": 80}
     )
 
 
@@ -167,7 +169,9 @@ async def test_set_hvac_mode_uses_pelican_vocabulary(
         blocking=True,
     )
 
-    mock_api.async_set_thermostat.assert_awaited_once_with("41111", {"system": "Auto"})
+    mock_api.async_set_thermostat.assert_awaited_once_with(
+        "thrm1111", {"system": "Auto"}
+    )
 
 
 async def test_api_failure_surfaces_as_home_assistant_error(

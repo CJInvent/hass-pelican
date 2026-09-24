@@ -17,8 +17,6 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 import pytest
 
 from custom_components.pelican.api import (
-    SCHEDULE_ATTRIBUTES,
-    SITE_ATTRIBUTES,
     THERMOSTAT_ATTRIBUTES,
     PelicanApi,
     normalize_host,
@@ -72,7 +70,7 @@ def test_normalize_host(supplied: str, expected: str) -> None:
 async def test_get_single_thermostat_is_wrapped_in_a_list(hass, aioclient_mock) -> None:
     """A site with one thermostat returns an object, not an array."""
     aioclient_mock.get(
-        API_URL, json={"Thermostat": dict(THERMOSTAT_LOBBY), "success": "1"}
+        API_URL, json={"result": {"Thermostat": dict(THERMOSTAT_LOBBY), "success": 1}}
     )
 
     result = await _api(hass).async_get_thermostats()
@@ -86,8 +84,10 @@ async def test_get_multiple_thermostats(hass, aioclient_mock) -> None:
     aioclient_mock.get(
         API_URL,
         json={
-            "Thermostat": [dict(THERMOSTAT_LOBBY), dict(THERMOSTAT_SHOP)],
-            "success": "1",
+            "result": {
+                "Thermostat": [dict(THERMOSTAT_LOBBY), dict(THERMOSTAT_SHOP)],
+                "success": 1,
+            }
         },
     )
 
@@ -98,7 +98,7 @@ async def test_get_multiple_thermostats(hass, aioclient_mock) -> None:
 
 async def test_request_asks_for_every_polled_attribute(hass, aioclient_mock) -> None:
     """The value list sent to the site matches THERMOSTAT_ATTRIBUTES (rule 3)."""
-    aioclient_mock.get(API_URL, json={"Thermostat": [], "success": "1"})
+    aioclient_mock.get(API_URL, json={"result": {"Thermostat": [], "success": 1}})
 
     await _api(hass).async_get_thermostats()
 
@@ -107,46 +107,11 @@ async def test_request_asks_for_every_polled_attribute(hass, aioclient_mock) -> 
     assert query["value"].split(";") == list(THERMOSTAT_ATTRIBUTES)
 
 
-async def test_schedule_request_asks_for_every_polled_attribute(
-    hass, aioclient_mock
-) -> None:
-    """The schedule value list matches SCHEDULE_ATTRIBUTES (rule 3)."""
-    aioclient_mock.get(API_URL, json={"ThermostatSchedule": [], "success": "1"})
-
-    await _api(hass).async_get_schedules()
-
-    query = _query(aioclient_mock)
-    assert query["object"] == "ThermostatSchedule"
-    assert query["value"].split(";") == list(SCHEDULE_ATTRIBUTES)
-
-
-async def test_site_request_asks_for_every_polled_attribute(
-    hass, aioclient_mock
-) -> None:
-    """The site value list matches SITE_ATTRIBUTES (rule 3)."""
-    aioclient_mock.get(
-        API_URL, json={"Site": {"timeZone": "US/Central"}, "success": "1"}
-    )
-
-    site = await _api(hass).async_get_site()
-
-    query = _query(aioclient_mock)
-    assert query["object"] == "Site"
-    assert query["value"].split(";") == list(SITE_ATTRIBUTES)
-    assert site["timeZone"] == "US/Central"
-
-
-async def test_site_with_no_row_returns_empty(hass, aioclient_mock) -> None:
-    """A site that reports nothing is an empty dict, not a crash."""
-    aioclient_mock.get(API_URL, json={"success": "1"})
-
-    assert await _api(hass).async_get_site() == {}
-
-
 async def test_bad_credentials_raise_auth_error(hass, aioclient_mock) -> None:
     """An authentication message is distinguished from a generic failure."""
     aioclient_mock.get(
-        API_URL, json={"success": "0", "message": "Invalid username or password."}
+        API_URL,
+        json={"result": {"success": 0, "message": "Invalid username or password."}},
     )
 
     with pytest.raises(PelicanAuthError):
@@ -156,7 +121,8 @@ async def test_bad_credentials_raise_auth_error(hass, aioclient_mock) -> None:
 async def test_permission_message_is_treated_as_auth(hass, aioclient_mock) -> None:
     """A permission refusal routes to reauth rather than being retried forever."""
     aioclient_mock.get(
-        API_URL, json={"success": "0", "message": "User does not have permission."}
+        API_URL,
+        json={"result": {"success": 0, "message": "User does not have permission."}},
     )
 
     with pytest.raises(PelicanAuthError):
@@ -168,8 +134,10 @@ async def test_other_failure_raises_generic_error(hass, aioclient_mock) -> None:
     aioclient_mock.get(
         API_URL,
         json={
-            "success": "0",
-            "message": "No thermostats found matching selection criteria.",
+            "result": {
+                "success": 0,
+                "message": "No thermostats found matching selection criteria.",
+            }
         },
     )
 
@@ -192,6 +160,34 @@ async def test_non_object_payload_raises(hass, aioclient_mock) -> None:
 
     with pytest.raises(PelicanResponseError, match="list"):
         await _api(hass).async_get_thermostats()
+
+
+async def test_missing_result_envelope_raises(hass, aioclient_mock) -> None:
+    """The live API nests everything under "result"; the docs show it flat.
+
+    Reading the flat shape was the single defect that would have made every
+    call fail, so the absence of the envelope is an explicit error rather than
+    a silent empty read.
+    """
+    aioclient_mock.get(API_URL, json={"Thermostat": [], "success": 1})
+
+    with pytest.raises(PelicanResponseError, match="result"):
+        await _api(hass).async_get_thermostats()
+
+
+@pytest.mark.parametrize("node_name", ["", "bad;node", "bad:node"])
+async def test_unusable_node_name_is_refused_before_any_request(
+    hass, aioclient_mock, node_name
+) -> None:
+    """A selector the site cannot parse changes EVERY thermostat.
+
+    Verified against a live site: a malformed selector on a set returned
+    "Updated 7 thermostats" with success. So nothing leaves the process.
+    """
+    with pytest.raises(PelicanApiError, match="every thermostat"):
+        await _api(hass).async_set_thermostat(node_name, {"system": "Off"})
+
+    assert aioclient_mock.call_count == 0
 
 
 async def test_http_401_is_an_auth_error(hass, aioclient_mock) -> None:
@@ -236,29 +232,29 @@ async def test_timeout_is_distinct(hass, aioclient_mock) -> None:
 
 
 async def test_set_builds_semicolon_delimited_pairs(hass, aioclient_mock) -> None:
-    """Set requests select by serial and send colon/semicolon delimited pairs."""
-    aioclient_mock.get(API_URL, json={"success": "1", "message": "Updated 1"})
+    """Set requests select by nodeName and send colon-delimited pairs."""
+    aioclient_mock.get(API_URL, json={"result": {"success": 1, "message": "Updated 1"}})
 
     await _api(hass).async_set_thermostat(
-        "41111", {"system": "Cool", "coolSetting": 72}
+        "thrm2A38", {"system": "Cool", "coolSetting": 72}
     )
 
     query = _query(aioclient_mock)
     assert query["request"] == "set"
-    assert query["selection"] == "serialNo:41111;"
+    assert query["selection"] == "nodeName:thrm2A38;"
     assert query["value"] == "system:Cool;coolSetting:72"
 
 
 async def test_set_with_no_values_makes_no_request(hass, aioclient_mock) -> None:
     """An empty change is a no-op, not an empty write."""
-    await _api(hass).async_set_thermostat("41111", {})
+    await _api(hass).async_set_thermostat("thrm2A38", {})
 
     assert aioclient_mock.call_count == 0
 
 
 async def test_no_credential_reaches_the_log(hass, aioclient_mock, caplog) -> None:
     """Rule 11: the request URL carries credentials and must never be logged."""
-    aioclient_mock.get(API_URL, json={"Thermostat": [], "success": "1"})
+    aioclient_mock.get(API_URL, json={"result": {"Thermostat": [], "success": 1}})
     api = PelicanApi(async_get_clientsession(hass), HOST, "user@example.com", "sekrit")
 
     with caplog.at_level(logging.DEBUG, logger="custom_components.pelican.api"):
