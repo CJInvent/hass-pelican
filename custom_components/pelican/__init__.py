@@ -17,8 +17,8 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .api import PelicanApi
-from .const import DEFAULT_SCAN_INTERVAL, SCHEDULE_SCAN_INTERVAL
-from .coordinator import PelicanCoordinator, PelicanData, PelicanScheduleCoordinator
+from .const import DEFAULT_SCAN_INTERVAL
+from .coordinator import PelicanCoordinator, PelicanData
 from .repairs import async_review_cloud_schedules
 
 _LOGGER = logging.getLogger(__name__)
@@ -48,30 +48,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: PelicanConfigEntry) -> b
     thermostats = PelicanCoordinator(hass, entry, api, interval)
     await thermostats.async_config_entry_first_refresh()
 
-    schedules = PelicanScheduleCoordinator(
-        hass, entry, api, timedelta(seconds=SCHEDULE_SCAN_INTERVAL)
-    )
-    # Deliberately NOT async_config_entry_first_refresh: a site that refuses
-    # ThermostatSchedule reads must still get working climate entities. The
-    # coordinator logs the failure and the schedule entities report unknown.
-    await schedules.async_refresh()
-
-    entry.runtime_data = PelicanData(
-        api=api, thermostats=thermostats, schedules=schedules
-    )
+    entry.runtime_data = PelicanData(api=api, thermostats=thermostats)
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
-    # Re-evaluate the "a cloud schedule will override your automations" warning
-    # whenever either side changes: a schedule can be added in Site Manager, and
-    # a thermostat's schedule can be switched on or off from here.
+    # Re-evaluate the "a schedule will override your automations" warning on
+    # every poll: a thermostat's schedule can be switched on or off in Site
+    # Manager or from here.
     entry.async_on_unload(
         thermostats.async_add_listener(
             lambda: async_review_cloud_schedules(hass, entry)
         )
-    )
-    entry.async_on_unload(
-        schedules.async_add_listener(lambda: async_review_cloud_schedules(hass, entry))
     )
     async_review_cloud_schedules(hass, entry)
 

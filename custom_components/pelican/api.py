@@ -26,6 +26,7 @@ REQUEST_TIMEOUT = 30
 THERMOSTAT_ATTRIBUTES = (
     "name",
     "serialNo",
+    "nodeName",
     "modelNo",
     "version",
     "system",
@@ -46,24 +47,6 @@ THERMOSTAT_ATTRIBUTES = (
     "minCoolSetting",
     "maxCoolSetting",
 )
-
-# ThermostatSchedule attributes. A site's recurring schedule is what silently
-# undoes a setpoint pushed from an automation, so we read it to be able to say
-# so. Read-only here: this integration never writes a Pelican schedule.
-SCHEDULE_ATTRIBUTES = (
-    "serialNo",
-    "dayOfWeek",
-    "startTime",
-    "system",
-    "heatSetting",
-    "coolSetting",
-    "fan",
-)
-
-# Site-level attributes. Only the time zone: schedule set times are wall-clock
-# times at the SITE, so resolving them without the site's zone is guesswork the
-# moment Home Assistant and the site disagree.
-SITE_ATTRIBUTES = ("timeZone",)
 
 # Substrings that mark a site refusal as an authentication problem rather than
 # a transient one. Matched case-insensitively against the site's own message.
@@ -190,14 +173,24 @@ class PelicanApi:
                 "was expected; the API may have changed"
             )
 
-        if str(data.get("success")) != "1":
-            message = str(data.get("message") or "").strip()
+        # Everything the site returns is nested under "result". The published
+        # examples show it flattened; the live API does not.
+        payload = data.get("result")
+        if not isinstance(payload, dict):
+            raise PelicanResponseError(
+                f"{self._host} returned a response with no 'result' object; "
+                "the API may have changed"
+            )
+
+        # success comes back as the integer 1, not the string the docs show.
+        if str(payload.get("success")) != "1":
+            message = str(payload.get("message") or "").strip()
             detail = message or "the site gave no reason"
             if any(hint in message.lower() for hint in _AUTH_HINTS):
                 raise PelicanAuthError(f"{self._host} rejected the request: {detail}")
             raise PelicanApiError(f"{self._host} refused the request: {detail}")
 
-        return data
+        return payload
 
     def _collect(self, data: dict[str, Any], key: str) -> list[dict[str, Any]]:
         """Normalize a payload that is an object for one row and a list for many."""
@@ -221,46 +214,38 @@ class PelicanApi:
         )
         return self._collect(data, "Thermostat")
 
-    async def async_get_schedules(self) -> list[dict[str, Any]]:
-        """Return every recurring schedule entry configured at the site.
+    async def async_set_thermostat(
+        self, node_name: str, values: dict[str, Any]
+    ) -> None:
+        """Apply attribute/value pairs to the thermostat with this node name.
 
-        One call covers all thermostats and all days. SharedSchedule is
-        deliberately not read: Pelican documents that getting shared schedules
-        is not supported, and a thermostat on a shared schedule still reports
-        its resolved entries through ThermostatSchedule.
+        Selection is by `nodeName` (e.g. "thrm2A38"). The site rejects
+        `serialNo:` selection outright, and selecting by `name:` works but
+        means putting free text a customer edits into a selector: names carry
+        trailing spaces that are significant ("Sales " is not "Sales"),
+        ampersands, and no uniqueness guarantee. nodeName has none of those
+        problems.
+
+        The guard below is not defensive programming, it is a verified hazard.
+        The site does not reject a selection it cannot parse -- it ignores it,
+        matches EVERY thermostat, and reports success. Confirmed against a live
+        site: a malformed selector on a set returned "Updated 7 thermostats."
+        One bad selector re-heats an entire building and nothing looks wrong.
         """
-        data = await self._request(
-            {
-                "request": "get",
-                "object": "ThermostatSchedule",
-                "value": ";".join(SCHEDULE_ATTRIBUTES),
-            }
-        )
-        return self._collect(data, "ThermostatSchedule")
-
-    async def async_get_site(self) -> dict[str, Any]:
-        """Return the site-level settings, or an empty dict if none came back."""
-        data = await self._request(
-            {
-                "request": "get",
-                "object": "Site",
-                "value": ";".join(SITE_ATTRIBUTES),
-            }
-        )
-        rows = self._collect(data, "Site")
-        return rows[0] if rows else {}
-
-    async def async_set_thermostat(self, serial: str, values: dict[str, Any]) -> None:
-        """Apply attribute/value pairs to one thermostat, selected by serial number."""
         if not values:
             return
+        if not node_name or any(char in node_name for char in ";:"):
+            raise PelicanApiError(
+                f"Refusing to write with unusable node name {node_name!r}: the "
+                "site treats a selector it cannot parse as every thermostat"
+            )
         value = ";".join(f"{key}:{val}" for key, val in values.items())
-        _LOGGER.debug("Setting %s on thermostat %s", value, serial)
+        _LOGGER.debug("Setting %s on thermostat %s", value, node_name)
         await self._request(
             {
                 "request": "set",
                 "object": "Thermostat",
-                "selection": f"serialNo:{serial};",
+                "selection": f"nodeName:{node_name};",
                 "value": value,
             }
         )

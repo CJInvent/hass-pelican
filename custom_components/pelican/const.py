@@ -10,11 +10,6 @@ DEFAULT_SCAN_INTERVAL = 60
 MIN_SCAN_INTERVAL = 15
 MAX_SCAN_INTERVAL = 900
 
-# Schedules are edited by people in Site Manager, not by machines, so a slow
-# poll is plenty. Deliberately not user-configurable: nothing is gained by
-# reading them more often and it would be one more knob to explain.
-SCHEDULE_SCAN_INTERVAL = 1800
-
 # statusDisplay value the site reports when a thermostat has lost its uplink.
 STATUS_UNREACHABLE = "Unreachable"
 

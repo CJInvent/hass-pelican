@@ -1,8 +1,8 @@
 """Diagnostics for the Pelican Wireless integration.
 
 Downloadable from the integration page. This is what to attach to a bug report:
-it shows the coordinator health, the raw thermostat payloads and the parsed
-schedules, with credentials removed.
+it shows the coordinator health and the raw thermostat payloads, with
+credentials removed.
 """
 
 from __future__ import annotations
@@ -25,7 +25,6 @@ async def async_get_config_entry_diagnostics(
 ) -> dict[str, Any]:
     """Return diagnostics for a config entry."""
     data = entry.runtime_data
-    schedules = data.schedules.data
 
     return {
         "entry": {
@@ -39,21 +38,10 @@ async def async_get_config_entry_diagnostics(
                 "update_interval": str(data.thermostats.update_interval),
                 "count": len(data.thermostats.data or {}),
             },
-            "schedules": {
-                "last_update_success": data.schedules.last_update_success,
-                "last_exception": _describe(data.schedules.last_exception),
-                "update_interval": str(data.schedules.update_interval),
-                "thermostats_with_entries": len(schedules.entries) if schedules else 0,
-                "site_timezone": schedules.timezone_name if schedules else None,
-            },
         },
         # Thermostat payloads contain no personal data: names, setpoints,
         # temperatures and serials.
         "thermostats": data.thermostats.data or {},
-        "schedules": {
-            serial: [item.as_dict() for item in entries]
-            for serial, entries in (schedules.entries if schedules else {}).items()
-        },
     }
 
 

@@ -17,9 +17,7 @@ from .coordinator import PelicanData
 class PelicanEntity(CoordinatorEntity[DataUpdateCoordinator[Any]]):
     """One entity attached to one Pelican thermostat.
 
-    Entities bind to whichever coordinator drives them (thermostat or schedule)
-    but always read identity and availability from the thermostat coordinator,
-    so a schedule-backed entity still goes unavailable when its thermostat does.
+    Identity and availability always come from the thermostat coordinator.
     """
 
     _attr_has_entity_name = True

@@ -1,9 +1,9 @@
-"""Polling coordinators for a Pelican site."""
+"""Polling coordinator for a Pelican site."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import timedelta, tzinfo
+from datetime import timedelta
 import logging
 from typing import Any
 
@@ -11,12 +11,10 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
-from homeassistant.util import dt as dt_util
 
 from .api import PelicanApi
 from .const import DOMAIN
-from .errors import ErrorLog, PelicanAuthError, PelicanError
-from .schedule import SiteSchedules, parse_entries, site_timezone_name
+from .errors import ErrorLog, PelicanApiError, PelicanAuthError, PelicanError
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -77,6 +75,50 @@ class PelicanCoordinator(DataUpdateCoordinator[dict[str, dict[str, Any]]]):
             )
         return keyed
 
+    def selector_for(self, serial: str) -> str:
+        """Return the nodeName to select this thermostat by, or raise.
+
+        Entities are keyed by serialNo (rule 6), but the site refuses
+        `serialNo:` selection, so the serial is resolved to a nodeName at write
+        time.
+
+        Everything below guards one verified behavior: the site does not reject
+        a selection it cannot parse. It matches every thermostat and reports
+        success -- a malformed selector on a live site returned "Updated 7
+        thermostats". So a missing or malformed nodeName must never reach the
+        wire.
+        """
+        thermostat = (self.data or {}).get(serial)
+        if thermostat is None:
+            raise PelicanApiError(
+                f"Thermostat {serial} is not in the latest poll from "
+                f"{self.api.host}; refusing to write"
+            )
+
+        node_name = thermostat.get("nodeName")
+        if not isinstance(node_name, str) or not node_name.strip():
+            raise PelicanApiError(
+                f"Thermostat {serial} reported no nodeName at {self.api.host}. "
+                "Writes select by nodeName, and an empty selector would change "
+                "every thermostat at the site"
+            )
+        node_name = node_name.strip()
+
+        duplicates = [
+            other
+            for other, record in (self.data or {}).items()
+            if str(record.get("nodeName") or "").strip() == node_name
+        ]
+        if len(duplicates) > 1:
+            raise PelicanApiError(
+                f"{len(duplicates)} thermostats at {self.api.host} report the "
+                f"node name {node_name!r}. A write would hit all of them, so it "
+                "is refused. Report this to Pelican -- node names are supposed "
+                "to be unique"
+            )
+
+        return node_name
+
     async def async_apply(self, serial: str, values: dict[str, Any]) -> None:
         """Write attributes, update local state optimistically, then re-poll.
 
@@ -85,7 +127,8 @@ class PelicanCoordinator(DataUpdateCoordinator[dict[str, dict[str, Any]]]):
         matters.
         """
         try:
-            await self.api.async_set_thermostat(serial, values)
+            node_name = self.selector_for(serial)
+            await self.api.async_set_thermostat(node_name, values)
         except PelicanAuthError as err:
             _LOGGER.error(
                 "Rejected credentials writing to thermostat %s: %s", serial, err
@@ -109,100 +152,9 @@ class PelicanCoordinator(DataUpdateCoordinator[dict[str, dict[str, Any]]]):
         await self.async_request_refresh()
 
 
-class PelicanScheduleCoordinator(DataUpdateCoordinator[SiteSchedules]):
-    """Fetch the site's recurring schedules, keyed by serial number.
-
-    Separate from the thermostat coordinator and much slower, because schedules
-    change when a person edits them in Site Manager, not minute to minute. A
-    failure here degrades the schedule warning; it must never take climate
-    control down with it, so it is not part of config entry setup.
-    """
-
-    def __init__(
-        self,
-        hass: HomeAssistant,
-        config_entry: ConfigEntry,
-        api: PelicanApi,
-        update_interval: timedelta,
-    ) -> None:
-        """Initialize the schedule coordinator."""
-        super().__init__(
-            hass,
-            _LOGGER,
-            config_entry=config_entry,
-            name=f"{DOMAIN} schedules {api.host}",
-            update_interval=update_interval,
-        )
-        self.api = api
-        self._errors = ErrorLog(_LOGGER, f"Schedule poll of {api.host}")
-        self._warned_timezone: str | None = None
-
-    async def _async_resolve_timezone(self, name: str | None) -> tuple[tzinfo, str]:
-        """Turn the site's time zone name into a tzinfo, falling back loudly.
-
-        ZoneInfo construction reads the tz database off disk, so it goes through
-        Home Assistant's cached async helper rather than being built inline
-        (rule 10).
-        """
-        if name:
-            zone = await dt_util.async_get_time_zone(name)
-            if zone is not None:
-                self._warned_timezone = None
-                return zone, name
-
-        fallback = dt_util.DEFAULT_TIME_ZONE
-        fallback_name = str(fallback)
-        # Warn once per distinct problem: this is on a 30 minute timer and the
-        # answer will not change until someone edits the site.
-        if self._warned_timezone != (name or ""):
-            self._warned_timezone = name or ""
-            if name:
-                _LOGGER.warning(
-                    "Site %s reports time zone %r, which this system cannot "
-                    "resolve. Falling back to Home Assistant's zone (%s); "
-                    "predicted schedule times will be wrong if the two differ",
-                    self.api.host,
-                    name,
-                    fallback_name,
-                )
-            else:
-                _LOGGER.warning(
-                    "Site %s did not report a time zone. Falling back to Home "
-                    "Assistant's zone (%s); predicted schedule times will be "
-                    "wrong if the site is in a different zone",
-                    self.api.host,
-                    fallback_name,
-                )
-        return fallback, fallback_name
-
-    async def _async_update_data(self) -> SiteSchedules:
-        """Read the site time zone and every recurring schedule entry."""
-        try:
-            site = await self.api.async_get_site()
-            rows = await self.api.async_get_schedules()
-        except PelicanAuthError as err:
-            self._errors.failure(err)
-            raise ConfigEntryAuthFailed(str(err)) from err
-        except PelicanError as err:
-            self._errors.failure(err)
-            raise UpdateFailed(str(err)) from err
-        except Exception as err:
-            self._errors.failure(err)
-            raise UpdateFailed(
-                f"Unexpected error reading schedules from {self.api.host}: {err}"
-            ) from err
-
-        self._errors.success()
-        zone, zone_name = await self._async_resolve_timezone(site_timezone_name(site))
-        return SiteSchedules(
-            timezone=zone, timezone_name=zone_name, entries=parse_entries(rows)
-        )
-
-
 @dataclass
 class PelicanData:
     """Everything a config entry owns at runtime."""
 
     api: PelicanApi
     thermostats: PelicanCoordinator
-    schedules: PelicanScheduleCoordinator
