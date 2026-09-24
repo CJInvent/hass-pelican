@@ -23,8 +23,7 @@ Every thermostat at the site becomes a Home Assistant device with:
 | CO2 | `sensor` | Only created on thermostats that actually report CO2 |
 | Schedule | `switch` | Turn the thermostat's schedule off so manual setpoints hold |
 | Keypad unlocked | `switch` | Lock or unlock the physical keypad |
-| Cloud schedule | `binary_sensor` | On while a Pelican-side schedule can override Home Assistant. Carries the full weekly schedule as an attribute |
-| Next schedule change | `sensor` | Timestamp of the next set time, with the settings it will apply |
+| Cloud schedule | `binary_sensor` | On while a Pelican-side schedule can override Home Assistant |
 
 All thermostats at the site are read in a **single** API request per poll cycle,
 so adding thermostats does not add API traffic.
@@ -94,15 +93,19 @@ time, then reverts. **Nothing errors.** The API call succeeds, the entity update
 and hours later the temperature quietly goes back — exactly as it would if
 someone pressed the buttons on the wall.
 
-The integration reads the site's recurring schedules and says so three ways:
+The integration says so two ways:
 
-- **Settings → Repairs** shows a warning naming every thermostat with a live
-  cloud schedule. It clears itself when none are left.
+- **Settings → Repairs** shows a warning naming every thermostat with a
+  schedule running. It clears itself when none are left.
 - **`binary_sensor.<name>_cloud_schedule`** is on while a schedule can override
   you. Gate automations on it, or alert on it.
-- **`sensor.<name>_next_schedule_change`** is the timestamp of the next set
-  time. Its `next_change_settings` attribute shows what the schedule will change
-  things to; the binary sensor's `schedule` attribute carries the whole week.
+
+What it **can't** tell you is *when* the schedule will act or *what* it will
+change things to. Pelican's API refuses to serve schedule contents — both
+`ThermostatSchedule` and `SharedSchedule` answer "currently unsupported" — so
+Home Assistant only knows that a schedule is assigned. The climate entity's
+`set_by` attribute reads `Schedule` once one has taken over, which is the
+closest after-the-fact evidence available.
 
 Two ways to resolve it, depending on which side should win:
 
@@ -114,15 +117,15 @@ Two ways to resolve it, depending on which side should win:
 
 # Option B — the Pelican schedule stays authoritative. Don't fight it.
 - if:
-      - condition: state
-        entity_id: binary_sensor.shop_cloud_schedule
-        state: "off"
+    - condition: state
+      entity_id: binary_sensor.shop_cloud_schedule
+      state: "off"
   then:
-      - action: climate.set_temperature
-        target:
-          entity_id: climate.shop
-        data:
-          temperature: 68
+    - action: climate.set_temperature
+      target:
+        entity_id: climate.shop
+      data:
+        temperature: 68
 ```
 
 #### Turning a schedule back on
@@ -137,25 +140,8 @@ than sending a bare `On`, which would silently move the thermostat onto its own
 local schedule and off the shared one everyone else at the site is using. The
 remembered value is visible as the switch's `schedule_name` attribute.
 
-#### Time zones
-
-Set times are **wall-clock times at the site**: "Monday 07:00" means 07:00 where
-the building is. The integration reads the site's configured zone from the
-Pelican `Site` object and resolves set times against it, then publishes the
-result in **UTC** — so the next-change timestamp is an absolute instant and Home
-Assistant renders it in your local time. DST is handled; a 07:00 set time stays
-07:00 local across the transition.
-
-This matters on multi-site MSP deployments: with Home Assistant in Central and a
-site in Pacific, interpreting set times in Home Assistant's zone would make every
-prediction two hours early, and nothing would look broken. The zone actually used
-is published as `site_timezone` on the Cloud schedule binary sensor. If a site
-reports a zone that can't be resolved, or none at all, the integration falls back
-to Home Assistant's zone and logs a warning saying so.
-
-Schedules are polled every 30 minutes, separately from the 60-second thermostat
-poll, and this integration never writes them. Edit schedules in Site Manager,
-where everyone else who shares the site can see the change.
+This integration never edits schedule contents. Do that in Site Manager, where
+everyone else who shares the site can see the change.
 
 **Auto mode uses a setpoint range.** In `Auto` (`heat_cool`), Home Assistant shows
 the heat and cool setpoints as a low/high pair. Calling `climate.set_temperature`
@@ -263,17 +249,33 @@ logger:
   INFO. Credentials are never logged: Pelican puts them in the query string, so
   the request URL is itself a secret and is deliberately absent.
 - **Filing a bug** — use **Download diagnostics** on the integration page. It
-  includes coordinator health, the last exception from each poll, the resolved
-  site time zone, the raw thermostat payloads and the parsed schedules, with
-  credentials redacted.
+  includes coordinator health, the last exception from the poll, and the raw
+  thermostat payloads, with credentials redacted.
+
+## How the API actually behaves
+
+Pelican's published documentation differs from the live API in ways that matter.
+Every item here was verified against a real site; the code depends on each one.
+
+- **Responses are nested under `result`**, and `success` is the integer `1`. The
+  docs show both flattened and stringly-typed.
+- **`serialNo:` selection is rejected.** Writes select by `nodeName`
+  (e.g. `thrm2A38`), a stable device identifier. Names work as selectors too,
+  but they carry significant trailing spaces (`"Sales "` is not `"Sales"`) and
+  aren't unique.
+- **A selector the site can't parse matches every thermostat.** A malformed
+  selection on a write returned `success: 1` with "Updated 7 thermostats." The
+  integration refuses to send a blank, duplicate, or punctuation-bearing
+  selector for exactly this reason.
+- **Unknown attributes return `""` with `success: 1`**, so a misspelled
+  attribute fails silently rather than with an error.
+- **Schedule contents are not readable** over this API.
 
 ## References
 
 - [Pelican OpenAPI — Getting Started](https://www.pelicanwireless.com/help-center/gettings-started2/)
 - [Pelican OpenAPI — Requests & Responses](https://www.pelicanwireless.com/help-center/request-responses/)
 - [Pelican OpenAPI — Thermostat Attributes](https://www.pelicanwireless.com/help-center/thermostat-attributes/)
-- [Pelican OpenAPI — ThermostatSchedule Attributes](https://www.pelicanwireless.com/help-center/thermostatschedule-attributes/)
-- [Pelican OpenAPI — Site Attributes](https://www.pelicanwireless.com/help-center/site-attributes/)
 
 ## Disclaimer
 

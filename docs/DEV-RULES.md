@@ -22,9 +22,8 @@ fix a bug. If a gate can only be satisfied by editing code we don't own, the
 gate is wrong and gets scoped — see rule 18.
 
 **3. The polled attribute list is a closed contract.** Every name in
-`api.THERMOSTAT_ATTRIBUTES`, `api.SCHEDULE_ATTRIBUTES` and `api.SITE_ATTRIBUTES`
-must have at least one consumer elsewhere in the package, and every attribute an
-entity reads must appear in the matching list. Both directions are checked by
+`api.THERMOSTAT_ATTRIBUTES` must have at least one consumer elsewhere in the
+package, and every attribute an entity reads must appear in the list. Both directions are checked by
 `scripts/check-consistency.py`. This exists because the keypad switch shipped
 reading an attribute that was never polled.
 
@@ -76,16 +75,36 @@ failure ERROR again, recovery INFO. That is `ErrorLog`; use it for anything on a
 timer. User-initiated writes are not throttled — they are rare and every one
 matters.
 
-**27. A degraded feature never takes down a working one.** The schedule poll is
-not part of config entry setup: a site that refuses `ThermostatSchedule` reads
-still gets working climate entities and a schedule sensor that reports unknown.
-Ask of any new coordinator: if this fails forever, what stops working?
+**27. A degraded feature never takes down a working one.** Anything optional --
+a second coordinator, an auxiliary endpoint, the planned web-UI schedule reader --
+stays out of config entry setup, so a failure there leaves its own entities
+unknown and climate control untouched. Ask of any new coordinator: if this fails
+forever, what stops working? The answer must be "only itself."
 
-**28. Times from the site are wall-clock times at the site.** A Pelican set time
-of "Monday 07:00" means 07:00 where the building is. Resolve it against the
-zone from the `Site` object, then store and compare in UTC. Never assume Home
-Assistant's zone matches the building's — when they differ, every predicted time
-is wrong by the offset and absolutely nothing looks broken.
+**28.** ~~**Times from the site are wall-clock times at the site.** A Pelican set
+time of "Monday 07:00" means 07:00 where the building is. Resolve it against the
+zone from the `Site` object, then store and compare in UTC.~~
+
+*Struck 2026-09-24: the only consumer was next-change prediction, and that was
+deleted when the live site proved schedule contents are unreadable over the
+API. The principle still stands and applies unchanged if schedule reading comes
+back through the web-UI endpoints.*
+
+**29. A selector the site cannot parse means EVERY thermostat.** Verified on a
+live site: `selection=2S3-MNXA` (a bare serial, which Pelican does not accept)
+on a `set` returned `success: 1` with "Updated 7 thermostats." There is no
+error, nothing looks wrong, and a whole building changes. Writes select by
+`nodeName`, and `PelicanCoordinator.selector_for` refuses a blank, duplicate or
+punctuation-bearing selector before anything reaches the wire. Never relax those
+guards, and never build a selector from free text a customer can edit.
+
+**30. An attribute the site does not recognize returns `""` with `success: 1`.**
+`thisIsNotAnAttribute` comes back empty and successful, so a typo in
+`THERMOSTAT_ATTRIBUTES` yields `None` forever with no error anywhere and the
+consistency gate cannot see it -- it checks that what we read is what we poll,
+not that the site knows the name. Only add an attribute after confirming it
+returns non-empty against a live site. The same behavior is a useful probe: a
+non-empty value proves an attribute is real.
 
 ## Secrets and logging
 
