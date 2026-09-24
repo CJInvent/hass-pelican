@@ -29,11 +29,11 @@ API = PACKAGE / "api.py"
 SEMVER = re.compile(r"^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$")
 
 ATTR_CALL = re.compile(r"attr(?:_int|_float)?\(\s*[\"']([A-Za-z0-9_]+)[\"']\s*\)")
-# schedule.py reads every ThermostatSchedule attribute through field()/field_int()
-# so the same both-directions check applies there too.
-FIELD_CALL = re.compile(
-    r"\bfield(?:_int)?\(\s*\w+\s*,\s*[\"']([A-Za-z0-9_]+)[\"']\s*\)"
-)
+
+
+# A literal backslash followed by n, t, or u+4 hex: an escape that was
+# serialized as text instead of being interpreted.
+_LITERAL_ESCAPE = re.compile(re.escape(chr(92)) + r"(?:n|t|u[0-9a-fA-F]{4})")
 
 
 def fail(message: str) -> None:
@@ -52,14 +52,10 @@ def polled_attributes(name: str) -> list[str]:
 
 
 # Each contract is (label, tuple name in api.py, the reader used to read it).
-# Two contracts share the field() reader, so the "read but not polled" direction
-# is checked against every contract that uses the same reader -- otherwise a
-# legitimate Site attribute looks like a missing Schedule one.
-CONTRACTS = (
-    ("thermostat", "THERMOSTAT_ATTRIBUTES", ATTR_CALL),
-    ("schedule", "SCHEDULE_ATTRIBUTES", FIELD_CALL),
-    ("site", "SITE_ATTRIBUTES", FIELD_CALL),
-)
+# The "read but not polled" direction is grouped by reader, so two contracts
+# sharing a reader cannot flag each other's attributes as missing. Only one
+# contract remains today; the grouping is what makes adding another safe.
+CONTRACTS = (("thermostat", "THERMOSTAT_ATTRIBUTES", ATTR_CALL),)
 
 
 def _check_unread(
@@ -158,6 +154,26 @@ def check_strings() -> None:
         )
 
     strings = json.loads(strings_path.read_text(encoding="utf-8"))
+
+    # A string that decodes to a literal backslash escape renders as "\\n" or
+    # "\\u2014" in the UI. That shipped once, from a double-escaped write.
+    def _escapes(node: object, path: str) -> list[str]:
+        if isinstance(node, dict):
+            return [
+                hit
+                for key, value in node.items()
+                for hit in _escapes(value, f"{path}.{key}")
+            ]
+        if isinstance(node, str) and _LITERAL_ESCAPE.search(node):
+            return [path.lstrip(".")]
+        return []
+
+    literal = _escapes(strings, "")
+    if literal:
+        fail(
+            "strings.json contains escape sequences as literal text, which the UI "
+            f"shows verbatim: {literal}"
+        )
 
     declared_entity: set[str] = set()
     for platform, entries in (strings.get("entity") or {}).items():
