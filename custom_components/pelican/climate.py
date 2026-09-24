@@ -180,13 +180,7 @@ class PelicanClimate(PelicanEntity, ClimateEntity):
             "serial_number": self._serial,
             # Surfaced here as well as on the binary sensor because this is the
             # entity people put on a dashboard and automate against.
-            "cloud_schedule_active": thermostat_has_cloud_schedule(
-                self.thermostat,
-                bool(
-                    (schedules := self.data.schedules.data)
-                    and schedules.for_serial(self._serial)
-                ),
-            ),
+            "cloud_schedule_active": thermostat_has_cloud_schedule(self.thermostat),
         }
 
     async def _apply(self, values: dict[str, Any]) -> None:

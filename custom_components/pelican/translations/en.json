@@ -43,24 +43,35 @@
           "scan_interval": "Poll interval (seconds)"
         },
         "data_description": {
-          "scan_interval": "How often to poll the site. The Pelican API has no rate limit, and one request covers every thermostat. Schedules are polled separately every 30 minutes."
+          "scan_interval": "How often to poll the site. The Pelican API has no rate limit, and one request covers every thermostat."
         }
       }
     }
   },
   "entity": {
     "binary_sensor": {
-      "cloud_schedule": { "name": "Cloud schedule" }
+      "cloud_schedule": {
+        "name": "Cloud schedule"
+      }
     },
     "sensor": {
-      "status_display": { "name": "Status" },
-      "run_status": { "name": "Run status" },
-      "set_by": { "name": "Set by" },
-      "next_schedule_change": { "name": "Next schedule change" }
+      "status_display": {
+        "name": "Status"
+      },
+      "run_status": {
+        "name": "Run status"
+      },
+      "set_by": {
+        "name": "Set by"
+      }
     },
     "switch": {
-      "schedule": { "name": "Schedule" },
-      "keypad": { "name": "Keypad unlocked" }
+      "schedule": {
+        "name": "Schedule"
+      },
+      "keypad": {
+        "name": "Keypad unlocked"
+      }
     }
   },
   "exceptions": {
@@ -74,7 +85,7 @@
   "issues": {
     "cloud_schedule_active": {
       "title": "Pelican schedules will override Home Assistant",
-      "description": "{count} thermostat(s) at {site} are running a schedule configured in Pelican Site Manager: {thermostats}.\n\nA temperature set from a Home Assistant automation or dashboard holds only until the schedule's next set time, then reverts. The API call succeeds either way, so nothing appears to fail.\n\nTo let Home Assistant own the setpoints, turn off the Schedule switch for those thermostats. To keep the Pelican schedule authoritative, gate your automations on the Cloud schedule binary sensor and use the Next schedule change sensor to see when it acts. Either choice clears this warning only in the first case; it is informational and will return if a schedule is re-enabled."
+      "description": "{count} thermostat(s) at {site} are running a schedule configured in Pelican Site Manager: {thermostats}.\n\nA temperature set from a Home Assistant automation or dashboard holds only until the schedule's next set time, then reverts. The API call succeeds either way, so nothing appears to fail.\n\nPelican does not serve schedule contents over the API, so Home Assistant cannot tell you when that will happen or what it will change things to — only that it will.\n\nTo let Home Assistant own the setpoints, turn off the Schedule switch for those thermostats. To keep the Pelican schedule authoritative, gate your automations on the Cloud schedule binary sensor. This warning is informational and clears when no thermostat has a schedule running."
     }
   }
 }
