@@ -21,26 +21,28 @@ First release.
   Temperatures keep the tenth of a degree Pelican reports rather than being
   rounded to whole degrees; setpoints are whole-degree, because the API only
   accepts integers there.
-- **Cloud schedule visibility**, because a Pelican schedule silently reverting a
-  setpoint an automation just wrote is the most confusing thing this integration
-  can do, and nothing errors when it happens. Surfaced two ways: a Repairs
-  warning naming the affected thermostats, and a `Cloud schedule` binary sensor
-  to gate automations on. Pelican's API refuses to serve schedule *contents* --
-  both `ThermostatSchedule` and `SharedSchedule` answer "currently
-  unsupported" -- so Home Assistant can say a schedule will reassert itself but
-  not when or to what.
+- **Pelican cloud schedules are reported as a fixable Repairs issue.**
+  Schedules belong in Home Assistant automations; a Pelican schedule running
+  underneath them silently overwrites their setpoints at every set time. The
+  issue names every affected thermostat, and its fix turns their schedules off
+  in one step. An offline thermostat is skipped and named rather than aborting
+  the rest. Turning a schedule off keeps current setpoints and pauses rather
+  than deletes it, verified against a live site.
 - **Writes select by `nodeName`.** The site rejects `serialNo:` selection, and
   selecting by `name:` would mean putting customer-editable free text into a
   selector -- names carry significant trailing spaces and are not unique. The
   coordinator refuses to write when a node name is missing, duplicated, or
   contains selector punctuation, because a selector the site cannot parse is
   not an error there: it matches every thermostat and reports success.
-- **Schedule and keypad switches.** Turning the schedule off is what makes a
-  manual setpoint hold. Turning it back on restores the *same* shared schedule
-  by name, persisted across restarts, rather than sending a bare `On` and
-  detaching the thermostat onto its own schedule.
-- **Diagnostic sensors** for site status, run status and who set the current
-  settings, plus a CO2 sensor created only on thermostats that report one.
+- **Offline thermostats are unavailable and refuse writes.** An unplugged unit
+  reports `Unreachable` with frozen last-known values, and the site still
+  accepts writes to it with a success response. Showing those values as live, or
+  reporting a change as made, would both be false.
+- **Schedule and keypad switches.** The schedule switch is the per-thermostat
+  equivalent of the Repairs fix.
+- **Diagnostic sensors** for site status, run status and who last changed the
+  settings (`Station`, `Schedule` or `Remote`), plus a CO2 sensor created only
+  on thermostats that report one.
 - **A distinct exception and log message per API failure mode**: authentication,
   connection, timeout, HTTP status, unparseable response, and site refusal.
   Repeated identical failures throttle to DEBUG so an offline gateway cannot

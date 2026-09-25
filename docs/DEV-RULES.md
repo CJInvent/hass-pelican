@@ -46,9 +46,11 @@ editable in Site Manager and get changed by customers. A unique_id is
 a unique_id orphans the user's entity, its history, and every automation
 referencing it.
 
-**8. Don't create entities for capabilities the hardware lacks.** CO2 is `0` on
-thermostats without the sensor; humidity likewise. Gate creation on `exists_fn`
-rather than shipping an entity that reports a permanent zero.
+**8. Don't create entities for capabilities the hardware lacks.** Verified on
+TS200 hardware: `co2Level` comes back `""` without the sensor, and `humidity`
+comes back `0` on units without one -- even alongside identical models that
+report 45-48. Gate creation on `exists_fn`, and read a zero humidity as "no
+sensor," rather than shipping an entity that reports a permanent blank or zero.
 
 **9. Every API failure reaching a service handler surfaces as
 `HomeAssistantError`.** A swallowed exception makes a failed setpoint look like a
@@ -76,8 +78,7 @@ timer. User-initiated writes are not throttled — they are rare and every one
 matters.
 
 **27. A degraded feature never takes down a working one.** Anything optional --
-a second coordinator, an auxiliary endpoint, the planned web-UI schedule reader --
-stays out of config entry setup, so a failure there leaves its own entities
+a second coordinator, an auxiliary endpoint -- stays out of config entry setup, so a failure there leaves its own entities
 unknown and climate control untouched. Ask of any new coordinator: if this fails
 forever, what stops working? The answer must be "only itself."
 
@@ -87,8 +88,8 @@ zone from the `Site` object, then store and compare in UTC.~~
 
 *Struck 2026-09-24: the only consumer was next-change prediction, and that was
 deleted when the live site proved schedule contents are unreadable over the
-API. The principle still stands and applies unchanged if schedule reading comes
-back through the web-UI endpoints.*
+API. The principle still stands for any future code that interprets site-local
+times.*
 
 **29. A selector the site cannot parse means EVERY thermostat.** Verified on a
 live site: `selection=2S3-MNXA` (a bare serial, which Pelican does not accept)
@@ -105,6 +106,23 @@ consistency gate cannot see it -- it checks that what we read is what we poll,
 not that the site knows the name. Only add an attribute after confirming it
 returns non-empty against a live site. The same behavior is a useful probe: a
 non-empty value proves an attribute is real.
+
+**31. `success: 1` on a write means accepted, not delivered.** Verified on a
+live site: a physically unplugged thermostat reports `statusDisplay:
+Unreachable`, keeps serving its last-known values, and a write to it returns
+"Updated 1 thermostats." `selector_for` refuses writes to an unreachable
+thermostat for that reason. Entity unavailability also blocks them, but that is
+incidental; the coordinator must not depend on it.
+
+**32. The integration connects Home Assistant to the Pelican API. Nothing more.**
+Scheduling, occupancy logic and setpoint policy live in Home Assistant
+automations, never in this package. The one opinion it holds is that a Pelican
+cloud schedule running underneath those automations is a misconfiguration, which
+it reports as a fixable Repairs issue. Before adding anything, ask whether it
+exposes API state or control, or whether it is logic an automation should own.
+The second kind does not go here. This rule exists because a web-UI schedule
+reader, a next-change predictor and a schedule-name memory were each built and
+then removed for crossing it.
 
 ## Secrets and logging
 
