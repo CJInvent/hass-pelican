@@ -78,12 +78,12 @@ async def test_set_temperature_in_cool_writes_cool_setting(
     await hass.services.async_call(
         CLIMATE_DOMAIN,
         SERVICE_SET_TEMPERATURE,
-        {ATTR_ENTITY_ID: LOBBY, ATTR_TEMPERATURE: 71},
+        {ATTR_ENTITY_ID: LOBBY, ATTR_TEMPERATURE: 76},
         blocking=True,
     )
 
     mock_api.async_set_thermostat.assert_awaited_once_with(
-        "thrm1111", {"coolSetting": 71}
+        "thrm1111", {"coolSetting": 76}
     )
 
 
@@ -123,7 +123,7 @@ async def test_single_setpoint_in_auto_is_rejected_upstream(
         await hass.services.async_call(
             CLIMATE_DOMAIN,
             SERVICE_SET_TEMPERATURE,
-            {ATTR_ENTITY_ID: SHOP, ATTR_TEMPERATURE: 70},
+            {ATTR_ENTITY_ID: SHOP, ATTR_TEMPERATURE: 76},
             blocking=True,
         )
 
@@ -148,7 +148,7 @@ async def test_single_setpoint_while_switching_into_auto_is_rejected(
             {
                 ATTR_ENTITY_ID: LOBBY,
                 "hvac_mode": HVACMode.HEAT_COOL,
-                ATTR_TEMPERATURE: 70,
+                ATTR_TEMPERATURE: 76,
             },
             blocking=True,
         )
@@ -181,13 +181,15 @@ async def test_api_failure_surfaces_as_home_assistant_error(
     from custom_components.pelican.errors import PelicanError
 
     await _setup(hass, config_entry)
-    mock_api.async_set_thermostat.side_effect = PelicanError("Setting out of range")
+    mock_api.async_set_thermostat.side_effect = PelicanError(
+        "No thermostat attributes where changed."
+    )
 
-    with pytest.raises(HomeAssistantError, match="Setting out of range"):
+    with pytest.raises(HomeAssistantError, match="attributes where changed"):
         await hass.services.async_call(
             CLIMATE_DOMAIN,
             SERVICE_SET_TEMPERATURE,
-            {ATTR_ENTITY_ID: LOBBY, ATTR_TEMPERATURE: 71},
+            {ATTR_ENTITY_ID: LOBBY, ATTR_TEMPERATURE: 76},
             blocking=True,
         )
 

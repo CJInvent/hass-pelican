@@ -15,30 +15,33 @@ pytest_plugins = "pytest_homeassistant_custom_component"
 HOST = "dpsol-dethac.officeclimatecontrol.net"
 API_URL = f"https://{HOST}/api.cgi"
 
-# One thermostat in Cool, one in Auto with a CO2 sensor and a shared schedule.
+# Every value below mirrors what a live TS200 site returned, including types:
+# numeric attributes arrive as JSON numbers (temperature 77.5, heatSetting 56),
+# and co2Level is "" on hardware without the sensor. The one exception is Shop's
+# CO2 reading, kept so the CO2 entity path is still exercised.
 THERMOSTAT_LOBBY = {
     "name": "Lobby",
     "serialNo": "41111",
     "nodeName": "thrm1111",
-    "modelNo": "TC2-W",
-    "version": "3.2.1",
+    "modelNo": "TS200",
+    "version": "2.17",
     "system": "Cool",
-    "heatSetting": "68",
-    "coolSetting": "74",
+    "heatSetting": 68,
+    "coolSetting": 74,
     "fan": "Auto",
-    "temperature": "72.4",
-    "humidity": "44",
-    "co2Level": "0",
+    "temperature": 72.4,
+    "humidity": 44,
+    "co2Level": "",
     "runStatus": "Cool-Stage1",
-    "statusDisplay": "Cool Running",
+    "statusDisplay": "Cool On",
     "setBy": "Schedule",
     "schedule": "On",
     "frontKeypad": "On",
     "temperatureFormat": "Fahrenheit",
-    "minHeatSetting": "55",
-    "maxHeatSetting": "80",
-    "minCoolSetting": "65",
-    "maxCoolSetting": "90",
+    "minHeatSetting": 56,
+    "maxHeatSetting": 80,
+    "minCoolSetting": 72,
+    "maxCoolSetting": 85,
 }
 
 THERMOSTAT_SHOP = {
@@ -48,11 +51,13 @@ THERMOSTAT_SHOP = {
     "nodeName": "thrm1112",
     "system": "Auto",
     "runStatus": "Off",
-    "statusDisplay": "Space Satisfied",
-    "co2Level": "780",
+    "statusDisplay": "Cool On",
+    "co2Level": 780,  # not observed live; exercises the CO2 path
+    # A shared-schedule *name* here is what Pelican's docs describe. It has
+    # never been observed live -- see the note on PelicanScheduleSwitch.
     "schedule": "Weekday Hours",
     "frontKeypad": "Off",
-    "setBy": "Remote",
+    "setBy": "Station",
 }
 
 
