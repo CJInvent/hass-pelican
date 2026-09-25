@@ -19,11 +19,10 @@ Every thermostat at the site becomes a Home Assistant device with:
 | Thermostat | `climate` | Current temperature and humidity, Off/Heat/Cool/Auto, heat and cool setpoints, Auto/On fan, live heating/cooling/fan action |
 | Status | `sensor` | The site's `statusDisplay` text, including `Unreachable` |
 | Run status | `sensor` | Raw `runStatus` (`Cool-Stage1`, `Heat-Stage2`, …) |
-| Set by | `sensor` | Whether the current settings came from the Station, Remote, or Schedule |
+| Set by | `sensor` | What last changed the settings: `Station` (the unit), `Schedule` (a Pelican set time), or `Remote` (the API, including Home Assistant) |
 | CO2 | `sensor` | Only created on thermostats that actually report CO2 |
-| Schedule | `switch` | Turn the thermostat's schedule off so manual setpoints hold |
+| Schedule | `switch` | The thermostat's Pelican cloud schedule. Off is the intended state |
 | Keypad unlocked | `switch` | Lock or unlock the physical keypad |
-| Cloud schedule | `binary_sensor` | On while a Pelican-side schedule can override Home Assistant |
 
 All thermostats at the site are read in a **single** API request per poll cycle,
 so adding thermostats does not add API traffic.
@@ -85,90 +84,69 @@ under the integration's **Configure** button (15–900 seconds).
 <a id="schedules"></a>
 ### Schedules
 
-This is the one thing worth reading before you write an automation.
+**Schedules belong in Home Assistant automations.** This integration connects
+Home Assistant to the Pelican API and nothing more; it does no scheduling of its
+own.
 
-If a thermostat is running a schedule configured in Pelican Site Manager, a
-setpoint you push from Home Assistant holds only until that schedule's next set
-time, then reverts. **Nothing errors.** The API call succeeds, the entity updates,
-and hours later the temperature quietly goes back — exactly as it would if
-someone pressed the buttons on the wall.
+A schedule set in Pelican Site Manager conflicts with that. It reapplies its own
+setpoints at every set time, silently overwriting whatever an automation set,
+and every write succeeds, so nothing ever reports a failure. The integration
+therefore treats a running Pelican schedule as a misconfiguration:
 
-The integration says so two ways:
+- **Settings → Repairs** lists every thermostat running one. Click it and
+  submit to turn them all off at once.
+- Each thermostat's **Schedule** switch does the same for one thermostat.
 
-- **Settings → Repairs** shows a warning naming every thermostat with a
-  schedule running. It clears itself when none are left.
-- **`binary_sensor.<name>_cloud_schedule`** is on while a schedule can override
-  you. Gate automations on it, or alert on it.
-
-What it **can't** tell you is *when* the schedule will act or *what* it will
-change things to. Pelican's API refuses to serve schedule contents — both
-`ThermostatSchedule` and `SharedSchedule` answer "currently unsupported" — so
-Home Assistant only knows that a schedule is assigned. The climate entity's
-`set_by` attribute reads `Schedule` once one has taken over, which is the
-closest after-the-fact evidence available.
-
-Two ways to resolve it, depending on which side should win:
-
-```yaml
-# Option A — Home Assistant owns the setpoints. Turn the site schedule off.
-- action: switch.turn_off
-  target:
-    entity_id: switch.shop_schedule
-
-# Option B — the Pelican schedule stays authoritative. Don't fight it.
-- if:
-    - condition: state
-      entity_id: binary_sensor.shop_cloud_schedule
-      state: "off"
-  then:
-    - action: climate.set_temperature
-      target:
-        entity_id: climate.shop
-      data:
-        temperature: 68
-```
-
-#### Turning a schedule back on
-
-Pelican's `schedule` attribute holds either `On` (the thermostat's own schedule)
-or the **name** of a shared schedule. Once it is set to `Off`, that name is gone
-from the API entirely.
-
-So the Schedule switch remembers the name and persists it across Home Assistant
-restarts. Turning the switch back on reattaches the same shared schedule rather
-than sending a bare `On`, which would silently move the thermostat onto its own
-local schedule and off the shared one everyone else at the site is using. The
-remembered value is visible as the switch's `schedule_name` attribute.
-
-This integration never edits schedule contents. Do that in Site Manager, where
-everyone else who shares the site can see the change.
+Turning a Pelican schedule off is safe (verified against a live site): current
+setpoints are kept, and the schedule is **paused, not deleted** — every set time
+is preserved and turning the switch back on restores it. While off, Site Manager
+shows that thermostat's schedule as **None**. If a schedule is turned back on in
+Site Manager, the Repairs warning returns on the next poll.
 
 **Auto mode uses a setpoint range.** In `Auto` (`heat_cool`), Home Assistant shows
 the heat and cool setpoints as a low/high pair. Calling `climate.set_temperature`
 with a single `temperature` value while in Auto raises an error — use
 `target_temp_low` and `target_temp_high` instead.
 
-**Unreachable thermostats.** When the site reports `statusDisplay: Unreachable`,
-that thermostat's entities go unavailable rather than reporting stale values.
+**Offline thermostats.** When the site reports `statusDisplay: Unreachable`, the
+thermostat is offline and its values are frozen at last-known, so its entities
+go unavailable rather than showing stale numbers as live. Writes to it are
+refused, because the site would accept them and report success without being
+able to deliver them.
 
 ## Example automation
 
+With Pelican schedules off, a schedule is an ordinary automation:
+
 ```yaml
 automation:
-  - alias: "Set back the shop overnight"
+  - alias: "Sales: occupied on weekdays"
     triggers:
       - trigger: time
-        at: "19:00:00"
+        at: "07:00:00"
+    conditions:
+      - condition: time
+        weekday: [mon, tue, wed, thu, fri]
     actions:
-      - action: switch.turn_off
-        target:
-          entity_id: switch.shop_schedule
       - action: climate.set_temperature
         target:
-          entity_id: climate.shop
+          entity_id: climate.sales
         data:
           hvac_mode: heat_cool
-          target_temp_low: 60
+          target_temp_low: 70
+          target_temp_high: 75
+
+  - alias: "Sales: unoccupied overnight"
+    triggers:
+      - trigger: time
+        at: "18:00:00"
+    actions:
+      - action: climate.set_temperature
+        target:
+          entity_id: climate.sales
+        data:
+          hvac_mode: heat_cool
+          target_temp_low: 56
           target_temp_high: 85
 ```
 
@@ -267,9 +245,20 @@ Every item here was verified against a real site; the code depends on each one.
   selection on a write returned `success: 1` with "Updated 7 thermostats." The
   integration refuses to send a blank, duplicate, or punctuation-bearing
   selector for exactly this reason.
+- **An offline thermostat accepts writes and reports success.** An unplugged
+  unit reports `statusDisplay: Unreachable` with its other values frozen at
+  last-known, and a write to it still returns "Updated 1 thermostats." The
+  integration marks it unavailable and refuses writes to it.
+- **A wrong password is HTTP 403** with `"Invalid Authentication Credentials"`,
+  which triggers Home Assistant's reauthentication prompt.
 - **Unknown attributes return `""` with `success: 1`**, so a misspelled
-  attribute fails silently rather than with an error.
-- **Schedule contents are not readable** over this API.
+  attribute fails silently rather than with an error. `co2Level` also returns
+  `""` on TS200 hardware, which has no CO2 sensor.
+- **Schedule contents are not readable** over this API, but a thermostat's
+  `schedule` attribute is. Writing `schedule:Off` pauses the schedule without
+  deleting it; `schedule:On` restores it.
+- **`setBy` records what last changed a thermostat:** `Station` (the unit),
+  `Schedule` (a Pelican set time), or `Remote` (an API write).
 
 ## References
 
