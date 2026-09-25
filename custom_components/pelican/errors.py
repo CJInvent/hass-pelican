@@ -27,9 +27,10 @@ class PelicanError(Exception):
 class PelicanAuthError(PelicanError):
     """Credentials were rejected, or the account lacks access.
 
-    Raised on an explicit authentication message from the site and on HTTP 401
-    or 403. Triggers Home Assistant's reauth flow rather than a retry, because
-    retrying with the same rejected credentials cannot succeed.
+    Raised on HTTP 401 or 403 and on an authentication message from the site.
+    Observed live for a wrong password: HTTP 403 with "Invalid Authentication
+    Credentials". Triggers Home Assistant's reauth flow rather than a retry,
+    because retrying with the same rejected credentials cannot succeed.
     """
 
 
@@ -48,8 +49,8 @@ class PelicanTimeoutError(PelicanConnectionError):
 class PelicanResponseError(PelicanError):
     """The site answered, but not with something we could use.
 
-    An HTTP error status, a login page instead of JSON, or a payload whose shape
-    does not match the documented API.
+    An HTTP error status, a non-JSON body, or a payload whose shape does not
+    match what the live API has been observed to return.
     """
 
 
@@ -57,18 +58,19 @@ class PelicanApiError(PelicanError):
     """The API understood the request and refused it.
 
     `success` was not 1. The site's own message is carried through verbatim,
-    because Pelican's refusals ("Setting out of range", "No thermostats found
-    matching selection criteria") are more specific than anything we could
-    invent.
+    because it is more specific than anything we could invent. Observed live:
+    "No thermostats found matching selection criteria.", "Invalid Attribute
+    list.", "Get Thermostat Schedule is currently unsupported." and, on a write
+    that matched nothing, "No thermostat attributes where changed." (sic).
     """
 
 
 class ErrorLog:
     """Throttles repeated identical failures down to DEBUG.
 
-    One instance per logical activity (thermostat poll, schedule poll). Not
-    shared, because a stuck schedule poll must not mask a new thermostat poll
-    failure.
+    One instance per logical activity -- today, just the thermostat poll. Any
+    future poller gets its own instance rather than sharing this one, so a
+    stuck poll of one kind can never mask a new failure in another.
     """
 
     def __init__(self, logger: logging.Logger, activity: str) -> None:

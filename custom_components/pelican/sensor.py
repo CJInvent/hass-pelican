@@ -55,7 +55,9 @@ SENSORS: tuple[PelicanSensorDescription, ...] = (
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=CONCENTRATION_PARTS_PER_MILLION,
         value_fn=lambda entity: entity.attr_int("co2Level"),
-        # Thermostats without a CO2 sensor report 0; don't create a dead entity.
+        # No CO2 sensor means no entity. Verified: TS200 units report co2Level
+        # as "" (which attr_int reads as None). Kept for CO2-capable models,
+        # which Pelican documents but no live site here has confirmed.
         exists_fn=lambda entity: bool(entity.attr_int("co2Level")),
     ),
 )

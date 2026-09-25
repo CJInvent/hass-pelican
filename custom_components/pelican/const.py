@@ -10,17 +10,18 @@ DEFAULT_SCAN_INTERVAL = 60
 MIN_SCAN_INTERVAL = 15
 MAX_SCAN_INTERVAL = 900
 
-# statusDisplay value the site reports when a thermostat has lost its uplink.
+# statusDisplay value the site reports for an offline thermostat. Verified: an
+# unplugged unit reports this, with its other values frozen at last-known.
 STATUS_UNREACHABLE = "Unreachable"
 
-# Thermostat `schedule` values. Anything other than Off is either "On" (the
-# thermostat's own schedule) or the name of a shared schedule.
+# Thermostat `schedule` values. "On" and "Off" are the only ones observed live,
+# and writing "On" back is accepted. Pelican's docs say a shared schedule's name
+# can appear here too; unconfirmed.
 SCHEDULE_OFF = "Off"
 SCHEDULE_ON = "On"
 
-# Attribute the schedule switch publishes and restores across restarts, so that
-# re-enabling a schedule restores a shared schedule by name rather than
-# detaching the thermostat onto its own.
+# Attribute the schedule switch publishes and restores across restarts: the
+# last schedule value seen while active, sent back when re-enabled.
 ATTR_SCHEDULE_NAME = "schedule_name"
 
 # Repairs issue raised while any thermostat still has a cloud schedule running.

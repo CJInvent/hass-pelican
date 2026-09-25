@@ -65,13 +65,18 @@ class PelicanScheduleSwitch(PelicanSwitchBase, RestoreEntity):
     Turning this off is what makes a manual setpoint hold indefinitely instead of
     being overwritten at the next scheduled period.
 
-    Turning it back on has to restore the *same* schedule. Pelican's `schedule`
-    attribute holds either "On" (the thermostat's own schedule) or the name of a
-    shared schedule, and once it is set to Off the name is gone from the API —
-    there is nothing left to read it back from. So the name is remembered here
-    and persisted across restarts via RestoreEntity. Without that, a restart
-    between the off and the on would send the literal "On" and quietly detach
-    the thermostat from a shared schedule that other people at the site rely on.
+    Turning it back on restores whatever value was last seen while the schedule
+    was active, persisted across restarts via RestoreEntity.
+
+    UNVERIFIED PREMISE: Pelican's docs say `schedule` holds either "On" or the
+    *name* of a shared schedule, in which case sending a bare "On" after an Off
+    would detach the thermostat from a shared schedule. On the one live site
+    tested, `schedule` has only ever returned "On" or "Off", and no thermostat
+    there is on a shared schedule. The Site Manager web UI identifies shared
+    schedules by numeric ID, not name, which suggests api.cgi may never expose
+    a name at all. If "On"/"Off" are the only values, this logic is harmless: it
+    remembers "On" and restores "On". Confirm against a thermostat on a shared
+    schedule before relying on it.
     """
 
     _attribute = "schedule"

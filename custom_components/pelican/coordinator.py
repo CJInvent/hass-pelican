@@ -13,7 +13,7 @@ from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .api import PelicanApi
-from .const import DOMAIN
+from .const import DOMAIN, STATUS_UNREACHABLE
 from .errors import ErrorLog, PelicanApiError, PelicanAuthError, PelicanError
 
 _LOGGER = logging.getLogger(__name__)
@@ -93,6 +93,18 @@ class PelicanCoordinator(DataUpdateCoordinator[dict[str, dict[str, Any]]]):
             raise PelicanApiError(
                 f"Thermostat {serial} is not in the latest poll from "
                 f"{self.api.host}; refusing to write"
+            )
+
+        # Verified on a live site: an unplugged thermostat keeps reporting its
+        # last-known values, and a write to it returns success ("Updated 1
+        # thermostats") even though nothing can reach the device. Refuse rather
+        # than tell the user a change was made when it was not.
+        if str(thermostat.get("statusDisplay") or "").strip() == STATUS_UNREACHABLE:
+            raise PelicanApiError(
+                f"Thermostat {serial} at {self.api.host} is offline "
+                f"({STATUS_UNREACHABLE}). The site accepts writes to offline "
+                "thermostats and reports success, but they cannot be delivered, "
+                "so this change is refused"
             )
 
         node_name = thermostat.get("nodeName")

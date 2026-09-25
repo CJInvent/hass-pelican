@@ -40,9 +40,9 @@ class PelicanCloudScheduleSensor(PelicanEntity, BinarySensorEntity):
     It cannot tell you *when* that will happen: the site refuses to serve
     schedule contents (both ThermostatSchedule and SharedSchedule return
     "currently unsupported"), and the thermostat exposes nothing about its own
-    schedule beyond this flag. `set_by` on the climate entity is the closest
-    thing to after-the-fact evidence -- it reads "Schedule" once a schedule has
-    taken over.
+    schedule beyond this flag. `set_by` on the climate entity is the confirmed
+    after-the-fact signal: it reads "Schedule" once a schedule has applied a set
+    time (observed live alongside "Station" for manual changes at the unit).
     """
 
     _attr_translation_key = "cloud_schedule"
