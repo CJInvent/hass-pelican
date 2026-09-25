@@ -49,11 +49,6 @@
     }
   },
   "entity": {
-    "binary_sensor": {
-      "cloud_schedule": {
-        "name": "Cloud schedule"
-      }
-    },
     "sensor": {
       "status_display": {
         "name": "Status"
@@ -84,8 +79,22 @@
   },
   "issues": {
     "cloud_schedule_active": {
-      "title": "Pelican schedules will override Home Assistant",
-      "description": "{count} thermostat(s) at {site} are running a schedule configured in Pelican Site Manager: {thermostats}.\n\nA temperature set from a Home Assistant automation or dashboard holds only until the schedule's next set time, then reverts. The API call succeeds either way, so nothing appears to fail.\n\nPelican does not serve schedule contents over the API, so Home Assistant cannot tell you when that will happen or what it will change things to — only that it will.\n\nTo let Home Assistant own the setpoints, turn off the Schedule switch for those thermostats. To keep the Pelican schedule authoritative, gate your automations on the Cloud schedule binary sensor. This warning is informational and clears when no thermostat has a schedule running."
+      "title": "Pelican cloud schedules are running",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Turn off Pelican cloud schedules",
+            "description": "{count} thermostat(s) at {site} are running a schedule configured in Pelican Site Manager: {thermostats}.\n\nSchedules belong in Home Assistant automations. A Pelican schedule running underneath them overwrites their setpoints at every set time, and nothing reports a failure when it does.\n\nSubmit to turn these schedules off. Current setpoints are kept, and nothing is deleted: each schedule's set times are preserved and it can be re-enabled any time from its Schedule switch or in Site Manager, where it shows as “None” while off."
+          },
+          "partial": {
+            "title": "Some schedules are still running",
+            "description": "The schedule could not be turned off on: {failed}. The others were.\n\nThe Home Assistant log has the reason for each. The usual one is an offline thermostat, which Home Assistant will not write to because the site would report success without delivering the change.\n\nSubmit to try again, or close this and turn them off in Site Manager."
+          }
+        },
+        "abort": {
+          "not_loaded": "The Pelican integration is not loaded. Reload it and try again."
+        }
+      }
     }
   }
 }

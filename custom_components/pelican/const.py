@@ -15,14 +15,9 @@ MAX_SCAN_INTERVAL = 900
 STATUS_UNREACHABLE = "Unreachable"
 
 # Thermostat `schedule` values. "On" and "Off" are the only ones observed live,
-# and writing "On" back is accepted. Pelican's docs say a shared schedule's name
-# can appear here too; unconfirmed.
+# and both are accepted as writes.
 SCHEDULE_OFF = "Off"
 SCHEDULE_ON = "On"
-
-# Attribute the schedule switch publishes and restores across restarts: the
-# last schedule value seen while active, sent back when re-enabled.
-ATTR_SCHEDULE_NAME = "schedule_name"
 
 # Repairs issue raised while any thermostat still has a cloud schedule running.
 ISSUE_CLOUD_SCHEDULE = "cloud_schedule_active"

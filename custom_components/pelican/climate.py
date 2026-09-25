@@ -24,7 +24,6 @@ from .const import DOMAIN
 from .coordinator import PelicanData
 from .entity import PelicanEntity
 from .errors import PelicanError
-from .repairs import thermostat_has_cloud_schedule
 
 PELICAN_TO_HVAC_MODE = {
     "Off": HVACMode.OFF,
@@ -169,19 +168,6 @@ class PelicanClimate(PelicanEntity, ClimateEntity):
         if self.hvac_mode == HVACMode.HEAT:
             return self.attr_int("maxHeatSetting") or DEFAULT_MAX_TEMP
         return self.attr_int("maxCoolSetting") or DEFAULT_MAX_TEMP
-
-    @property
-    def extra_state_attributes(self) -> dict[str, Any]:
-        """Surface Pelican-specific context that has no HA equivalent."""
-        return {
-            "set_by": self.attr("setBy"),
-            "status_display": self.attr("statusDisplay"),
-            "schedule": self.attr("schedule"),
-            "serial_number": self._serial,
-            # Surfaced here as well as on the binary sensor because this is the
-            # entity people put on a dashboard and automate against.
-            "cloud_schedule_active": thermostat_has_cloud_schedule(self.thermostat),
-        }
 
     async def _apply(self, values: dict[str, Any]) -> None:
         """Send a set request, translating API failures into HA errors."""

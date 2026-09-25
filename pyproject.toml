@@ -1,5 +1,9 @@
 [tool.ruff]
-target-version = "py314"
+# py313, not py314, although Home Assistant 2026.9 requires 3.14. This only
+# controls the syntax ruff writes: at py314 the formatter rewrites
+# `except (A, B):` to the PEP 758 bare form `except A, B:`, which is valid
+# on 3.14 only and surprising to read. 3.13-level syntax runs fine on 3.14.
+target-version = "py313"
 line-length = 88
 src = ["custom_components", "tests", "scripts"]
 

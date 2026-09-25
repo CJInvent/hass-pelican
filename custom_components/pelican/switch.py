@@ -2,23 +2,19 @@
 
 from __future__ import annotations
 
-import logging
 from typing import Any
 
 from homeassistant.components.switch import SwitchEntity
 from homeassistant.const import EntityCategory
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.restore_state import RestoreEntity
 
 from . import PelicanConfigEntry
-from .const import ATTR_SCHEDULE_NAME, DOMAIN, SCHEDULE_OFF, SCHEDULE_ON
+from .const import DOMAIN, SCHEDULE_OFF, SCHEDULE_ON
 from .coordinator import PelicanData
 from .entity import PelicanEntity
 from .errors import PelicanError
-
-_LOGGER = logging.getLogger(__name__)
 
 PARALLEL_UPDATES = 0
 
@@ -59,24 +55,14 @@ class PelicanSwitchBase(PelicanEntity, SwitchEntity):
             ) from err
 
 
-class PelicanScheduleSwitch(PelicanSwitchBase, RestoreEntity):
-    """Enables or disables the thermostat's schedule.
+class PelicanScheduleSwitch(PelicanSwitchBase):
+    """Turns the thermostat's Pelican cloud schedule on or off.
 
-    Turning this off is what makes a manual setpoint hold indefinitely instead of
-    being overwritten at the next scheduled period.
-
-    Turning it back on restores whatever value was last seen while the schedule
-    was active, persisted across restarts via RestoreEntity.
-
-    UNVERIFIED PREMISE: Pelican's docs say `schedule` holds either "On" or the
-    *name* of a shared schedule, in which case sending a bare "On" after an Off
-    would detach the thermostat from a shared schedule. On the one live site
-    tested, `schedule` has only ever returned "On" or "Off", and no thermostat
-    there is on a shared schedule. The Site Manager web UI identifies shared
-    schedules by numeric ID, not name, which suggests api.cgi may never expose
-    a name at all. If "On"/"Off" are the only values, this logic is harmless: it
-    remembers "On" and restores "On". Confirm against a thermostat on a shared
-    schedule before relying on it.
+    Off is the intended state: schedules belong in Home Assistant automations,
+    and a Pelican schedule running underneath them overwrites their setpoints at
+    every set time. The Repairs fix turns every one off at once; this switch is
+    the per-thermostat equivalent. Off pauses the schedule without deleting it
+    (verified live), so On restores the same set times.
     """
 
     _attribute = "schedule"
@@ -87,56 +73,21 @@ class PelicanScheduleSwitch(PelicanSwitchBase, RestoreEntity):
         """Initialize the schedule switch."""
         super().__init__(data, serial)
         self._attr_unique_id = f"{serial}_schedule"
-        self._last_active_schedule = SCHEDULE_ON
-
-    async def async_added_to_hass(self) -> None:
-        """Restore the remembered schedule name, then track the live one."""
-        await super().async_added_to_hass()
-
-        if (last_state := await self.async_get_last_state()) is not None:
-            remembered = last_state.attributes.get(ATTR_SCHEDULE_NAME)
-            if isinstance(remembered, str) and remembered not in ("", SCHEDULE_OFF):
-                self._last_active_schedule = remembered
-                _LOGGER.debug(
-                    "Restored schedule name %r for thermostat %s",
-                    remembered,
-                    self._serial,
-                )
-
-        # A live value from the site always beats a restored one.
-        self._remember_active_schedule()
-
-    def _remember_active_schedule(self) -> None:
-        """Capture the schedule name while it is still visible in the API."""
-        value = self.attr("schedule")
-        if value is not None and value != SCHEDULE_OFF:
-            self._last_active_schedule = value
-
-    @callback
-    def _handle_coordinator_update(self) -> None:
-        """Track the active schedule name on every poll."""
-        self._remember_active_schedule()
-        super()._handle_coordinator_update()
 
     @property
     def is_on(self) -> bool | None:
-        """Return True when a schedule (own or shared) is driving the thermostat."""
+        """Return True when a Pelican schedule is driving the thermostat."""
         value = self.attr("schedule")
         if value is None:
             return None
         return value != SCHEDULE_OFF
 
-    @property
-    def extra_state_attributes(self) -> dict[str, Any]:
-        """Expose the remembered name, which is also what RestoreEntity saves."""
-        return {ATTR_SCHEDULE_NAME: self._last_active_schedule}
-
     async def async_turn_on(self, **kwargs: Any) -> None:
-        """Re-enable the last known schedule."""
-        await self._apply(self._last_active_schedule)
+        """Re-enable the thermostat's Pelican schedule."""
+        await self._apply(SCHEDULE_ON)
 
     async def async_turn_off(self, **kwargs: Any) -> None:
-        """Disable the schedule so manual setpoints hold."""
+        """Disable the Pelican schedule so Home Assistant owns the setpoints."""
         await self._apply(SCHEDULE_OFF)
 
 
