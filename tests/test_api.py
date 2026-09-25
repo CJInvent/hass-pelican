@@ -190,11 +190,34 @@ async def test_unusable_node_name_is_refused_before_any_request(
     assert aioclient_mock.call_count == 0
 
 
-async def test_http_401_is_an_auth_error(hass, aioclient_mock) -> None:
-    """An HTTP 401 becomes reauth, not a retry loop."""
-    aioclient_mock.get(API_URL, status=401, text="Unauthorized")
+async def test_wrong_password_is_an_auth_error(hass, aioclient_mock) -> None:
+    """The exact response a live site gives for a wrong password.
 
-    with pytest.raises(PelicanAuthError, match="401"):
+    HTTP 403 with a JSON body. It must become reauth, not a retry loop that
+    hammers the site with credentials that can never work.
+    """
+    aioclient_mock.get(
+        API_URL,
+        status=403,
+        json={
+            "result": {"success": 0, "message": "Invalid Authentication Credentials"}
+        },
+    )
+
+    with pytest.raises(PelicanAuthError, match="403"):
+        await _api(hass).async_get_thermostats()
+
+
+async def test_auth_message_alone_is_an_auth_error(hass, aioclient_mock) -> None:
+    """If the site ever sends the same message with HTTP 200, still reauth."""
+    aioclient_mock.get(
+        API_URL,
+        json={
+            "result": {"success": 0, "message": "Invalid Authentication Credentials"}
+        },
+    )
+
+    with pytest.raises(PelicanAuthError):
         await _api(hass).async_get_thermostats()
 
 

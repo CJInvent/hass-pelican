@@ -8,6 +8,7 @@ reported as something to fix.
 from __future__ import annotations
 
 from datetime import timedelta
+from unittest.mock import call
 
 from homeassistant.helpers import issue_registry as ir
 from pytest_homeassistant_custom_component.common import async_fire_time_changed
@@ -143,11 +144,12 @@ async def test_fix_turns_every_running_schedule_off(
     result = await flow.async_step_confirm({})
     assert result["type"] is FlowResultType.CREATE_ENTRY
 
-    written = {call.args for call in mock_api.async_set_thermostat.await_args_list}
-    assert written == {
-        ("thrm1111", {"schedule": "Off"}),
-        ("thrm1112", {"schedule": "Off"}),
-    }
+    # Order follows display name, which is not what this test is about.
+    mock_api.async_set_thermostat.assert_has_awaits(
+        [call("thrm1111", {"schedule": "Off"}), call("thrm1112", {"schedule": "Off"})],
+        any_order=True,
+    )
+    assert mock_api.async_set_thermostat.await_count == 2
 
 
 async def test_fix_continues_past_an_offline_thermostat(

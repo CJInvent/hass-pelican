@@ -50,6 +50,9 @@ THERMOSTAT_ATTRIBUTES = (
 
 # Substrings that mark a site refusal as an authentication problem rather than
 # a transient one. Matched case-insensitively against the site's own message.
+# Observed live for a wrong password: HTTP 403 with "Invalid Authentication
+# Credentials" -- caught by the status check and by "authenticat" alike. The
+# other hints are unobserved and kept as a net for wording we have not seen.
 _AUTH_HINTS = (
     "password",
     "username",
@@ -157,9 +160,10 @@ class PelicanApi:
         try:
             data = json.loads(text)
         except ValueError as err:
-            # Pelican serves the login page with HTTP 200 when a session is
-            # required, so a non-JSON body here usually means the hostname is
-            # wrong or the account cannot use the API.
+            # Every api.cgi response observed so far, errors included, has been
+            # JSON. A non-JSON body therefore means we are not talking to
+            # api.cgi at all: most likely a wrong hostname or an intermediary
+            # (captive portal, proxy error page) in the path.
             raise PelicanResponseError(
                 f"{self._host} returned a non-JSON response to a "
                 f"{params.get('request')} {params.get('object')} request; "
