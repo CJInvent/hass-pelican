@@ -35,7 +35,7 @@ THERMOSTAT_LOBBY = {
     "runStatus": "Cool-Stage1",
     "statusDisplay": "Cool On",
     "setBy": "Schedule",
-    "schedule": "On",
+    "schedule": "Off",
     "frontKeypad": "On",
     "temperatureFormat": "Fahrenheit",
     "minHeatSetting": 56,
@@ -53,9 +53,7 @@ THERMOSTAT_SHOP = {
     "runStatus": "Off",
     "statusDisplay": "Cool On",
     "co2Level": 780,  # not observed live; exercises the CO2 path
-    # A shared-schedule *name* here is what Pelican's docs describe. It has
-    # never been observed live -- see the note on PelicanScheduleSwitch.
-    "schedule": "Weekday Hours",
+    "schedule": "On",
     "frontKeypad": "Off",
     "setBy": "Station",
 }
