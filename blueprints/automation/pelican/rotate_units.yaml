@@ -1,0 +1,283 @@
+blueprint:
+  name: Pelican – rotate units toward occupancy schedules
+  description: >-
+    Every 15 minutes, aligned to the hour, runs at most a set number of
+    thermostats — the ones furthest outside their occupancy group's scheduled
+    heat/cool band — and holds every other online unit Off. A unit inside its
+    band has zero error and is never selected. Offline thermostats are ignored.
+
+
+    An optional priority override forces one thermostat to cool to a fixed
+    setpoint and raises the unit limit while a chosen switch is on.
+
+
+    Written for the Pelican Wireless integration
+    (https://github.com/CJInvent/hass-pelican), but uses only standard climate
+    services and attributes. Turn off any schedules running on the thermostats
+    themselves first, or they will overwrite these setpoints.
+  domain: automation
+  source_url: https://github.com/CJInvent/hass-pelican/blob/main/blueprints/automation/pelican/rotate_units.yaml
+  input:
+    groups_section:
+      name: Occupancy groups
+      icon: mdi:account-group
+      description: Put each thermostat in exactly one group. Any group may be empty.
+      input:
+        high_thermostats:
+          name: High occupancy
+          default: []
+          selector: {entity: {multiple: true, filter: [{domain: climate}]}}
+        medium_thermostats:
+          name: Medium occupancy
+          default: []
+          selector: {entity: {multiple: true, filter: [{domain: climate}]}}
+        low_thermostats:
+          name: Low occupancy
+          default: []
+          selector: {entity: {multiple: true, filter: [{domain: climate}]}}
+    limits_section:
+      name: Unit limits
+      icon: mdi:fan
+      input:
+        max_running:
+          name: Maximum units running
+          default: 2
+          selector: {number: {min: 1, max: 20, mode: box}}
+        second_unit_min_error:
+          name: Minimum error for additional units
+          description: >-
+            The first unit runs whenever it is outside its band at all. Each
+            additional unit must be at least this far outside its band.
+          default: 1.0
+          selector: {number: {min: 0, max: 10, step: 0.1, unit_of_measurement: "°", mode: box}}
+    override_section:
+      name: Priority cooling override (optional)
+      icon: mdi:snowflake-alert
+      collapsed: true
+      description: >-
+        While the switch is on, the chosen thermostat is always selected and
+        cooled to the setpoint below, and the unit limit rises. Leave the switch
+        empty to disable.
+      input:
+        override_switch:
+          name: Override switch
+          default: ""
+          selector: {entity: {filter: [{domain: input_boolean}]}}
+        override_thermostat:
+          name: Thermostat to cool
+          default: ""
+          selector: {entity: {filter: [{domain: climate}]}}
+        override_cool_target:
+          name: Override cooling setpoint
+          description: Must be within the thermostat's allowed cool range.
+          default: 72
+          selector: {number: {min: 50, max: 90, unit_of_measurement: "°", mode: box}}
+        override_max_running:
+          name: Maximum units running during the override
+          description: Includes the override thermostat.
+          default: 3
+          selector: {number: {min: 1, max: 20, mode: box}}
+    schedule_section:
+      name: Schedules
+      icon: mdi:calendar-clock
+      collapsed: true
+      input:
+        schedules:
+          name: Heat/cool setpoints by group
+          description: >-
+            Per group, a weekday and a weekend table of start time: [heat, cool].
+            Quote every time as "HH:MM" — YAML reads an unquoted 04:00 as the
+            number 240. A block runs until the next one; before the day's first
+            block, the previous day's last block applies. Keep every value inside
+            each thermostat's allowed range, or its setpoints will be rejected.
+          selector: {object: {}}
+          default:
+            high:
+              weekday: {"06:00": [68, 75], "18:00": [58, 84]}
+              weekend: {"00:00": [58, 84]}
+            medium:
+              weekday: {"06:00": [66, 77], "18:00": [58, 84]}
+              weekend: {"00:00": [58, 84]}
+            low:
+              weekday: {"06:00": [60, 80], "18:00": [56, 85]}
+              weekend: {"00:00": [56, 85]}
+
+mode: queued
+max: 2
+max_exceeded: silent
+
+# Available to the template triggers below as well as to the actions.
+trigger_variables:
+  override_switch: !input override_switch
+
+triggers:
+  - trigger: time_pattern
+    minutes: "/15"            # :00 :15 :30 :45 — every on-the-hour boundary included
+  - trigger: homeassistant
+    event: start
+  # Re-evaluate the moment the override changes. Two triggers, because a template
+  # trigger only fires on a false -> true transition. With no switch chosen,
+  # neither ever fires.
+  - trigger: template
+    value_template: "{{ override_switch != '' and is_state(override_switch, 'on') }}"
+  - trigger: template
+    value_template: "{{ override_switch != '' and is_state(override_switch, 'off') }}"
+
+variables:
+  high: !input high_thermostats
+  medium: !input medium_thermostats
+  low: !input low_thermostats
+  max_running: !input max_running
+  min_error: !input second_unit_min_error
+  override_thermostat: !input override_thermostat
+  override_target: !input override_cool_target
+  override_max: !input override_max_running
+  schedules: !input schedules
+
+  # entity -> group, from the three pickers. One source of truth.
+  groups: >-
+    {% set ns = namespace(m={}) %}
+    {% for g, members in [('high', high), ('medium', medium), ('low', low)] %}
+      {% for e in members %}{% set ns.m = dict(ns.m, **{e: g}) %}{% endfor %}
+    {% endfor %}
+    {{ ns.m }}
+
+  online: >-
+    {% set ns = namespace(out=[]) %}
+    {% for e in groups %}
+      {% if states(e) not in ['unavailable', 'unknown']
+            and state_attr(e, 'current_temperature') is number %}
+        {% set ns.out = ns.out + [e] %}
+      {% endif %}
+    {% endfor %}
+    {{ ns.out }}
+
+  # entity -> {heat, cool} for the block in effect right now.
+  targets: >-
+    {% set wd = now().weekday() %}
+    {% set hm = now().strftime('%H:%M') %}
+    {% set today = 'weekend' if wd >= 5 else 'weekday' %}
+    {% set yday = 'weekend' if (wd - 1) % 7 >= 5 else 'weekday' %}
+    {% set ns = namespace(out={}) %}
+    {% for e, g in groups.items() %}
+      {% set times = schedules[g][today] | list | select('le', hm) | sort | list %}
+      {% if times %}
+        {% set band = schedules[g][today][times | last] %}
+      {% else %}
+        {% set band = schedules[g][yday][schedules[g][yday] | list | sort | last] %}
+      {% endif %}
+      {% set ns.out = dict(ns.out, **{e: {'heat': band[0] | float, 'cool': band[1] | float}}) %}
+    {% endfor %}
+    {{ ns.out }}
+
+  # Error = distance outside the band; 0 inside it. Decimals kept.
+  ranked: >-
+    {% set ns = namespace(rows=[]) %}
+    {% for e in online %}
+      {% set t = state_attr(e, 'current_temperature') | float %}
+      {% set b = targets[e] %}
+      {% set ns.rows = ns.rows + [{'entity': e,
+          'error': ([t - b.cool, b.heat - t, 0] | max) | round(2)}] %}
+    {% endfor %}
+    {{ ns.rows | sort(attribute='error', reverse=true) }}
+
+  # The override only counts if it's configured, on, and its thermostat is online.
+  override_active: >-
+    {{ override_switch != '' and override_thermostat != ''
+       and is_state(override_switch, 'on') and override_thermostat in online }}
+  limit: "{{ (override_max if override_active else max_running) | int }}"
+
+  # Slot 1: the override thermostat if active, else the worst unit with any error.
+  # Further slots: next-worst units at least min_error outside their band.
+  selected: >-
+    {% set ns = namespace(picks=[override_thermostat] if override_active else []) %}
+    {% for row in ranked %}
+      {% if row.entity not in ns.picks and ns.picks | count < limit
+            and row.error > 0 and (not ns.picks or row.error >= min_error) %}
+        {% set ns.picks = ns.picks + [row.entity] %}
+      {% endif %}
+    {% endfor %}
+    {{ ns.picks }}
+
+actions:
+  # 1) Everything not selected goes Off first, so the limit is never exceeded.
+  - repeat:
+      for_each: "{{ online | reject('in', selected) | list }}"
+      sequence:
+        - if:
+            - "{{ not is_state(repeat.item, 'off') }}"
+          then:
+            - action: climate.set_hvac_mode
+              continue_on_error: true
+              target: {entity_id: "{{ repeat.item }}"}
+              data: {hvac_mode: "off"}
+
+  # 2) Selected units get their mode, then their setpoints. Only what differs.
+  - repeat:
+      for_each: "{{ selected }}"
+      sequence:
+        - variables:
+            override_unit: "{{ override_active and repeat.item == override_thermostat }}"
+            want_mode: "{{ 'cool' if override_unit else 'heat_cool' }}"
+        # Mode first: a unit in Off only accepts a single setpoint.
+        - if:
+            - "{{ not is_state(repeat.item, want_mode) }}"
+          then:
+            - action: climate.set_hvac_mode
+              continue_on_error: true
+              target: {entity_id: "{{ repeat.item }}"}
+              data: {hvac_mode: "{{ want_mode }}"}
+        - if:
+            - "{{ override_unit }}"
+          then:
+            - if:
+                - "{{ state_attr(repeat.item, 'temperature') | float(0) != override_target | float }}"
+              then:
+                - action: climate.set_temperature
+                  continue_on_error: true
+                  target: {entity_id: "{{ repeat.item }}"}
+                  data: {temperature: "{{ override_target }}"}
+          else:
+            - if:
+                - >-
+                  {{ state_attr(repeat.item, 'target_temp_low') | float(0) != targets[repeat.item].heat
+                     or state_attr(repeat.item, 'target_temp_high') | float(0) != targets[repeat.item].cool }}
+              then:
+                - action: climate.set_temperature
+                  continue_on_error: true
+                  target: {entity_id: "{{ repeat.item }}"}
+                  data:
+                    target_temp_low: "{{ targets[repeat.item].heat }}"
+                    target_temp_high: "{{ targets[repeat.item].cool }}"
+
+  # 3) A rejected write is otherwise invisible. Say so, and clear it once fixed.
+  - variables:
+      misses: >-
+        {% set ns = namespace(out=[]) %}
+        {% for e in selected %}
+          {% if override_active and e == override_thermostat %}
+            {% set ok = state_attr(e, 'temperature') | float(0) == override_target | float %}
+          {% else %}
+            {% set ok = state_attr(e, 'target_temp_low') | float(0) == targets[e].heat
+                        and state_attr(e, 'target_temp_high') | float(0) == targets[e].cool %}
+          {% endif %}
+          {% if not ok %}
+            {% set ns.out = ns.out + [state_attr(e, 'friendly_name') ~ ' (allowed '
+                ~ state_attr(e, 'min_temp') ~ '–' ~ state_attr(e, 'max_temp') ~ ')'] %}
+          {% endif %}
+        {% endfor %}
+        {{ ns.out }}
+  - if:
+      - "{{ misses | count > 0 }}"
+    then:
+      - action: persistent_notification.create
+        data:
+          notification_id: pelican_unit_rotation
+          title: Thermostat setpoints not applied
+          message: >-
+            Selected but not at their scheduled setpoints, usually because a
+            scheduled value is outside the thermostat's allowed range:
+            {{ misses | join(', ') }}
+    else:
+      - action: persistent_notification.dismiss
+        data: {notification_id: pelican_unit_rotation}
