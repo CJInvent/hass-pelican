@@ -281,3 +281,20 @@ actions:
     else:
       - action: persistent_notification.dismiss
         data: {notification_id: pelican_unit_rotation}
+
+  # 4) Publish this run's inputs for dashboards and statistics. Every online
+  #    thermostat, running or not, with the schedule targets in effect -- the
+  #    thermostat itself has no targets while it is Off, so this is the only
+  #    continuous record of what each space was supposed to be.
+  - event: pelican_unit_rotation
+    event_data:
+      selected: "{{ selected }}"
+      thermostats: >-
+        {% set ns = namespace(out={}) %}
+        {% for e in online %}
+          {% set ns.out = dict(ns.out, **{e: {
+              'temperature': state_attr(e, 'current_temperature') | float,
+              'heat': targets[e].heat,
+              'cool': targets[e].cool}}) %}
+        {% endfor %}
+        {{ ns.out }}
