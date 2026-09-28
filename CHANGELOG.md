@@ -53,6 +53,10 @@ First release.
 - **Single-request polling.** Every thermostat at a site is read in one
   `api.cgi` call regardless of count.
 - **Config entry diagnostics** with credentials redacted.
+- **Unit-rotation blueprint** (`blueprints/automation/pelican/rotate_units.yaml`):
+  runs at most N thermostats at once, chosen by distance outside their
+  occupancy group's scheduled band, with an optional cooling override and a
+  notification when a setpoint is rejected. Separate from the integration.
 - Dev rules, the CI gate set, local gate reproduction, and the dev/release
   pipelines.
 

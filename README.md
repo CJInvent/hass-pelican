@@ -150,6 +150,30 @@ automation:
           target_temp_high: 85
 ```
 
+## Blueprint: rotate units toward occupancy schedules
+
+[![Import blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2FCJInvent%2Fhass-pelican%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fpelican%2Frotate_units.yaml)
+
+An optional automation blueprint for sites where only a few HVAC units may run
+at once. Every 15 minutes, aligned to the hour, it runs at most a set number of
+thermostats — the ones furthest outside their occupancy group's scheduled
+heat/cool band — and holds every other online unit Off. Offline thermostats are
+ignored. It is a blueprint, not part of the integration: schedules live in
+Home Assistant automations (dev rule 32).
+
+Everything is set from the automation editor: occupancy groups are thermostat
+pickers, limits are number fields, and the schedule is a single table of start
+times and `[heat, cool]` pairs. An optional override forces one thermostat to
+cool to a fixed setpoint and raises the unit limit while a chosen switch is on.
+
+If a selected thermostat doesn't land on its scheduled setpoints, usually
+because a value is outside the range its Pelican limits allow, the blueprint
+raises a persistent notification naming it and its allowed range, and clears it
+once fixed.
+
+Manual import: **Settings → Automations & Scenes → Blueprints → Import
+blueprint**, and paste `https://github.com/CJInvent/hass-pelican/blob/main/blueprints/automation/pelican/rotate_units.yaml`.
+
 ## Development
 
 Conventions are numbered and citable in [`docs/DEV-RULES.md`](docs/DEV-RULES.md).
