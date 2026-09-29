@@ -26,13 +26,14 @@ blueprint:
       name: Schedules
       icon: mdi:calendar-clock
       description: >-
-        One entry per schedule. Create each as a Schedule helper (Settings →
-        Devices & services → Helpers → Create helper → Schedule) and draw its
-        time blocks on the weekly calendar. Then press each block → Advanced
-        settings → Additional data, and enter its setpoints on two lines:
-        `heat: 68` and `cool: 75`. Outside every block, the thermostats use the
-        setpoints entered here. A thermostat listed under two schedules follows
-        the first one.
+        One entry per schedule, each defined one of two ways. A setpoints table
+        (YAML): `weekday:` and `weekend:` maps of start time to [heat, cool], for
+        example `"08:00": [68, 75]`. Add `mon:` … `sun:` for a day that differs;
+        each entry holds until the next, overnight included. Or a Schedule helper,
+        drawn on its graphical weekly calendar, with `heat: 68` and `cool: 75`
+        under each block's More options → Additional data, and the setpoints
+        below for outside its blocks. A table wins if both are given. A
+        thermostat listed under two schedules follows the first one.
       input:
         zones:
           name: Schedules
@@ -41,27 +42,26 @@ blueprint:
             object:
               multiple: true
               label_field: name
-              description_field: schedule
               fields:
                 name:
                   label: Name
                   required: true
                   selector: {text: {}}
-                schedule:
-                  label: Schedule helper
-                  required: true
-                  selector: {entity: {filter: [{domain: schedule}]}}
                 thermostats:
                   label: Thermostats
                   required: true
                   selector: {entity: {multiple: true, filter: [{domain: climate}]}}
+                setpoints:
+                  label: Setpoints table (YAML)
+                  selector: {object: {}}
+                schedule:
+                  label: Or a Schedule helper
+                  selector: {entity: {filter: [{domain: schedule}]}}
                 unoccupied_heat:
-                  label: Heat setpoint outside blocks
-                  required: true
+                  label: Heat setpoint outside helper blocks
                   selector: {number: {min: 40, max: 90, unit_of_measurement: "°", mode: box}}
                 unoccupied_cool:
-                  label: Cool setpoint outside blocks
-                  required: true
+                  label: Cool setpoint outside helper blocks
                   selector: {number: {min: 40, max: 90, unit_of_measurement: "°", mode: box}}
     limits_section:
       name: Unit limits and cycling
@@ -253,20 +253,46 @@ variables:
     {% endif %}
     {{ ns.m }}
 
-  # thermostat -> {heat, cool}: the active block's data while its schedule is on,
-  # otherwise the schedule's setpoints for outside blocks.
+  # thermostat -> {heat, cool} in effect right now. From the schedule's setpoints
+  # table when it has one: that day's entries (mon..sun, else weekday/weekend),
+  # the latest start at or before now, or yesterday's last entry before today's
+  # first. Otherwise from its Schedule helper: the active block's data, or the
+  # outside-block setpoints. A thermostat with neither gets no target.
   targets: >-
+    {% set days = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] %}
+    {% set wd = now().weekday() %}
+    {% set yd = (wd - 1) % 7 %}
+    {% set hm = now().strftime('%H:%M') %}
     {% set ns = namespace(out={}) %}
     {% for e, zi in assignment.items() %}
       {% set z = zones[zi] %}
-      {% set h = state_attr(z.schedule, 'heat') | float(none) %}
-      {% set c = state_attr(z.schedule, 'cool') | float(none) %}
-      {% if is_state(z.schedule, 'on') and h is number and c is number %}
-        {% set band = [h, c] %}
-      {% else %}
-        {% set band = [z.unoccupied_heat | float, z.unoccupied_cool | float] %}
+      {% set sp = z.get('setpoints') %}
+      {% set pick = namespace(t='', band=none) %}
+      {% if sp is mapping %}
+        {% set today = sp.get(days[wd]) or sp.get('weekend' if wd >= 5 else 'weekday') or {} %}
+        {% for k, v in today.items() if k is string and ':' in k %}
+          {% set kk = '%02d:%s' | format(k.split(':')[0] | int, k.split(':')[1][:2]) %}
+          {% if kk <= hm and kk >= pick.t %}{% set pick.t = kk %}{% set pick.band = v %}{% endif %}
+        {% endfor %}
+        {% if pick.band is none %}
+          {% set yest = sp.get(days[yd]) or sp.get('weekend' if yd >= 5 else 'weekday') or {} %}
+          {% for k, v in yest.items() if k is string and ':' in k %}
+            {% set kk = '%02d:%s' | format(k.split(':')[0] | int, k.split(':')[1][:2]) %}
+            {% if kk >= pick.t %}{% set pick.t = kk %}{% set pick.band = v %}{% endif %}
+          {% endfor %}
+        {% endif %}
+      {% elif z.get('schedule') %}
+        {% set h = state_attr(z.schedule, 'heat') | float(none) %}
+        {% set c = state_attr(z.schedule, 'cool') | float(none) %}
+        {% if is_state(z.schedule, 'on') and h is number and c is number %}
+          {% set pick.band = [h, c] %}
+        {% elif z.get('unoccupied_heat') is not none and z.get('unoccupied_cool') is not none %}
+          {% set pick.band = [z.unoccupied_heat, z.unoccupied_cool] %}
+        {% endif %}
       {% endif %}
-      {% set ns.out = dict(ns.out, **{e: {'heat': band[0], 'cool': band[1]}}) %}
+      {% if pick.band is not none and pick.band | count == 2 %}
+        {% set ns.out = dict(ns.out, **{e: {'heat': pick.band[0] | float, 'cool': pick.band[1] | float}}) %}
+      {% endif %}
     {% endfor %}
     {{ ns.out }}
 
