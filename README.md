@@ -155,21 +155,37 @@ automation:
 [![Import blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2FCJInvent%2Fhass-pelican%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fpelican%2Frotate_units.yaml)
 
 An optional automation blueprint for sites where only a few HVAC units may run
-at once. Every 15 minutes, aligned to the hour, it runs at most a set number of
-thermostats — the ones furthest outside their occupancy group's scheduled
-heat/cool band — and holds every other online unit Off. Offline thermostats are
-ignored. It is a blueprint, not part of the integration: schedules live in
-Home Assistant automations (dev rule 32).
+at once. It is a blueprint, not part of the integration: schedules live in
+Home Assistant automations (dev rule 32). Every 15 minutes, aligned to the hour,
+it fills a limited number of slots in this order:
 
-Everything is set from the automation editor: occupancy groups are thermostat
-pickers, limits are number fields, and the schedule is a single table of start
-times and `[heat, cool]` pairs. An optional override forces one thermostat to
-cool to a fixed setpoint and raises the unit limit while a chosen switch is on.
+1. **Cooling overrides**, highest priority first. Each override is an entity
+   (input_boolean, switch or binary_sensor), any number of thermostats, a
+   cooling setpoint, a priority, and a unit-limit offset. Offsets of all active
+   overrides stack.
+2. **Manual on-demand.** When someone changes a thermostat at the unit (the
+   integration's *Set by* sensor reads `Station`), it is left exactly as they set
+   it for an hour by default, ahead of schedule-driven units, then returns to
+   schedule.
+3. **Units inside their minimum run time** (30 minutes by default), so nothing is
+   cycled off after a single window.
+4. **The units furthest outside their schedule's band.**
 
-If a selected thermostat doesn't land on its scheduled setpoints, usually
-because a value is outside the range its Pelican limits allow, the blueprint
-raises a persistent notification naming it and its allowed range, and clears it
-once fixed.
+When a higher tier needs a slot and none are free, the unit that has been running
+longest is turned off. Offline thermostats are ignored, and chosen keypads are
+re-locked every run.
+
+**Schedules are native Schedule helpers**, edited on their own graphical weekly
+calendar: any number of schedules, each with any number of time blocks. Give each
+block its setpoints under **Advanced settings → Additional data** as `heat: 68`
+and `cool: 75`. Outside every block, thermostats use the setpoints entered for
+that schedule in the blueprint. Keep block times on :00/:15/:30/:45 — changes
+apply at the next 15-minute window.
+
+Schedules and overrides are both repeatable forms in the automation editor, so
+nothing is configured in YAML. If a selected thermostat doesn't land on its
+setpoints — usually a value outside its Pelican limits — a persistent
+notification names it and its allowed range.
 
 Manual import: **Settings → Automations & Scenes → Blueprints → Import
 blueprint**, and paste `https://github.com/CJInvent/hass-pelican/blob/main/blueprints/automation/pelican/rotate_units.yaml`.
