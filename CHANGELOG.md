@@ -54,9 +54,12 @@ First release.
   `api.cgi` call regardless of count.
 - **Config entry diagnostics** with credentials redacted.
 - **Unit-rotation blueprint** (`blueprints/automation/pelican/rotate_units.yaml`):
-  runs at most N thermostats at once, chosen by distance outside their
-  occupancy group's scheduled band, with an optional cooling override and a
-  notification when a setpoint is rejected. Separate from the integration.
+  runs at most N thermostats at once. Slots go to prioritized cooling overrides
+  (stacking unit-limit offsets), then hour-long manual on-demand requests
+  detected at the keypad, then units inside a minimum run time, then the units
+  furthest outside their schedule. Schedules are native Schedule helpers with a
+  graphical weekly editor, unlimited in number. Also re-locks chosen keypads
+  and notifies when a setpoint is rejected. Separate from the integration.
 - Dev rules, the CI gate set, local gate reproduction, and the dev/release
   pipelines.
 
