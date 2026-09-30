@@ -1,0 +1,868 @@
+square: false
+type: grid
+title: Thermostats — last 36 hours
+columns: 2
+grid_options:
+  columns: full
+cards:
+  - type: custom:apexcharts-card
+    header:
+      show: true
+      title: Sales
+      show_states: true
+      colorize_states: true
+    graph_span: 36h
+    update_interval: 15min
+    yaxis:
+      - id: temp
+        decimals: 1
+        min: 50
+        max: 85
+      - id: hum
+        opposite: true
+        decimals: 0
+        min: 0
+        max: 100
+    apex_config:
+      chart:
+        height: 280
+        animations:
+          enabled: false
+      legend:
+        show: true
+        position: top
+      stroke:
+        width: 1.5
+        curve: smooth
+      markers:
+        size: 0
+        hover:
+          size: 3
+      tooltip:
+        shared: true
+        intersect: false
+        followCursor: true
+      xaxis:
+        labels:
+          datetimeUTC: false
+          datetimeFormatter:
+            hour: HH:mm
+    series:
+      - entity: climate.sales
+        attribute: current_temperature
+        name: Temperature
+        color: '#4a90e2'
+        type: line
+        yaxis_id: temp
+        show:
+          in_header: false
+        float_precision: 1
+        group_by:
+          duration: 15min
+          func: avg
+      - entity: climate.sales
+        attribute: target_temp_high
+        name: Cool target
+        color: '#f5a623'
+        type: line
+        yaxis_id: temp
+        show:
+          in_header: false
+        float_precision: 1
+        group_by:
+          duration: 15min
+          func: last
+      - entity: climate.sales
+        attribute: target_temp_low
+        name: Heat target
+        color: '#ff7043'
+        type: line
+        yaxis_id: temp
+        show:
+          in_header: false
+        float_precision: 1
+        group_by:
+          duration: 15min
+          func: last
+      - entity: climate.sales
+        attribute: current_humidity
+        name: Humidity
+        color: '#26a69a'
+        type: line
+        yaxis_id: hum
+        show:
+          in_header: false
+        float_precision: 1
+        group_by:
+          duration: 15min
+          func: avg
+      - entity: climate.sales
+        name: Peak temp
+        color: "#ef5350"
+        unit: "°F"
+        float_precision: 1
+        show:
+          in_chart: false
+          in_header: true
+        data_generator: |
+          const ID = "climate.sales", ATTR = "current_temperature";
+          const now = new Date(), start = new Date(now.getTime() - 36 * 3600000);
+          const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(start.toISOString()) +
+            "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
+            "&significant_changes_only=0");
+          const vals = (h?.[0] || []).map(r => parseFloat(r.attributes?.[ATTR])).filter(Number.isFinite);
+          return vals.length ? [[now.getTime(), Math.max(...vals)]] : [];
+      - entity: climate.sales
+        name: Peak humidity
+        color: "#26a69a"
+        unit: "%"
+        float_precision: 0
+        show:
+          in_chart: false
+          in_header: true
+        data_generator: |
+          const ID = "climate.sales", ATTR = "current_humidity";
+          const now = new Date(), start = new Date(now.getTime() - 36 * 3600000);
+          const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(start.toISOString()) +
+            "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
+            "&significant_changes_only=0");
+          const vals = (h?.[0] || []).map(r => parseFloat(r.attributes?.[ATTR])).filter(Number.isFinite);
+          return vals.length ? [[now.getTime(), Math.max(...vals)]] : [];
+  - type: custom:apexcharts-card
+    header:
+      show: true
+      title: Amy
+      show_states: true
+      colorize_states: true
+    graph_span: 36h
+    update_interval: 15min
+    yaxis:
+      - id: temp
+        decimals: 1
+        min: 50
+        max: 85
+      - id: hum
+        opposite: true
+        decimals: 0
+        min: 0
+        max: 100
+    apex_config:
+      chart:
+        height: 280
+        animations:
+          enabled: false
+      legend:
+        show: true
+        position: top
+      stroke:
+        width: 1.5
+        curve: smooth
+      markers:
+        size: 0
+        hover:
+          size: 3
+      tooltip:
+        shared: true
+        intersect: false
+        followCursor: true
+      xaxis:
+        labels:
+          datetimeUTC: false
+          datetimeFormatter:
+            hour: HH:mm
+    series:
+      - entity: climate.amy
+        attribute: current_temperature
+        name: Temperature
+        color: '#4a90e2'
+        type: line
+        yaxis_id: temp
+        show:
+          in_header: false
+        float_precision: 1
+        group_by:
+          duration: 15min
+          func: avg
+      - entity: climate.amy
+        attribute: target_temp_high
+        name: Cool target
+        color: '#f5a623'
+        type: line
+        yaxis_id: temp
+        show:
+          in_header: false
+        float_precision: 1
+        group_by:
+          duration: 15min
+          func: last
+      - entity: climate.amy
+        attribute: target_temp_low
+        name: Heat target
+        color: '#ff7043'
+        type: line
+        yaxis_id: temp
+        show:
+          in_header: false
+        float_precision: 1
+        group_by:
+          duration: 15min
+          func: last
+      - entity: climate.amy
+        attribute: current_humidity
+        name: Humidity
+        color: '#26a69a'
+        type: line
+        yaxis_id: hum
+        show:
+          in_header: false
+        float_precision: 1
+        group_by:
+          duration: 15min
+          func: avg
+      - entity: climate.amy
+        name: Peak temp
+        color: "#ef5350"
+        unit: "°F"
+        float_precision: 1
+        show:
+          in_chart: false
+          in_header: true
+        data_generator: |
+          const ID = "climate.amy", ATTR = "current_temperature";
+          const now = new Date(), start = new Date(now.getTime() - 36 * 3600000);
+          const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(start.toISOString()) +
+            "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
+            "&significant_changes_only=0");
+          const vals = (h?.[0] || []).map(r => parseFloat(r.attributes?.[ATTR])).filter(Number.isFinite);
+          return vals.length ? [[now.getTime(), Math.max(...vals)]] : [];
+      - entity: climate.amy
+        name: Peak humidity
+        color: "#26a69a"
+        unit: "%"
+        float_precision: 0
+        show:
+          in_chart: false
+          in_header: true
+        data_generator: |
+          const ID = "climate.amy", ATTR = "current_humidity";
+          const now = new Date(), start = new Date(now.getTime() - 36 * 3600000);
+          const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(start.toISOString()) +
+            "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
+            "&significant_changes_only=0");
+          const vals = (h?.[0] || []).map(r => parseFloat(r.attributes?.[ATTR])).filter(Number.isFinite);
+          return vals.length ? [[now.getTime(), Math.max(...vals)]] : [];
+  - type: custom:apexcharts-card
+    header:
+      show: true
+      title: Bruce & Break Room
+      show_states: true
+      colorize_states: true
+    graph_span: 36h
+    update_interval: 15min
+    yaxis:
+      - id: temp
+        decimals: 1
+        min: 50
+        max: 85
+      - id: hum
+        opposite: true
+        decimals: 0
+        min: 0
+        max: 100
+    apex_config:
+      chart:
+        height: 280
+        animations:
+          enabled: false
+      legend:
+        show: true
+        position: top
+      stroke:
+        width: 1.5
+        curve: smooth
+      markers:
+        size: 0
+        hover:
+          size: 3
+      tooltip:
+        shared: true
+        intersect: false
+        followCursor: true
+      xaxis:
+        labels:
+          datetimeUTC: false
+          datetimeFormatter:
+            hour: HH:mm
+    series:
+      - entity: climate.bruce_break_room
+        attribute: current_temperature
+        name: Temperature
+        color: '#4a90e2'
+        type: line
+        yaxis_id: temp
+        show:
+          in_header: false
+        float_precision: 1
+        group_by:
+          duration: 15min
+          func: avg
+      - entity: climate.bruce_break_room
+        attribute: target_temp_high
+        name: Cool target
+        color: '#f5a623'
+        type: line
+        yaxis_id: temp
+        show:
+          in_header: false
+        float_precision: 1
+        group_by:
+          duration: 15min
+          func: last
+      - entity: climate.bruce_break_room
+        attribute: target_temp_low
+        name: Heat target
+        color: '#ff7043'
+        type: line
+        yaxis_id: temp
+        show:
+          in_header: false
+        float_precision: 1
+        group_by:
+          duration: 15min
+          func: last
+      - entity: climate.bruce_break_room
+        attribute: current_humidity
+        name: Humidity
+        color: '#26a69a'
+        type: line
+        yaxis_id: hum
+        show:
+          in_header: false
+        float_precision: 1
+        group_by:
+          duration: 15min
+          func: avg
+      - entity: climate.bruce_break_room
+        name: Peak temp
+        color: "#ef5350"
+        unit: "°F"
+        float_precision: 1
+        show:
+          in_chart: false
+          in_header: true
+        data_generator: |
+          const ID = "climate.bruce_break_room", ATTR = "current_temperature";
+          const now = new Date(), start = new Date(now.getTime() - 36 * 3600000);
+          const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(start.toISOString()) +
+            "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
+            "&significant_changes_only=0");
+          const vals = (h?.[0] || []).map(r => parseFloat(r.attributes?.[ATTR])).filter(Number.isFinite);
+          return vals.length ? [[now.getTime(), Math.max(...vals)]] : [];
+      - entity: climate.bruce_break_room
+        name: Peak humidity
+        color: "#26a69a"
+        unit: "%"
+        float_precision: 0
+        show:
+          in_chart: false
+          in_header: true
+        data_generator: |
+          const ID = "climate.bruce_break_room", ATTR = "current_humidity";
+          const now = new Date(), start = new Date(now.getTime() - 36 * 3600000);
+          const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(start.toISOString()) +
+            "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
+            "&significant_changes_only=0");
+          const vals = (h?.[0] || []).map(r => parseFloat(r.attributes?.[ATTR])).filter(Number.isFinite);
+          return vals.length ? [[now.getTime(), Math.max(...vals)]] : [];
+  - type: custom:apexcharts-card
+    header:
+      show: true
+      title: DETHAC Hall
+      show_states: true
+      colorize_states: true
+    graph_span: 36h
+    update_interval: 15min
+    yaxis:
+      - id: temp
+        decimals: 1
+        min: 50
+        max: 85
+      - id: hum
+        opposite: true
+        decimals: 0
+        min: 0
+        max: 100
+    apex_config:
+      chart:
+        height: 280
+        animations:
+          enabled: false
+      legend:
+        show: true
+        position: top
+      stroke:
+        width: 1.5
+        curve: smooth
+      markers:
+        size: 0
+        hover:
+          size: 3
+      tooltip:
+        shared: true
+        intersect: false
+        followCursor: true
+      xaxis:
+        labels:
+          datetimeUTC: false
+          datetimeFormatter:
+            hour: HH:mm
+    series:
+      - entity: climate.dethac_hall
+        attribute: current_temperature
+        name: Temperature
+        color: '#4a90e2'
+        type: line
+        yaxis_id: temp
+        show:
+          in_header: false
+        float_precision: 1
+        group_by:
+          duration: 15min
+          func: avg
+      - entity: climate.dethac_hall
+        attribute: target_temp_high
+        name: Cool target
+        color: '#f5a623'
+        type: line
+        yaxis_id: temp
+        show:
+          in_header: false
+        float_precision: 1
+        group_by:
+          duration: 15min
+          func: last
+      - entity: climate.dethac_hall
+        attribute: target_temp_low
+        name: Heat target
+        color: '#ff7043'
+        type: line
+        yaxis_id: temp
+        show:
+          in_header: false
+        float_precision: 1
+        group_by:
+          duration: 15min
+          func: last
+      - entity: climate.dethac_hall
+        attribute: current_humidity
+        name: Humidity
+        color: '#26a69a'
+        type: line
+        yaxis_id: hum
+        show:
+          in_header: false
+        float_precision: 1
+        group_by:
+          duration: 15min
+          func: avg
+      - entity: climate.dethac_hall
+        name: Peak temp
+        color: "#ef5350"
+        unit: "°F"
+        float_precision: 1
+        show:
+          in_chart: false
+          in_header: true
+        data_generator: |
+          const ID = "climate.dethac_hall", ATTR = "current_temperature";
+          const now = new Date(), start = new Date(now.getTime() - 36 * 3600000);
+          const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(start.toISOString()) +
+            "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
+            "&significant_changes_only=0");
+          const vals = (h?.[0] || []).map(r => parseFloat(r.attributes?.[ATTR])).filter(Number.isFinite);
+          return vals.length ? [[now.getTime(), Math.max(...vals)]] : [];
+      - entity: climate.dethac_hall
+        name: Peak humidity
+        color: "#26a69a"
+        unit: "%"
+        float_precision: 0
+        show:
+          in_chart: false
+          in_header: true
+        data_generator: |
+          const ID = "climate.dethac_hall", ATTR = "current_humidity";
+          const now = new Date(), start = new Date(now.getTime() - 36 * 3600000);
+          const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(start.toISOString()) +
+            "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
+            "&significant_changes_only=0");
+          const vals = (h?.[0] || []).map(r => parseFloat(r.attributes?.[ATTR])).filter(Number.isFinite);
+          return vals.length ? [[now.getTime(), Math.max(...vals)]] : [];
+  - type: custom:apexcharts-card
+    header:
+      show: true
+      title: Minepoint
+      show_states: true
+      colorize_states: true
+    graph_span: 36h
+    update_interval: 15min
+    yaxis:
+      - id: temp
+        decimals: 1
+        min: 50
+        max: 85
+      - id: hum
+        opposite: true
+        decimals: 0
+        min: 0
+        max: 100
+    apex_config:
+      chart:
+        height: 280
+        animations:
+          enabled: false
+      legend:
+        show: true
+        position: top
+      stroke:
+        width: 1.5
+        curve: smooth
+      markers:
+        size: 0
+        hover:
+          size: 3
+      tooltip:
+        shared: true
+        intersect: false
+        followCursor: true
+      xaxis:
+        labels:
+          datetimeUTC: false
+          datetimeFormatter:
+            hour: HH:mm
+    series:
+      - entity: climate.minepoint
+        attribute: current_temperature
+        name: Temperature
+        color: '#4a90e2'
+        type: line
+        yaxis_id: temp
+        show:
+          in_header: false
+        float_precision: 1
+        group_by:
+          duration: 15min
+          func: avg
+      - entity: climate.minepoint
+        attribute: target_temp_high
+        name: Cool target
+        color: '#f5a623'
+        type: line
+        yaxis_id: temp
+        show:
+          in_header: false
+        float_precision: 1
+        group_by:
+          duration: 15min
+          func: last
+      - entity: climate.minepoint
+        attribute: target_temp_low
+        name: Heat target
+        color: '#ff7043'
+        type: line
+        yaxis_id: temp
+        show:
+          in_header: false
+        float_precision: 1
+        group_by:
+          duration: 15min
+          func: last
+      - entity: climate.minepoint
+        attribute: current_humidity
+        name: Humidity
+        color: '#26a69a'
+        type: line
+        yaxis_id: hum
+        show:
+          in_header: false
+        float_precision: 1
+        group_by:
+          duration: 15min
+          func: avg
+      - entity: climate.minepoint
+        name: Peak temp
+        color: "#ef5350"
+        unit: "°F"
+        float_precision: 1
+        show:
+          in_chart: false
+          in_header: true
+        data_generator: |
+          const ID = "climate.minepoint", ATTR = "current_temperature";
+          const now = new Date(), start = new Date(now.getTime() - 36 * 3600000);
+          const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(start.toISOString()) +
+            "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
+            "&significant_changes_only=0");
+          const vals = (h?.[0] || []).map(r => parseFloat(r.attributes?.[ATTR])).filter(Number.isFinite);
+          return vals.length ? [[now.getTime(), Math.max(...vals)]] : [];
+      - entity: climate.minepoint
+        name: Peak humidity
+        color: "#26a69a"
+        unit: "%"
+        float_precision: 0
+        show:
+          in_chart: false
+          in_header: true
+        data_generator: |
+          const ID = "climate.minepoint", ATTR = "current_humidity";
+          const now = new Date(), start = new Date(now.getTime() - 36 * 3600000);
+          const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(start.toISOString()) +
+            "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
+            "&significant_changes_only=0");
+          const vals = (h?.[0] || []).map(r => parseFloat(r.attributes?.[ATTR])).filter(Number.isFinite);
+          return vals.length ? [[now.getTime(), Math.max(...vals)]] : [];
+  - type: custom:apexcharts-card
+    header:
+      show: true
+      title: New Offices
+      show_states: true
+      colorize_states: true
+    graph_span: 36h
+    update_interval: 15min
+    yaxis:
+      - id: temp
+        decimals: 1
+        min: 50
+        max: 85
+      - id: hum
+        opposite: true
+        decimals: 0
+        min: 0
+        max: 100
+    apex_config:
+      chart:
+        height: 280
+        animations:
+          enabled: false
+      legend:
+        show: true
+        position: top
+      stroke:
+        width: 1.5
+        curve: smooth
+      markers:
+        size: 0
+        hover:
+          size: 3
+      tooltip:
+        shared: true
+        intersect: false
+        followCursor: true
+      xaxis:
+        labels:
+          datetimeUTC: false
+          datetimeFormatter:
+            hour: HH:mm
+    series:
+      - entity: climate.new_offices
+        attribute: current_temperature
+        name: Temperature
+        color: '#4a90e2'
+        type: line
+        yaxis_id: temp
+        show:
+          in_header: false
+        float_precision: 1
+        group_by:
+          duration: 15min
+          func: avg
+      - entity: climate.new_offices
+        attribute: target_temp_high
+        name: Cool target
+        color: '#f5a623'
+        type: line
+        yaxis_id: temp
+        show:
+          in_header: false
+        float_precision: 1
+        group_by:
+          duration: 15min
+          func: last
+      - entity: climate.new_offices
+        attribute: target_temp_low
+        name: Heat target
+        color: '#ff7043'
+        type: line
+        yaxis_id: temp
+        show:
+          in_header: false
+        float_precision: 1
+        group_by:
+          duration: 15min
+          func: last
+      - entity: climate.new_offices
+        attribute: current_humidity
+        name: Humidity
+        color: '#26a69a'
+        type: line
+        yaxis_id: hum
+        show:
+          in_header: false
+        float_precision: 1
+        group_by:
+          duration: 15min
+          func: avg
+      - entity: climate.new_offices
+        name: Peak temp
+        color: "#ef5350"
+        unit: "°F"
+        float_precision: 1
+        show:
+          in_chart: false
+          in_header: true
+        data_generator: |
+          const ID = "climate.new_offices", ATTR = "current_temperature";
+          const now = new Date(), start = new Date(now.getTime() - 36 * 3600000);
+          const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(start.toISOString()) +
+            "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
+            "&significant_changes_only=0");
+          const vals = (h?.[0] || []).map(r => parseFloat(r.attributes?.[ATTR])).filter(Number.isFinite);
+          return vals.length ? [[now.getTime(), Math.max(...vals)]] : [];
+      - entity: climate.new_offices
+        name: Peak humidity
+        color: "#26a69a"
+        unit: "%"
+        float_precision: 0
+        show:
+          in_chart: false
+          in_header: true
+        data_generator: |
+          const ID = "climate.new_offices", ATTR = "current_humidity";
+          const now = new Date(), start = new Date(now.getTime() - 36 * 3600000);
+          const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(start.toISOString()) +
+            "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
+            "&significant_changes_only=0");
+          const vals = (h?.[0] || []).map(r => parseFloat(r.attributes?.[ATTR])).filter(Number.isFinite);
+          return vals.length ? [[now.getTime(), Math.max(...vals)]] : [];
+  - type: custom:apexcharts-card
+    header:
+      show: true
+      title: Software Support
+      show_states: true
+      colorize_states: true
+    graph_span: 36h
+    update_interval: 15min
+    yaxis:
+      - id: temp
+        decimals: 1
+        min: 50
+        max: 85
+      - id: hum
+        opposite: true
+        decimals: 0
+        min: 0
+        max: 100
+    apex_config:
+      chart:
+        height: 280
+        animations:
+          enabled: false
+      legend:
+        show: true
+        position: top
+      stroke:
+        width: 1.5
+        curve: smooth
+      markers:
+        size: 0
+        hover:
+          size: 3
+      tooltip:
+        shared: true
+        intersect: false
+        followCursor: true
+      xaxis:
+        labels:
+          datetimeUTC: false
+          datetimeFormatter:
+            hour: HH:mm
+    series:
+      - entity: climate.software_support
+        attribute: current_temperature
+        name: Temperature
+        color: '#4a90e2'
+        type: line
+        yaxis_id: temp
+        show:
+          in_header: false
+        float_precision: 1
+        group_by:
+          duration: 15min
+          func: avg
+      - entity: climate.software_support
+        attribute: target_temp_high
+        name: Cool target
+        color: '#f5a623'
+        type: line
+        yaxis_id: temp
+        show:
+          in_header: false
+        float_precision: 1
+        group_by:
+          duration: 15min
+          func: last
+      - entity: climate.software_support
+        attribute: target_temp_low
+        name: Heat target
+        color: '#ff7043'
+        type: line
+        yaxis_id: temp
+        show:
+          in_header: false
+        float_precision: 1
+        group_by:
+          duration: 15min
+          func: last
+      - entity: climate.software_support
+        attribute: current_humidity
+        name: Humidity
+        color: '#26a69a'
+        type: line
+        yaxis_id: hum
+        show:
+          in_header: false
+        float_precision: 1
+        group_by:
+          duration: 15min
+          func: avg
+      - entity: climate.software_support
+        name: Peak temp
+        color: "#ef5350"
+        unit: "°F"
+        float_precision: 1
+        show:
+          in_chart: false
+          in_header: true
+        data_generator: |
+          const ID = "climate.software_support", ATTR = "current_temperature";
+          const now = new Date(), start = new Date(now.getTime() - 36 * 3600000);
+          const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(start.toISOString()) +
+            "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
+            "&significant_changes_only=0");
+          const vals = (h?.[0] || []).map(r => parseFloat(r.attributes?.[ATTR])).filter(Number.isFinite);
+          return vals.length ? [[now.getTime(), Math.max(...vals)]] : [];
+      - entity: climate.software_support
+        name: Peak humidity
+        color: "#26a69a"
+        unit: "%"
+        float_precision: 0
+        show:
+          in_chart: false
+          in_header: true
+        data_generator: |
+          const ID = "climate.software_support", ATTR = "current_humidity";
+          const now = new Date(), start = new Date(now.getTime() - 36 * 3600000);
+          const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(start.toISOString()) +
+            "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
+            "&significant_changes_only=0");
+          const vals = (h?.[0] || []).map(r => parseFloat(r.attributes?.[ATTR])).filter(Number.isFinite);
+          return vals.length ? [[now.getTime(), Math.max(...vals)]] : [];

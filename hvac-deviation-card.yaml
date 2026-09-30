@@ -9,7 +9,8 @@ cards:
     header:
       show: true
       title: Sales
-      show_states: false
+      show_states: true
+      colorize_states: true
     graph_span: 8w
     span:
       end: week
@@ -67,6 +68,8 @@ cards:
         color: "#1e88e5"
         type: column
         stroke_width: 0
+        show:
+          in_header: false
         float_precision: 1
         data_generator: |
           const ID = "sensor.hvac_deviation_sales";
@@ -107,6 +110,8 @@ cards:
         color: "#e53935"
         type: column
         stroke_width: 0
+        show:
+          in_header: false
         float_precision: 1
         data_generator: |
           const ID = "sensor.hvac_deviation_sales";
@@ -147,6 +152,8 @@ cards:
         color: "#ffca28"
         type: line
         stroke_width: 1.5
+        show:
+          in_header: false
         curve: straight
         float_precision: 1
         data_generator: |
@@ -183,11 +190,111 @@ cards:
             out.push([s, +(({lo: lo, hi: hi, m: m})["m"]).toFixed(2)]);
           }
           return out;
+      - entity: sensor.hvac_deviation_sales
+        name: "Mode: week before last"
+        color: "#90a4ae"
+        float_precision: 1
+        show:
+          in_chart: false
+          in_header: true
+        data_generator: |
+          const ID = "sensor.hvac_deviation_sales", BIN = 0.5;
+          const now = new Date(), cur = new Date(now);
+          cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
+          const ws = new Date(cur); ws.setDate(ws.getDate() - 2 * 7);
+          const we = new Date(ws); we.setDate(we.getDate() + 7);
+          const s = ws.getTime(), e = Math.min(we.getTime(), now.getTime());
+          const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(ws.toISOString()) +
+            "?end_time=" + encodeURIComponent(new Date(e).toISOString()) + "&filter_entity_id=" + ID +
+            "&significant_changes_only=0");
+          const pts = (h?.[0] || [])
+            .map(r => ({ t: new Date(r.last_updated).getTime(), v: parseFloat(r.state) }))
+            .filter(r => Number.isFinite(r.t)).sort((a, b) => a.t - b.t);
+          const bins = {};
+          for (let i = 0; i < pts.length; i++) {
+            const f = Math.max(pts[i].t, s);
+            const t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
+            const v = pts[i].v;
+            if (t > f && Number.isFinite(v) && v !== 0) { const k = Math.round(v / BIN) * BIN; bins[k] = (bins[k] || 0) + (t - f); }
+          }
+          let m = 0, best = 0;
+          for (const k in bins) {
+            const kv = Number(k);
+            if (bins[k] > best || (bins[k] === best && Math.abs(kv) > Math.abs(m))) { best = bins[k]; m = kv; }
+          }
+          return [[s, +m.toFixed(2)]];
+      - entity: sensor.hvac_deviation_sales
+        name: "Mode: last week"
+        color: "#78909c"
+        float_precision: 1
+        show:
+          in_chart: false
+          in_header: true
+        data_generator: |
+          const ID = "sensor.hvac_deviation_sales", BIN = 0.5;
+          const now = new Date(), cur = new Date(now);
+          cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
+          const ws = new Date(cur); ws.setDate(ws.getDate() - 1 * 7);
+          const we = new Date(ws); we.setDate(we.getDate() + 7);
+          const s = ws.getTime(), e = Math.min(we.getTime(), now.getTime());
+          const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(ws.toISOString()) +
+            "?end_time=" + encodeURIComponent(new Date(e).toISOString()) + "&filter_entity_id=" + ID +
+            "&significant_changes_only=0");
+          const pts = (h?.[0] || [])
+            .map(r => ({ t: new Date(r.last_updated).getTime(), v: parseFloat(r.state) }))
+            .filter(r => Number.isFinite(r.t)).sort((a, b) => a.t - b.t);
+          const bins = {};
+          for (let i = 0; i < pts.length; i++) {
+            const f = Math.max(pts[i].t, s);
+            const t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
+            const v = pts[i].v;
+            if (t > f && Number.isFinite(v) && v !== 0) { const k = Math.round(v / BIN) * BIN; bins[k] = (bins[k] || 0) + (t - f); }
+          }
+          let m = 0, best = 0;
+          for (const k in bins) {
+            const kv = Number(k);
+            if (bins[k] > best || (bins[k] === best && Math.abs(kv) > Math.abs(m))) { best = bins[k]; m = kv; }
+          }
+          return [[s, +m.toFixed(2)]];
+      - entity: sensor.hvac_deviation_sales
+        name: "Mode: this week"
+        color: "#ffca28"
+        float_precision: 1
+        show:
+          in_chart: false
+          in_header: true
+        data_generator: |
+          const ID = "sensor.hvac_deviation_sales", BIN = 0.5;
+          const now = new Date(), cur = new Date(now);
+          cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
+          const ws = new Date(cur); ws.setDate(ws.getDate() - 0 * 7);
+          const we = new Date(ws); we.setDate(we.getDate() + 7);
+          const s = ws.getTime(), e = Math.min(we.getTime(), now.getTime());
+          const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(ws.toISOString()) +
+            "?end_time=" + encodeURIComponent(new Date(e).toISOString()) + "&filter_entity_id=" + ID +
+            "&significant_changes_only=0");
+          const pts = (h?.[0] || [])
+            .map(r => ({ t: new Date(r.last_updated).getTime(), v: parseFloat(r.state) }))
+            .filter(r => Number.isFinite(r.t)).sort((a, b) => a.t - b.t);
+          const bins = {};
+          for (let i = 0; i < pts.length; i++) {
+            const f = Math.max(pts[i].t, s);
+            const t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
+            const v = pts[i].v;
+            if (t > f && Number.isFinite(v) && v !== 0) { const k = Math.round(v / BIN) * BIN; bins[k] = (bins[k] || 0) + (t - f); }
+          }
+          let m = 0, best = 0;
+          for (const k in bins) {
+            const kv = Number(k);
+            if (bins[k] > best || (bins[k] === best && Math.abs(kv) > Math.abs(m))) { best = bins[k]; m = kv; }
+          }
+          return [[s, +m.toFixed(2)]];
   - type: custom:apexcharts-card
     header:
       show: true
       title: Amy
-      show_states: false
+      show_states: true
+      colorize_states: true
     graph_span: 8w
     span:
       end: week
@@ -245,6 +352,8 @@ cards:
         color: "#1e88e5"
         type: column
         stroke_width: 0
+        show:
+          in_header: false
         float_precision: 1
         data_generator: |
           const ID = "sensor.hvac_deviation_amy";
@@ -285,6 +394,8 @@ cards:
         color: "#e53935"
         type: column
         stroke_width: 0
+        show:
+          in_header: false
         float_precision: 1
         data_generator: |
           const ID = "sensor.hvac_deviation_amy";
@@ -325,6 +436,8 @@ cards:
         color: "#ffca28"
         type: line
         stroke_width: 1.5
+        show:
+          in_header: false
         curve: straight
         float_precision: 1
         data_generator: |
@@ -361,11 +474,111 @@ cards:
             out.push([s, +(({lo: lo, hi: hi, m: m})["m"]).toFixed(2)]);
           }
           return out;
+      - entity: sensor.hvac_deviation_amy
+        name: "Mode: week before last"
+        color: "#90a4ae"
+        float_precision: 1
+        show:
+          in_chart: false
+          in_header: true
+        data_generator: |
+          const ID = "sensor.hvac_deviation_amy", BIN = 0.5;
+          const now = new Date(), cur = new Date(now);
+          cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
+          const ws = new Date(cur); ws.setDate(ws.getDate() - 2 * 7);
+          const we = new Date(ws); we.setDate(we.getDate() + 7);
+          const s = ws.getTime(), e = Math.min(we.getTime(), now.getTime());
+          const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(ws.toISOString()) +
+            "?end_time=" + encodeURIComponent(new Date(e).toISOString()) + "&filter_entity_id=" + ID +
+            "&significant_changes_only=0");
+          const pts = (h?.[0] || [])
+            .map(r => ({ t: new Date(r.last_updated).getTime(), v: parseFloat(r.state) }))
+            .filter(r => Number.isFinite(r.t)).sort((a, b) => a.t - b.t);
+          const bins = {};
+          for (let i = 0; i < pts.length; i++) {
+            const f = Math.max(pts[i].t, s);
+            const t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
+            const v = pts[i].v;
+            if (t > f && Number.isFinite(v) && v !== 0) { const k = Math.round(v / BIN) * BIN; bins[k] = (bins[k] || 0) + (t - f); }
+          }
+          let m = 0, best = 0;
+          for (const k in bins) {
+            const kv = Number(k);
+            if (bins[k] > best || (bins[k] === best && Math.abs(kv) > Math.abs(m))) { best = bins[k]; m = kv; }
+          }
+          return [[s, +m.toFixed(2)]];
+      - entity: sensor.hvac_deviation_amy
+        name: "Mode: last week"
+        color: "#78909c"
+        float_precision: 1
+        show:
+          in_chart: false
+          in_header: true
+        data_generator: |
+          const ID = "sensor.hvac_deviation_amy", BIN = 0.5;
+          const now = new Date(), cur = new Date(now);
+          cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
+          const ws = new Date(cur); ws.setDate(ws.getDate() - 1 * 7);
+          const we = new Date(ws); we.setDate(we.getDate() + 7);
+          const s = ws.getTime(), e = Math.min(we.getTime(), now.getTime());
+          const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(ws.toISOString()) +
+            "?end_time=" + encodeURIComponent(new Date(e).toISOString()) + "&filter_entity_id=" + ID +
+            "&significant_changes_only=0");
+          const pts = (h?.[0] || [])
+            .map(r => ({ t: new Date(r.last_updated).getTime(), v: parseFloat(r.state) }))
+            .filter(r => Number.isFinite(r.t)).sort((a, b) => a.t - b.t);
+          const bins = {};
+          for (let i = 0; i < pts.length; i++) {
+            const f = Math.max(pts[i].t, s);
+            const t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
+            const v = pts[i].v;
+            if (t > f && Number.isFinite(v) && v !== 0) { const k = Math.round(v / BIN) * BIN; bins[k] = (bins[k] || 0) + (t - f); }
+          }
+          let m = 0, best = 0;
+          for (const k in bins) {
+            const kv = Number(k);
+            if (bins[k] > best || (bins[k] === best && Math.abs(kv) > Math.abs(m))) { best = bins[k]; m = kv; }
+          }
+          return [[s, +m.toFixed(2)]];
+      - entity: sensor.hvac_deviation_amy
+        name: "Mode: this week"
+        color: "#ffca28"
+        float_precision: 1
+        show:
+          in_chart: false
+          in_header: true
+        data_generator: |
+          const ID = "sensor.hvac_deviation_amy", BIN = 0.5;
+          const now = new Date(), cur = new Date(now);
+          cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
+          const ws = new Date(cur); ws.setDate(ws.getDate() - 0 * 7);
+          const we = new Date(ws); we.setDate(we.getDate() + 7);
+          const s = ws.getTime(), e = Math.min(we.getTime(), now.getTime());
+          const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(ws.toISOString()) +
+            "?end_time=" + encodeURIComponent(new Date(e).toISOString()) + "&filter_entity_id=" + ID +
+            "&significant_changes_only=0");
+          const pts = (h?.[0] || [])
+            .map(r => ({ t: new Date(r.last_updated).getTime(), v: parseFloat(r.state) }))
+            .filter(r => Number.isFinite(r.t)).sort((a, b) => a.t - b.t);
+          const bins = {};
+          for (let i = 0; i < pts.length; i++) {
+            const f = Math.max(pts[i].t, s);
+            const t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
+            const v = pts[i].v;
+            if (t > f && Number.isFinite(v) && v !== 0) { const k = Math.round(v / BIN) * BIN; bins[k] = (bins[k] || 0) + (t - f); }
+          }
+          let m = 0, best = 0;
+          for (const k in bins) {
+            const kv = Number(k);
+            if (bins[k] > best || (bins[k] === best && Math.abs(kv) > Math.abs(m))) { best = bins[k]; m = kv; }
+          }
+          return [[s, +m.toFixed(2)]];
   - type: custom:apexcharts-card
     header:
       show: true
       title: Bruce & Break Room
-      show_states: false
+      show_states: true
+      colorize_states: true
     graph_span: 8w
     span:
       end: week
@@ -423,6 +636,8 @@ cards:
         color: "#1e88e5"
         type: column
         stroke_width: 0
+        show:
+          in_header: false
         float_precision: 1
         data_generator: |
           const ID = "sensor.hvac_deviation_bruce_break_room";
@@ -463,6 +678,8 @@ cards:
         color: "#e53935"
         type: column
         stroke_width: 0
+        show:
+          in_header: false
         float_precision: 1
         data_generator: |
           const ID = "sensor.hvac_deviation_bruce_break_room";
@@ -503,6 +720,8 @@ cards:
         color: "#ffca28"
         type: line
         stroke_width: 1.5
+        show:
+          in_header: false
         curve: straight
         float_precision: 1
         data_generator: |
@@ -539,11 +758,111 @@ cards:
             out.push([s, +(({lo: lo, hi: hi, m: m})["m"]).toFixed(2)]);
           }
           return out;
+      - entity: sensor.hvac_deviation_bruce_break_room
+        name: "Mode: week before last"
+        color: "#90a4ae"
+        float_precision: 1
+        show:
+          in_chart: false
+          in_header: true
+        data_generator: |
+          const ID = "sensor.hvac_deviation_bruce_break_room", BIN = 0.5;
+          const now = new Date(), cur = new Date(now);
+          cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
+          const ws = new Date(cur); ws.setDate(ws.getDate() - 2 * 7);
+          const we = new Date(ws); we.setDate(we.getDate() + 7);
+          const s = ws.getTime(), e = Math.min(we.getTime(), now.getTime());
+          const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(ws.toISOString()) +
+            "?end_time=" + encodeURIComponent(new Date(e).toISOString()) + "&filter_entity_id=" + ID +
+            "&significant_changes_only=0");
+          const pts = (h?.[0] || [])
+            .map(r => ({ t: new Date(r.last_updated).getTime(), v: parseFloat(r.state) }))
+            .filter(r => Number.isFinite(r.t)).sort((a, b) => a.t - b.t);
+          const bins = {};
+          for (let i = 0; i < pts.length; i++) {
+            const f = Math.max(pts[i].t, s);
+            const t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
+            const v = pts[i].v;
+            if (t > f && Number.isFinite(v) && v !== 0) { const k = Math.round(v / BIN) * BIN; bins[k] = (bins[k] || 0) + (t - f); }
+          }
+          let m = 0, best = 0;
+          for (const k in bins) {
+            const kv = Number(k);
+            if (bins[k] > best || (bins[k] === best && Math.abs(kv) > Math.abs(m))) { best = bins[k]; m = kv; }
+          }
+          return [[s, +m.toFixed(2)]];
+      - entity: sensor.hvac_deviation_bruce_break_room
+        name: "Mode: last week"
+        color: "#78909c"
+        float_precision: 1
+        show:
+          in_chart: false
+          in_header: true
+        data_generator: |
+          const ID = "sensor.hvac_deviation_bruce_break_room", BIN = 0.5;
+          const now = new Date(), cur = new Date(now);
+          cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
+          const ws = new Date(cur); ws.setDate(ws.getDate() - 1 * 7);
+          const we = new Date(ws); we.setDate(we.getDate() + 7);
+          const s = ws.getTime(), e = Math.min(we.getTime(), now.getTime());
+          const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(ws.toISOString()) +
+            "?end_time=" + encodeURIComponent(new Date(e).toISOString()) + "&filter_entity_id=" + ID +
+            "&significant_changes_only=0");
+          const pts = (h?.[0] || [])
+            .map(r => ({ t: new Date(r.last_updated).getTime(), v: parseFloat(r.state) }))
+            .filter(r => Number.isFinite(r.t)).sort((a, b) => a.t - b.t);
+          const bins = {};
+          for (let i = 0; i < pts.length; i++) {
+            const f = Math.max(pts[i].t, s);
+            const t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
+            const v = pts[i].v;
+            if (t > f && Number.isFinite(v) && v !== 0) { const k = Math.round(v / BIN) * BIN; bins[k] = (bins[k] || 0) + (t - f); }
+          }
+          let m = 0, best = 0;
+          for (const k in bins) {
+            const kv = Number(k);
+            if (bins[k] > best || (bins[k] === best && Math.abs(kv) > Math.abs(m))) { best = bins[k]; m = kv; }
+          }
+          return [[s, +m.toFixed(2)]];
+      - entity: sensor.hvac_deviation_bruce_break_room
+        name: "Mode: this week"
+        color: "#ffca28"
+        float_precision: 1
+        show:
+          in_chart: false
+          in_header: true
+        data_generator: |
+          const ID = "sensor.hvac_deviation_bruce_break_room", BIN = 0.5;
+          const now = new Date(), cur = new Date(now);
+          cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
+          const ws = new Date(cur); ws.setDate(ws.getDate() - 0 * 7);
+          const we = new Date(ws); we.setDate(we.getDate() + 7);
+          const s = ws.getTime(), e = Math.min(we.getTime(), now.getTime());
+          const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(ws.toISOString()) +
+            "?end_time=" + encodeURIComponent(new Date(e).toISOString()) + "&filter_entity_id=" + ID +
+            "&significant_changes_only=0");
+          const pts = (h?.[0] || [])
+            .map(r => ({ t: new Date(r.last_updated).getTime(), v: parseFloat(r.state) }))
+            .filter(r => Number.isFinite(r.t)).sort((a, b) => a.t - b.t);
+          const bins = {};
+          for (let i = 0; i < pts.length; i++) {
+            const f = Math.max(pts[i].t, s);
+            const t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
+            const v = pts[i].v;
+            if (t > f && Number.isFinite(v) && v !== 0) { const k = Math.round(v / BIN) * BIN; bins[k] = (bins[k] || 0) + (t - f); }
+          }
+          let m = 0, best = 0;
+          for (const k in bins) {
+            const kv = Number(k);
+            if (bins[k] > best || (bins[k] === best && Math.abs(kv) > Math.abs(m))) { best = bins[k]; m = kv; }
+          }
+          return [[s, +m.toFixed(2)]];
   - type: custom:apexcharts-card
     header:
       show: true
       title: DETHAC Hall
-      show_states: false
+      show_states: true
+      colorize_states: true
     graph_span: 8w
     span:
       end: week
@@ -601,6 +920,8 @@ cards:
         color: "#1e88e5"
         type: column
         stroke_width: 0
+        show:
+          in_header: false
         float_precision: 1
         data_generator: |
           const ID = "sensor.hvac_deviation_dethac_hall";
@@ -641,6 +962,8 @@ cards:
         color: "#e53935"
         type: column
         stroke_width: 0
+        show:
+          in_header: false
         float_precision: 1
         data_generator: |
           const ID = "sensor.hvac_deviation_dethac_hall";
@@ -681,6 +1004,8 @@ cards:
         color: "#ffca28"
         type: line
         stroke_width: 1.5
+        show:
+          in_header: false
         curve: straight
         float_precision: 1
         data_generator: |
@@ -717,11 +1042,111 @@ cards:
             out.push([s, +(({lo: lo, hi: hi, m: m})["m"]).toFixed(2)]);
           }
           return out;
+      - entity: sensor.hvac_deviation_dethac_hall
+        name: "Mode: week before last"
+        color: "#90a4ae"
+        float_precision: 1
+        show:
+          in_chart: false
+          in_header: true
+        data_generator: |
+          const ID = "sensor.hvac_deviation_dethac_hall", BIN = 0.5;
+          const now = new Date(), cur = new Date(now);
+          cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
+          const ws = new Date(cur); ws.setDate(ws.getDate() - 2 * 7);
+          const we = new Date(ws); we.setDate(we.getDate() + 7);
+          const s = ws.getTime(), e = Math.min(we.getTime(), now.getTime());
+          const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(ws.toISOString()) +
+            "?end_time=" + encodeURIComponent(new Date(e).toISOString()) + "&filter_entity_id=" + ID +
+            "&significant_changes_only=0");
+          const pts = (h?.[0] || [])
+            .map(r => ({ t: new Date(r.last_updated).getTime(), v: parseFloat(r.state) }))
+            .filter(r => Number.isFinite(r.t)).sort((a, b) => a.t - b.t);
+          const bins = {};
+          for (let i = 0; i < pts.length; i++) {
+            const f = Math.max(pts[i].t, s);
+            const t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
+            const v = pts[i].v;
+            if (t > f && Number.isFinite(v) && v !== 0) { const k = Math.round(v / BIN) * BIN; bins[k] = (bins[k] || 0) + (t - f); }
+          }
+          let m = 0, best = 0;
+          for (const k in bins) {
+            const kv = Number(k);
+            if (bins[k] > best || (bins[k] === best && Math.abs(kv) > Math.abs(m))) { best = bins[k]; m = kv; }
+          }
+          return [[s, +m.toFixed(2)]];
+      - entity: sensor.hvac_deviation_dethac_hall
+        name: "Mode: last week"
+        color: "#78909c"
+        float_precision: 1
+        show:
+          in_chart: false
+          in_header: true
+        data_generator: |
+          const ID = "sensor.hvac_deviation_dethac_hall", BIN = 0.5;
+          const now = new Date(), cur = new Date(now);
+          cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
+          const ws = new Date(cur); ws.setDate(ws.getDate() - 1 * 7);
+          const we = new Date(ws); we.setDate(we.getDate() + 7);
+          const s = ws.getTime(), e = Math.min(we.getTime(), now.getTime());
+          const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(ws.toISOString()) +
+            "?end_time=" + encodeURIComponent(new Date(e).toISOString()) + "&filter_entity_id=" + ID +
+            "&significant_changes_only=0");
+          const pts = (h?.[0] || [])
+            .map(r => ({ t: new Date(r.last_updated).getTime(), v: parseFloat(r.state) }))
+            .filter(r => Number.isFinite(r.t)).sort((a, b) => a.t - b.t);
+          const bins = {};
+          for (let i = 0; i < pts.length; i++) {
+            const f = Math.max(pts[i].t, s);
+            const t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
+            const v = pts[i].v;
+            if (t > f && Number.isFinite(v) && v !== 0) { const k = Math.round(v / BIN) * BIN; bins[k] = (bins[k] || 0) + (t - f); }
+          }
+          let m = 0, best = 0;
+          for (const k in bins) {
+            const kv = Number(k);
+            if (bins[k] > best || (bins[k] === best && Math.abs(kv) > Math.abs(m))) { best = bins[k]; m = kv; }
+          }
+          return [[s, +m.toFixed(2)]];
+      - entity: sensor.hvac_deviation_dethac_hall
+        name: "Mode: this week"
+        color: "#ffca28"
+        float_precision: 1
+        show:
+          in_chart: false
+          in_header: true
+        data_generator: |
+          const ID = "sensor.hvac_deviation_dethac_hall", BIN = 0.5;
+          const now = new Date(), cur = new Date(now);
+          cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
+          const ws = new Date(cur); ws.setDate(ws.getDate() - 0 * 7);
+          const we = new Date(ws); we.setDate(we.getDate() + 7);
+          const s = ws.getTime(), e = Math.min(we.getTime(), now.getTime());
+          const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(ws.toISOString()) +
+            "?end_time=" + encodeURIComponent(new Date(e).toISOString()) + "&filter_entity_id=" + ID +
+            "&significant_changes_only=0");
+          const pts = (h?.[0] || [])
+            .map(r => ({ t: new Date(r.last_updated).getTime(), v: parseFloat(r.state) }))
+            .filter(r => Number.isFinite(r.t)).sort((a, b) => a.t - b.t);
+          const bins = {};
+          for (let i = 0; i < pts.length; i++) {
+            const f = Math.max(pts[i].t, s);
+            const t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
+            const v = pts[i].v;
+            if (t > f && Number.isFinite(v) && v !== 0) { const k = Math.round(v / BIN) * BIN; bins[k] = (bins[k] || 0) + (t - f); }
+          }
+          let m = 0, best = 0;
+          for (const k in bins) {
+            const kv = Number(k);
+            if (bins[k] > best || (bins[k] === best && Math.abs(kv) > Math.abs(m))) { best = bins[k]; m = kv; }
+          }
+          return [[s, +m.toFixed(2)]];
   - type: custom:apexcharts-card
     header:
       show: true
       title: Minepoint
-      show_states: false
+      show_states: true
+      colorize_states: true
     graph_span: 8w
     span:
       end: week
@@ -779,6 +1204,8 @@ cards:
         color: "#1e88e5"
         type: column
         stroke_width: 0
+        show:
+          in_header: false
         float_precision: 1
         data_generator: |
           const ID = "sensor.hvac_deviation_minepoint";
@@ -819,6 +1246,8 @@ cards:
         color: "#e53935"
         type: column
         stroke_width: 0
+        show:
+          in_header: false
         float_precision: 1
         data_generator: |
           const ID = "sensor.hvac_deviation_minepoint";
@@ -859,6 +1288,8 @@ cards:
         color: "#ffca28"
         type: line
         stroke_width: 1.5
+        show:
+          in_header: false
         curve: straight
         float_precision: 1
         data_generator: |
@@ -895,11 +1326,111 @@ cards:
             out.push([s, +(({lo: lo, hi: hi, m: m})["m"]).toFixed(2)]);
           }
           return out;
+      - entity: sensor.hvac_deviation_minepoint
+        name: "Mode: week before last"
+        color: "#90a4ae"
+        float_precision: 1
+        show:
+          in_chart: false
+          in_header: true
+        data_generator: |
+          const ID = "sensor.hvac_deviation_minepoint", BIN = 0.5;
+          const now = new Date(), cur = new Date(now);
+          cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
+          const ws = new Date(cur); ws.setDate(ws.getDate() - 2 * 7);
+          const we = new Date(ws); we.setDate(we.getDate() + 7);
+          const s = ws.getTime(), e = Math.min(we.getTime(), now.getTime());
+          const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(ws.toISOString()) +
+            "?end_time=" + encodeURIComponent(new Date(e).toISOString()) + "&filter_entity_id=" + ID +
+            "&significant_changes_only=0");
+          const pts = (h?.[0] || [])
+            .map(r => ({ t: new Date(r.last_updated).getTime(), v: parseFloat(r.state) }))
+            .filter(r => Number.isFinite(r.t)).sort((a, b) => a.t - b.t);
+          const bins = {};
+          for (let i = 0; i < pts.length; i++) {
+            const f = Math.max(pts[i].t, s);
+            const t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
+            const v = pts[i].v;
+            if (t > f && Number.isFinite(v) && v !== 0) { const k = Math.round(v / BIN) * BIN; bins[k] = (bins[k] || 0) + (t - f); }
+          }
+          let m = 0, best = 0;
+          for (const k in bins) {
+            const kv = Number(k);
+            if (bins[k] > best || (bins[k] === best && Math.abs(kv) > Math.abs(m))) { best = bins[k]; m = kv; }
+          }
+          return [[s, +m.toFixed(2)]];
+      - entity: sensor.hvac_deviation_minepoint
+        name: "Mode: last week"
+        color: "#78909c"
+        float_precision: 1
+        show:
+          in_chart: false
+          in_header: true
+        data_generator: |
+          const ID = "sensor.hvac_deviation_minepoint", BIN = 0.5;
+          const now = new Date(), cur = new Date(now);
+          cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
+          const ws = new Date(cur); ws.setDate(ws.getDate() - 1 * 7);
+          const we = new Date(ws); we.setDate(we.getDate() + 7);
+          const s = ws.getTime(), e = Math.min(we.getTime(), now.getTime());
+          const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(ws.toISOString()) +
+            "?end_time=" + encodeURIComponent(new Date(e).toISOString()) + "&filter_entity_id=" + ID +
+            "&significant_changes_only=0");
+          const pts = (h?.[0] || [])
+            .map(r => ({ t: new Date(r.last_updated).getTime(), v: parseFloat(r.state) }))
+            .filter(r => Number.isFinite(r.t)).sort((a, b) => a.t - b.t);
+          const bins = {};
+          for (let i = 0; i < pts.length; i++) {
+            const f = Math.max(pts[i].t, s);
+            const t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
+            const v = pts[i].v;
+            if (t > f && Number.isFinite(v) && v !== 0) { const k = Math.round(v / BIN) * BIN; bins[k] = (bins[k] || 0) + (t - f); }
+          }
+          let m = 0, best = 0;
+          for (const k in bins) {
+            const kv = Number(k);
+            if (bins[k] > best || (bins[k] === best && Math.abs(kv) > Math.abs(m))) { best = bins[k]; m = kv; }
+          }
+          return [[s, +m.toFixed(2)]];
+      - entity: sensor.hvac_deviation_minepoint
+        name: "Mode: this week"
+        color: "#ffca28"
+        float_precision: 1
+        show:
+          in_chart: false
+          in_header: true
+        data_generator: |
+          const ID = "sensor.hvac_deviation_minepoint", BIN = 0.5;
+          const now = new Date(), cur = new Date(now);
+          cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
+          const ws = new Date(cur); ws.setDate(ws.getDate() - 0 * 7);
+          const we = new Date(ws); we.setDate(we.getDate() + 7);
+          const s = ws.getTime(), e = Math.min(we.getTime(), now.getTime());
+          const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(ws.toISOString()) +
+            "?end_time=" + encodeURIComponent(new Date(e).toISOString()) + "&filter_entity_id=" + ID +
+            "&significant_changes_only=0");
+          const pts = (h?.[0] || [])
+            .map(r => ({ t: new Date(r.last_updated).getTime(), v: parseFloat(r.state) }))
+            .filter(r => Number.isFinite(r.t)).sort((a, b) => a.t - b.t);
+          const bins = {};
+          for (let i = 0; i < pts.length; i++) {
+            const f = Math.max(pts[i].t, s);
+            const t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
+            const v = pts[i].v;
+            if (t > f && Number.isFinite(v) && v !== 0) { const k = Math.round(v / BIN) * BIN; bins[k] = (bins[k] || 0) + (t - f); }
+          }
+          let m = 0, best = 0;
+          for (const k in bins) {
+            const kv = Number(k);
+            if (bins[k] > best || (bins[k] === best && Math.abs(kv) > Math.abs(m))) { best = bins[k]; m = kv; }
+          }
+          return [[s, +m.toFixed(2)]];
   - type: custom:apexcharts-card
     header:
       show: true
       title: New Offices
-      show_states: false
+      show_states: true
+      colorize_states: true
     graph_span: 8w
     span:
       end: week
@@ -957,6 +1488,8 @@ cards:
         color: "#1e88e5"
         type: column
         stroke_width: 0
+        show:
+          in_header: false
         float_precision: 1
         data_generator: |
           const ID = "sensor.hvac_deviation_new_offices";
@@ -997,6 +1530,8 @@ cards:
         color: "#e53935"
         type: column
         stroke_width: 0
+        show:
+          in_header: false
         float_precision: 1
         data_generator: |
           const ID = "sensor.hvac_deviation_new_offices";
@@ -1037,6 +1572,8 @@ cards:
         color: "#ffca28"
         type: line
         stroke_width: 1.5
+        show:
+          in_header: false
         curve: straight
         float_precision: 1
         data_generator: |
@@ -1073,11 +1610,111 @@ cards:
             out.push([s, +(({lo: lo, hi: hi, m: m})["m"]).toFixed(2)]);
           }
           return out;
+      - entity: sensor.hvac_deviation_new_offices
+        name: "Mode: week before last"
+        color: "#90a4ae"
+        float_precision: 1
+        show:
+          in_chart: false
+          in_header: true
+        data_generator: |
+          const ID = "sensor.hvac_deviation_new_offices", BIN = 0.5;
+          const now = new Date(), cur = new Date(now);
+          cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
+          const ws = new Date(cur); ws.setDate(ws.getDate() - 2 * 7);
+          const we = new Date(ws); we.setDate(we.getDate() + 7);
+          const s = ws.getTime(), e = Math.min(we.getTime(), now.getTime());
+          const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(ws.toISOString()) +
+            "?end_time=" + encodeURIComponent(new Date(e).toISOString()) + "&filter_entity_id=" + ID +
+            "&significant_changes_only=0");
+          const pts = (h?.[0] || [])
+            .map(r => ({ t: new Date(r.last_updated).getTime(), v: parseFloat(r.state) }))
+            .filter(r => Number.isFinite(r.t)).sort((a, b) => a.t - b.t);
+          const bins = {};
+          for (let i = 0; i < pts.length; i++) {
+            const f = Math.max(pts[i].t, s);
+            const t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
+            const v = pts[i].v;
+            if (t > f && Number.isFinite(v) && v !== 0) { const k = Math.round(v / BIN) * BIN; bins[k] = (bins[k] || 0) + (t - f); }
+          }
+          let m = 0, best = 0;
+          for (const k in bins) {
+            const kv = Number(k);
+            if (bins[k] > best || (bins[k] === best && Math.abs(kv) > Math.abs(m))) { best = bins[k]; m = kv; }
+          }
+          return [[s, +m.toFixed(2)]];
+      - entity: sensor.hvac_deviation_new_offices
+        name: "Mode: last week"
+        color: "#78909c"
+        float_precision: 1
+        show:
+          in_chart: false
+          in_header: true
+        data_generator: |
+          const ID = "sensor.hvac_deviation_new_offices", BIN = 0.5;
+          const now = new Date(), cur = new Date(now);
+          cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
+          const ws = new Date(cur); ws.setDate(ws.getDate() - 1 * 7);
+          const we = new Date(ws); we.setDate(we.getDate() + 7);
+          const s = ws.getTime(), e = Math.min(we.getTime(), now.getTime());
+          const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(ws.toISOString()) +
+            "?end_time=" + encodeURIComponent(new Date(e).toISOString()) + "&filter_entity_id=" + ID +
+            "&significant_changes_only=0");
+          const pts = (h?.[0] || [])
+            .map(r => ({ t: new Date(r.last_updated).getTime(), v: parseFloat(r.state) }))
+            .filter(r => Number.isFinite(r.t)).sort((a, b) => a.t - b.t);
+          const bins = {};
+          for (let i = 0; i < pts.length; i++) {
+            const f = Math.max(pts[i].t, s);
+            const t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
+            const v = pts[i].v;
+            if (t > f && Number.isFinite(v) && v !== 0) { const k = Math.round(v / BIN) * BIN; bins[k] = (bins[k] || 0) + (t - f); }
+          }
+          let m = 0, best = 0;
+          for (const k in bins) {
+            const kv = Number(k);
+            if (bins[k] > best || (bins[k] === best && Math.abs(kv) > Math.abs(m))) { best = bins[k]; m = kv; }
+          }
+          return [[s, +m.toFixed(2)]];
+      - entity: sensor.hvac_deviation_new_offices
+        name: "Mode: this week"
+        color: "#ffca28"
+        float_precision: 1
+        show:
+          in_chart: false
+          in_header: true
+        data_generator: |
+          const ID = "sensor.hvac_deviation_new_offices", BIN = 0.5;
+          const now = new Date(), cur = new Date(now);
+          cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
+          const ws = new Date(cur); ws.setDate(ws.getDate() - 0 * 7);
+          const we = new Date(ws); we.setDate(we.getDate() + 7);
+          const s = ws.getTime(), e = Math.min(we.getTime(), now.getTime());
+          const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(ws.toISOString()) +
+            "?end_time=" + encodeURIComponent(new Date(e).toISOString()) + "&filter_entity_id=" + ID +
+            "&significant_changes_only=0");
+          const pts = (h?.[0] || [])
+            .map(r => ({ t: new Date(r.last_updated).getTime(), v: parseFloat(r.state) }))
+            .filter(r => Number.isFinite(r.t)).sort((a, b) => a.t - b.t);
+          const bins = {};
+          for (let i = 0; i < pts.length; i++) {
+            const f = Math.max(pts[i].t, s);
+            const t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
+            const v = pts[i].v;
+            if (t > f && Number.isFinite(v) && v !== 0) { const k = Math.round(v / BIN) * BIN; bins[k] = (bins[k] || 0) + (t - f); }
+          }
+          let m = 0, best = 0;
+          for (const k in bins) {
+            const kv = Number(k);
+            if (bins[k] > best || (bins[k] === best && Math.abs(kv) > Math.abs(m))) { best = bins[k]; m = kv; }
+          }
+          return [[s, +m.toFixed(2)]];
   - type: custom:apexcharts-card
     header:
       show: true
       title: Software Support
-      show_states: false
+      show_states: true
+      colorize_states: true
     graph_span: 8w
     span:
       end: week
@@ -1135,6 +1772,8 @@ cards:
         color: "#1e88e5"
         type: column
         stroke_width: 0
+        show:
+          in_header: false
         float_precision: 1
         data_generator: |
           const ID = "sensor.hvac_deviation_software_support";
@@ -1175,6 +1814,8 @@ cards:
         color: "#e53935"
         type: column
         stroke_width: 0
+        show:
+          in_header: false
         float_precision: 1
         data_generator: |
           const ID = "sensor.hvac_deviation_software_support";
@@ -1215,6 +1856,8 @@ cards:
         color: "#ffca28"
         type: line
         stroke_width: 1.5
+        show:
+          in_header: false
         curve: straight
         float_precision: 1
         data_generator: |
@@ -1251,3 +1894,102 @@ cards:
             out.push([s, +(({lo: lo, hi: hi, m: m})["m"]).toFixed(2)]);
           }
           return out;
+      - entity: sensor.hvac_deviation_software_support
+        name: "Mode: week before last"
+        color: "#90a4ae"
+        float_precision: 1
+        show:
+          in_chart: false
+          in_header: true
+        data_generator: |
+          const ID = "sensor.hvac_deviation_software_support", BIN = 0.5;
+          const now = new Date(), cur = new Date(now);
+          cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
+          const ws = new Date(cur); ws.setDate(ws.getDate() - 2 * 7);
+          const we = new Date(ws); we.setDate(we.getDate() + 7);
+          const s = ws.getTime(), e = Math.min(we.getTime(), now.getTime());
+          const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(ws.toISOString()) +
+            "?end_time=" + encodeURIComponent(new Date(e).toISOString()) + "&filter_entity_id=" + ID +
+            "&significant_changes_only=0");
+          const pts = (h?.[0] || [])
+            .map(r => ({ t: new Date(r.last_updated).getTime(), v: parseFloat(r.state) }))
+            .filter(r => Number.isFinite(r.t)).sort((a, b) => a.t - b.t);
+          const bins = {};
+          for (let i = 0; i < pts.length; i++) {
+            const f = Math.max(pts[i].t, s);
+            const t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
+            const v = pts[i].v;
+            if (t > f && Number.isFinite(v) && v !== 0) { const k = Math.round(v / BIN) * BIN; bins[k] = (bins[k] || 0) + (t - f); }
+          }
+          let m = 0, best = 0;
+          for (const k in bins) {
+            const kv = Number(k);
+            if (bins[k] > best || (bins[k] === best && Math.abs(kv) > Math.abs(m))) { best = bins[k]; m = kv; }
+          }
+          return [[s, +m.toFixed(2)]];
+      - entity: sensor.hvac_deviation_software_support
+        name: "Mode: last week"
+        color: "#78909c"
+        float_precision: 1
+        show:
+          in_chart: false
+          in_header: true
+        data_generator: |
+          const ID = "sensor.hvac_deviation_software_support", BIN = 0.5;
+          const now = new Date(), cur = new Date(now);
+          cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
+          const ws = new Date(cur); ws.setDate(ws.getDate() - 1 * 7);
+          const we = new Date(ws); we.setDate(we.getDate() + 7);
+          const s = ws.getTime(), e = Math.min(we.getTime(), now.getTime());
+          const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(ws.toISOString()) +
+            "?end_time=" + encodeURIComponent(new Date(e).toISOString()) + "&filter_entity_id=" + ID +
+            "&significant_changes_only=0");
+          const pts = (h?.[0] || [])
+            .map(r => ({ t: new Date(r.last_updated).getTime(), v: parseFloat(r.state) }))
+            .filter(r => Number.isFinite(r.t)).sort((a, b) => a.t - b.t);
+          const bins = {};
+          for (let i = 0; i < pts.length; i++) {
+            const f = Math.max(pts[i].t, s);
+            const t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
+            const v = pts[i].v;
+            if (t > f && Number.isFinite(v) && v !== 0) { const k = Math.round(v / BIN) * BIN; bins[k] = (bins[k] || 0) + (t - f); }
+          }
+          let m = 0, best = 0;
+          for (const k in bins) {
+            const kv = Number(k);
+            if (bins[k] > best || (bins[k] === best && Math.abs(kv) > Math.abs(m))) { best = bins[k]; m = kv; }
+          }
+          return [[s, +m.toFixed(2)]];
+      - entity: sensor.hvac_deviation_software_support
+        name: "Mode: this week"
+        color: "#ffca28"
+        float_precision: 1
+        show:
+          in_chart: false
+          in_header: true
+        data_generator: |
+          const ID = "sensor.hvac_deviation_software_support", BIN = 0.5;
+          const now = new Date(), cur = new Date(now);
+          cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
+          const ws = new Date(cur); ws.setDate(ws.getDate() - 0 * 7);
+          const we = new Date(ws); we.setDate(we.getDate() + 7);
+          const s = ws.getTime(), e = Math.min(we.getTime(), now.getTime());
+          const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(ws.toISOString()) +
+            "?end_time=" + encodeURIComponent(new Date(e).toISOString()) + "&filter_entity_id=" + ID +
+            "&significant_changes_only=0");
+          const pts = (h?.[0] || [])
+            .map(r => ({ t: new Date(r.last_updated).getTime(), v: parseFloat(r.state) }))
+            .filter(r => Number.isFinite(r.t)).sort((a, b) => a.t - b.t);
+          const bins = {};
+          for (let i = 0; i < pts.length; i++) {
+            const f = Math.max(pts[i].t, s);
+            const t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
+            const v = pts[i].v;
+            if (t > f && Number.isFinite(v) && v !== 0) { const k = Math.round(v / BIN) * BIN; bins[k] = (bins[k] || 0) + (t - f); }
+          }
+          let m = 0, best = 0;
+          for (const k in bins) {
+            const kv = Number(k);
+            if (bins[k] > best || (bins[k] === best && Math.abs(kv) > Math.abs(m))) { best = bins[k]; m = kv; }
+          }
+          return [[s, +m.toFixed(2)]];
