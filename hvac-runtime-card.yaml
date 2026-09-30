@@ -64,8 +64,7 @@ cards:
             return html + '</div>';
           }
       legend:
-        show: true
-        position: top
+        show: false
       dataLabels:
         enabled: false
     series:
@@ -312,8 +311,7 @@ cards:
             return html + '</div>';
           }
       legend:
-        show: true
-        position: top
+        show: false
       dataLabels:
         enabled: false
     series:
@@ -560,8 +558,7 @@ cards:
             return html + '</div>';
           }
       legend:
-        show: true
-        position: top
+        show: false
       dataLabels:
         enabled: false
     series:
@@ -808,8 +805,7 @@ cards:
             return html + '</div>';
           }
       legend:
-        show: true
-        position: top
+        show: false
       dataLabels:
         enabled: false
     series:
@@ -1056,8 +1052,7 @@ cards:
             return html + '</div>';
           }
       legend:
-        show: true
-        position: top
+        show: false
       dataLabels:
         enabled: false
     series:
@@ -1304,8 +1299,7 @@ cards:
             return html + '</div>';
           }
       legend:
-        show: true
-        position: top
+        show: false
       dataLabels:
         enabled: false
     series:

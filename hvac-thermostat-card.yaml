@@ -29,8 +29,7 @@ cards:
         animations:
           enabled: false
       legend:
-        show: true
-        position: top
+        show: false
       stroke:
         width: 1.5
         curve: smooth
@@ -162,8 +161,7 @@ cards:
         animations:
           enabled: false
       legend:
-        show: true
-        position: top
+        show: false
       stroke:
         width: 1.5
         curve: smooth
@@ -267,8 +265,7 @@ cards:
         animations:
           enabled: false
       legend:
-        show: true
-        position: top
+        show: false
       stroke:
         width: 1.5
         curve: smooth
@@ -372,8 +369,7 @@ cards:
         animations:
           enabled: false
       legend:
-        show: true
-        position: top
+        show: false
       stroke:
         width: 1.5
         curve: smooth
@@ -477,8 +473,7 @@ cards:
         animations:
           enabled: false
       legend:
-        show: true
-        position: top
+        show: false
       stroke:
         width: 1.5
         curve: smooth
@@ -587,8 +582,7 @@ cards:
         animations:
           enabled: false
       legend:
-        show: true
-        position: top
+        show: false
       stroke:
         width: 1.5
         curve: smooth
