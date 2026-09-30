@@ -1,7 +1,7 @@
 square: false
 type: grid
 title: Thermostats — last 36 hours
-columns: 2
+columns: 6
 grid_options:
   columns: full
 cards:

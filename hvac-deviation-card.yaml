@@ -1,7 +1,7 @@
 square: false
 type: grid
 title: Business-hours deviation — weekly mode (top), last 8 weeks
-columns: 2
+columns: 3
 grid_options:
   columns: full
 cards:

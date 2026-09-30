@@ -1,7 +1,7 @@
 square: false
 type: grid
 title: HVAC runtime — last 7 weeks + current
-columns: 2
+columns: 3
 grid_options:
   columns: full
 cards:
@@ -174,6 +174,7 @@ cards:
       - entity: climate.sales
         name: Week before
         color: "#90a4ae"
+        float_precision: 1
         show:
           in_chart: false
           in_header: true
@@ -201,6 +202,7 @@ cards:
       - entity: climate.sales
         name: Last week
         color: "#78909c"
+        float_precision: 1
         show:
           in_chart: false
           in_header: true
@@ -228,6 +230,7 @@ cards:
       - entity: climate.sales
         name: This week
         color: "#ab47bc"
+        float_precision: 1
         show:
           in_chart: false
           in_header: true
@@ -421,6 +424,7 @@ cards:
       - entity: climate.amy
         name: Week before
         color: "#90a4ae"
+        float_precision: 1
         show:
           in_chart: false
           in_header: true
@@ -448,6 +452,7 @@ cards:
       - entity: climate.amy
         name: Last week
         color: "#78909c"
+        float_precision: 1
         show:
           in_chart: false
           in_header: true
@@ -475,6 +480,7 @@ cards:
       - entity: climate.amy
         name: This week
         color: "#ab47bc"
+        float_precision: 1
         show:
           in_chart: false
           in_header: true
@@ -668,6 +674,7 @@ cards:
       - entity: climate.bruce_break_room
         name: Week before
         color: "#90a4ae"
+        float_precision: 1
         show:
           in_chart: false
           in_header: true
@@ -695,6 +702,7 @@ cards:
       - entity: climate.bruce_break_room
         name: Last week
         color: "#78909c"
+        float_precision: 1
         show:
           in_chart: false
           in_header: true
@@ -722,6 +730,7 @@ cards:
       - entity: climate.bruce_break_room
         name: This week
         color: "#ab47bc"
+        float_precision: 1
         show:
           in_chart: false
           in_header: true
@@ -915,6 +924,7 @@ cards:
       - entity: climate.minepoint
         name: Week before
         color: "#90a4ae"
+        float_precision: 1
         show:
           in_chart: false
           in_header: true
@@ -942,6 +952,7 @@ cards:
       - entity: climate.minepoint
         name: Last week
         color: "#78909c"
+        float_precision: 1
         show:
           in_chart: false
           in_header: true
@@ -969,6 +980,7 @@ cards:
       - entity: climate.minepoint
         name: This week
         color: "#ab47bc"
+        float_precision: 1
         show:
           in_chart: false
           in_header: true
@@ -1162,6 +1174,7 @@ cards:
       - entity: climate.new_offices
         name: Week before
         color: "#90a4ae"
+        float_precision: 1
         show:
           in_chart: false
           in_header: true
@@ -1189,6 +1202,7 @@ cards:
       - entity: climate.new_offices
         name: Last week
         color: "#78909c"
+        float_precision: 1
         show:
           in_chart: false
           in_header: true
@@ -1216,6 +1230,7 @@ cards:
       - entity: climate.new_offices
         name: This week
         color: "#ab47bc"
+        float_precision: 1
         show:
           in_chart: false
           in_header: true
@@ -1409,6 +1424,7 @@ cards:
       - entity: climate.software_support
         name: Week before
         color: "#90a4ae"
+        float_precision: 1
         show:
           in_chart: false
           in_header: true
@@ -1436,6 +1452,7 @@ cards:
       - entity: climate.software_support
         name: Last week
         color: "#78909c"
+        float_precision: 1
         show:
           in_chart: false
           in_header: true
@@ -1463,6 +1480,7 @@ cards:
       - entity: climate.software_support
         name: This week
         color: "#ab47bc"
+        float_precision: 1
         show:
           in_chart: false
           in_header: true
