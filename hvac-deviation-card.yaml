@@ -19,23 +19,12 @@ cards:
       - decimals: 1
         min: "~-5"
         max: "~5"
-    card_mod:
-      style: |
-        #states, .states { gap: 2px !important; flex-wrap: nowrap !important; }
-        #state, .state { flex: 1 1 0 !important; min-width: 0 !important; }
-        #state__value, .state__value { font-size: 16px !important; }
-        #state__uom, .state__uom { font-size: 9px !important; }
-        #state__name, .state__name { font-size: 9px !important; white-space: normal !important; line-height: 1.1 !important; }
     apex_config:
       chart:
         height: 280
         stacked: true
         animations:
           enabled: false
-      grid:
-        padding:
-          left: 6
-          right: 14
       legend:
         show: false
       plotOptions:
@@ -314,23 +303,12 @@ cards:
       - decimals: 1
         min: "~-5"
         max: "~5"
-    card_mod:
-      style: |
-        #states, .states { gap: 2px !important; flex-wrap: nowrap !important; }
-        #state, .state { flex: 1 1 0 !important; min-width: 0 !important; }
-        #state__value, .state__value { font-size: 16px !important; }
-        #state__uom, .state__uom { font-size: 9px !important; }
-        #state__name, .state__name { font-size: 9px !important; white-space: normal !important; line-height: 1.1 !important; }
     apex_config:
       chart:
         height: 280
         stacked: true
         animations:
           enabled: false
-      grid:
-        padding:
-          left: 6
-          right: 14
       legend:
         show: false
       plotOptions:
@@ -609,23 +587,12 @@ cards:
       - decimals: 1
         min: "~-5"
         max: "~5"
-    card_mod:
-      style: |
-        #states, .states { gap: 2px !important; flex-wrap: nowrap !important; }
-        #state, .state { flex: 1 1 0 !important; min-width: 0 !important; }
-        #state__value, .state__value { font-size: 16px !important; }
-        #state__uom, .state__uom { font-size: 9px !important; }
-        #state__name, .state__name { font-size: 9px !important; white-space: normal !important; line-height: 1.1 !important; }
     apex_config:
       chart:
         height: 280
         stacked: true
         animations:
           enabled: false
-      grid:
-        padding:
-          left: 6
-          right: 14
       legend:
         show: false
       plotOptions:
@@ -904,23 +871,12 @@ cards:
       - decimals: 1
         min: "~-5"
         max: "~5"
-    card_mod:
-      style: |
-        #states, .states { gap: 2px !important; flex-wrap: nowrap !important; }
-        #state, .state { flex: 1 1 0 !important; min-width: 0 !important; }
-        #state__value, .state__value { font-size: 16px !important; }
-        #state__uom, .state__uom { font-size: 9px !important; }
-        #state__name, .state__name { font-size: 9px !important; white-space: normal !important; line-height: 1.1 !important; }
     apex_config:
       chart:
         height: 280
         stacked: true
         animations:
           enabled: false
-      grid:
-        padding:
-          left: 6
-          right: 14
       legend:
         show: false
       plotOptions:
@@ -1199,23 +1155,12 @@ cards:
       - decimals: 1
         min: "~-5"
         max: "~5"
-    card_mod:
-      style: |
-        #states, .states { gap: 2px !important; flex-wrap: nowrap !important; }
-        #state, .state { flex: 1 1 0 !important; min-width: 0 !important; }
-        #state__value, .state__value { font-size: 16px !important; }
-        #state__uom, .state__uom { font-size: 9px !important; }
-        #state__name, .state__name { font-size: 9px !important; white-space: normal !important; line-height: 1.1 !important; }
     apex_config:
       chart:
         height: 280
         stacked: true
         animations:
           enabled: false
-      grid:
-        padding:
-          left: 6
-          right: 14
       legend:
         show: false
       plotOptions:
@@ -1494,23 +1439,12 @@ cards:
       - decimals: 1
         min: "~-5"
         max: "~5"
-    card_mod:
-      style: |
-        #states, .states { gap: 2px !important; flex-wrap: nowrap !important; }
-        #state, .state { flex: 1 1 0 !important; min-width: 0 !important; }
-        #state__value, .state__value { font-size: 16px !important; }
-        #state__uom, .state__uom { font-size: 9px !important; }
-        #state__name, .state__name { font-size: 9px !important; white-space: normal !important; line-height: 1.1 !important; }
     apex_config:
       chart:
         height: 280
         stacked: true
         animations:
           enabled: false
-      grid:
-        padding:
-          left: 6
-          right: 14
       legend:
         show: false
       plotOptions:
