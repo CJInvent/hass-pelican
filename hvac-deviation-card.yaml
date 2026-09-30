@@ -94,12 +94,12 @@ cards:
               const v = pts[i].v;
               if (t > f && Number.isFinite(v)) { lo = Math.min(lo, v); hi = Math.max(hi, v); if (v !== 0) g.push([v, t - f]); }
             }
-            const BIN = 0.5;
+            const BIN = 0.1;
             const bins = {};
-            for (const x of g) { const k = Math.round(x[0] / BIN) * BIN; bins[k] = (bins[k] || 0) + x[1]; }
+            for (const x of g) { const k = Math.round(x[0] / BIN); bins[k] = (bins[k] || 0) + x[1]; }
             let m = 0, best = 0;
             for (const k in bins) {
-              const kv = Number(k);
+              const kv = Number(k) * BIN;
               if (bins[k] > best || (bins[k] === best && Math.abs(kv) > Math.abs(m))) { best = bins[k]; m = kv; }
             }
             out.push([s, +(({lo: lo, hi: hi, m: m})["lo"]).toFixed(2)]);
@@ -136,12 +136,12 @@ cards:
               const v = pts[i].v;
               if (t > f && Number.isFinite(v)) { lo = Math.min(lo, v); hi = Math.max(hi, v); if (v !== 0) g.push([v, t - f]); }
             }
-            const BIN = 0.5;
+            const BIN = 0.1;
             const bins = {};
-            for (const x of g) { const k = Math.round(x[0] / BIN) * BIN; bins[k] = (bins[k] || 0) + x[1]; }
+            for (const x of g) { const k = Math.round(x[0] / BIN); bins[k] = (bins[k] || 0) + x[1]; }
             let m = 0, best = 0;
             for (const k in bins) {
-              const kv = Number(k);
+              const kv = Number(k) * BIN;
               if (bins[k] > best || (bins[k] === best && Math.abs(kv) > Math.abs(m))) { best = bins[k]; m = kv; }
             }
             out.push([s, +(({lo: lo, hi: hi, m: m})["hi"]).toFixed(2)]);
@@ -179,12 +179,12 @@ cards:
               const v = pts[i].v;
               if (t > f && Number.isFinite(v)) { lo = Math.min(lo, v); hi = Math.max(hi, v); if (v !== 0) g.push([v, t - f]); }
             }
-            const BIN = 0.5;
+            const BIN = 0.1;
             const bins = {};
-            for (const x of g) { const k = Math.round(x[0] / BIN) * BIN; bins[k] = (bins[k] || 0) + x[1]; }
+            for (const x of g) { const k = Math.round(x[0] / BIN); bins[k] = (bins[k] || 0) + x[1]; }
             let m = 0, best = 0;
             for (const k in bins) {
-              const kv = Number(k);
+              const kv = Number(k) * BIN;
               if (bins[k] > best || (bins[k] === best && Math.abs(kv) > Math.abs(m))) { best = bins[k]; m = kv; }
             }
             out.push([s, +(({lo: lo, hi: hi, m: m})["m"]).toFixed(2)]);
@@ -198,7 +198,7 @@ cards:
           in_chart: false
           in_header: true
         data_generator: |
-          const ID = "sensor.hvac_deviation_sales", BIN = 0.5;
+          const ID = "sensor.hvac_deviation_sales", BIN = 0.1;
           const now = new Date(), cur = new Date(now);
           cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
           const ws = new Date(cur); ws.setDate(ws.getDate() - 2 * 7);
@@ -215,11 +215,11 @@ cards:
             const f = Math.max(pts[i].t, s);
             const t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
             const v = pts[i].v;
-            if (t > f && Number.isFinite(v) && v !== 0) { const k = Math.round(v / BIN) * BIN; bins[k] = (bins[k] || 0) + (t - f); }
+            if (t > f && Number.isFinite(v) && v !== 0) { const k = Math.round(v / BIN); bins[k] = (bins[k] || 0) + (t - f); }
           }
           let m = 0, best = 0;
           for (const k in bins) {
-            const kv = Number(k);
+            const kv = Number(k) * BIN;
             if (bins[k] > best || (bins[k] === best && Math.abs(kv) > Math.abs(m))) { best = bins[k]; m = kv; }
           }
           return [[s, +m.toFixed(2)]];
@@ -231,7 +231,7 @@ cards:
           in_chart: false
           in_header: true
         data_generator: |
-          const ID = "sensor.hvac_deviation_sales", BIN = 0.5;
+          const ID = "sensor.hvac_deviation_sales", BIN = 0.1;
           const now = new Date(), cur = new Date(now);
           cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
           const ws = new Date(cur); ws.setDate(ws.getDate() - 1 * 7);
@@ -248,11 +248,11 @@ cards:
             const f = Math.max(pts[i].t, s);
             const t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
             const v = pts[i].v;
-            if (t > f && Number.isFinite(v) && v !== 0) { const k = Math.round(v / BIN) * BIN; bins[k] = (bins[k] || 0) + (t - f); }
+            if (t > f && Number.isFinite(v) && v !== 0) { const k = Math.round(v / BIN); bins[k] = (bins[k] || 0) + (t - f); }
           }
           let m = 0, best = 0;
           for (const k in bins) {
-            const kv = Number(k);
+            const kv = Number(k) * BIN;
             if (bins[k] > best || (bins[k] === best && Math.abs(kv) > Math.abs(m))) { best = bins[k]; m = kv; }
           }
           return [[s, +m.toFixed(2)]];
@@ -264,7 +264,7 @@ cards:
           in_chart: false
           in_header: true
         data_generator: |
-          const ID = "sensor.hvac_deviation_sales", BIN = 0.5;
+          const ID = "sensor.hvac_deviation_sales", BIN = 0.1;
           const now = new Date(), cur = new Date(now);
           cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
           const ws = new Date(cur); ws.setDate(ws.getDate() - 0 * 7);
@@ -281,11 +281,11 @@ cards:
             const f = Math.max(pts[i].t, s);
             const t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
             const v = pts[i].v;
-            if (t > f && Number.isFinite(v) && v !== 0) { const k = Math.round(v / BIN) * BIN; bins[k] = (bins[k] || 0) + (t - f); }
+            if (t > f && Number.isFinite(v) && v !== 0) { const k = Math.round(v / BIN); bins[k] = (bins[k] || 0) + (t - f); }
           }
           let m = 0, best = 0;
           for (const k in bins) {
-            const kv = Number(k);
+            const kv = Number(k) * BIN;
             if (bins[k] > best || (bins[k] === best && Math.abs(kv) > Math.abs(m))) { best = bins[k]; m = kv; }
           }
           return [[s, +m.toFixed(2)]];
@@ -378,12 +378,12 @@ cards:
               const v = pts[i].v;
               if (t > f && Number.isFinite(v)) { lo = Math.min(lo, v); hi = Math.max(hi, v); if (v !== 0) g.push([v, t - f]); }
             }
-            const BIN = 0.5;
+            const BIN = 0.1;
             const bins = {};
-            for (const x of g) { const k = Math.round(x[0] / BIN) * BIN; bins[k] = (bins[k] || 0) + x[1]; }
+            for (const x of g) { const k = Math.round(x[0] / BIN); bins[k] = (bins[k] || 0) + x[1]; }
             let m = 0, best = 0;
             for (const k in bins) {
-              const kv = Number(k);
+              const kv = Number(k) * BIN;
               if (bins[k] > best || (bins[k] === best && Math.abs(kv) > Math.abs(m))) { best = bins[k]; m = kv; }
             }
             out.push([s, +(({lo: lo, hi: hi, m: m})["lo"]).toFixed(2)]);
@@ -420,12 +420,12 @@ cards:
               const v = pts[i].v;
               if (t > f && Number.isFinite(v)) { lo = Math.min(lo, v); hi = Math.max(hi, v); if (v !== 0) g.push([v, t - f]); }
             }
-            const BIN = 0.5;
+            const BIN = 0.1;
             const bins = {};
-            for (const x of g) { const k = Math.round(x[0] / BIN) * BIN; bins[k] = (bins[k] || 0) + x[1]; }
+            for (const x of g) { const k = Math.round(x[0] / BIN); bins[k] = (bins[k] || 0) + x[1]; }
             let m = 0, best = 0;
             for (const k in bins) {
-              const kv = Number(k);
+              const kv = Number(k) * BIN;
               if (bins[k] > best || (bins[k] === best && Math.abs(kv) > Math.abs(m))) { best = bins[k]; m = kv; }
             }
             out.push([s, +(({lo: lo, hi: hi, m: m})["hi"]).toFixed(2)]);
@@ -463,12 +463,12 @@ cards:
               const v = pts[i].v;
               if (t > f && Number.isFinite(v)) { lo = Math.min(lo, v); hi = Math.max(hi, v); if (v !== 0) g.push([v, t - f]); }
             }
-            const BIN = 0.5;
+            const BIN = 0.1;
             const bins = {};
-            for (const x of g) { const k = Math.round(x[0] / BIN) * BIN; bins[k] = (bins[k] || 0) + x[1]; }
+            for (const x of g) { const k = Math.round(x[0] / BIN); bins[k] = (bins[k] || 0) + x[1]; }
             let m = 0, best = 0;
             for (const k in bins) {
-              const kv = Number(k);
+              const kv = Number(k) * BIN;
               if (bins[k] > best || (bins[k] === best && Math.abs(kv) > Math.abs(m))) { best = bins[k]; m = kv; }
             }
             out.push([s, +(({lo: lo, hi: hi, m: m})["m"]).toFixed(2)]);
@@ -482,7 +482,7 @@ cards:
           in_chart: false
           in_header: true
         data_generator: |
-          const ID = "sensor.hvac_deviation_amy", BIN = 0.5;
+          const ID = "sensor.hvac_deviation_amy", BIN = 0.1;
           const now = new Date(), cur = new Date(now);
           cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
           const ws = new Date(cur); ws.setDate(ws.getDate() - 2 * 7);
@@ -499,11 +499,11 @@ cards:
             const f = Math.max(pts[i].t, s);
             const t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
             const v = pts[i].v;
-            if (t > f && Number.isFinite(v) && v !== 0) { const k = Math.round(v / BIN) * BIN; bins[k] = (bins[k] || 0) + (t - f); }
+            if (t > f && Number.isFinite(v) && v !== 0) { const k = Math.round(v / BIN); bins[k] = (bins[k] || 0) + (t - f); }
           }
           let m = 0, best = 0;
           for (const k in bins) {
-            const kv = Number(k);
+            const kv = Number(k) * BIN;
             if (bins[k] > best || (bins[k] === best && Math.abs(kv) > Math.abs(m))) { best = bins[k]; m = kv; }
           }
           return [[s, +m.toFixed(2)]];
@@ -515,7 +515,7 @@ cards:
           in_chart: false
           in_header: true
         data_generator: |
-          const ID = "sensor.hvac_deviation_amy", BIN = 0.5;
+          const ID = "sensor.hvac_deviation_amy", BIN = 0.1;
           const now = new Date(), cur = new Date(now);
           cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
           const ws = new Date(cur); ws.setDate(ws.getDate() - 1 * 7);
@@ -532,11 +532,11 @@ cards:
             const f = Math.max(pts[i].t, s);
             const t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
             const v = pts[i].v;
-            if (t > f && Number.isFinite(v) && v !== 0) { const k = Math.round(v / BIN) * BIN; bins[k] = (bins[k] || 0) + (t - f); }
+            if (t > f && Number.isFinite(v) && v !== 0) { const k = Math.round(v / BIN); bins[k] = (bins[k] || 0) + (t - f); }
           }
           let m = 0, best = 0;
           for (const k in bins) {
-            const kv = Number(k);
+            const kv = Number(k) * BIN;
             if (bins[k] > best || (bins[k] === best && Math.abs(kv) > Math.abs(m))) { best = bins[k]; m = kv; }
           }
           return [[s, +m.toFixed(2)]];
@@ -548,7 +548,7 @@ cards:
           in_chart: false
           in_header: true
         data_generator: |
-          const ID = "sensor.hvac_deviation_amy", BIN = 0.5;
+          const ID = "sensor.hvac_deviation_amy", BIN = 0.1;
           const now = new Date(), cur = new Date(now);
           cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
           const ws = new Date(cur); ws.setDate(ws.getDate() - 0 * 7);
@@ -565,11 +565,11 @@ cards:
             const f = Math.max(pts[i].t, s);
             const t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
             const v = pts[i].v;
-            if (t > f && Number.isFinite(v) && v !== 0) { const k = Math.round(v / BIN) * BIN; bins[k] = (bins[k] || 0) + (t - f); }
+            if (t > f && Number.isFinite(v) && v !== 0) { const k = Math.round(v / BIN); bins[k] = (bins[k] || 0) + (t - f); }
           }
           let m = 0, best = 0;
           for (const k in bins) {
-            const kv = Number(k);
+            const kv = Number(k) * BIN;
             if (bins[k] > best || (bins[k] === best && Math.abs(kv) > Math.abs(m))) { best = bins[k]; m = kv; }
           }
           return [[s, +m.toFixed(2)]];
@@ -662,12 +662,12 @@ cards:
               const v = pts[i].v;
               if (t > f && Number.isFinite(v)) { lo = Math.min(lo, v); hi = Math.max(hi, v); if (v !== 0) g.push([v, t - f]); }
             }
-            const BIN = 0.5;
+            const BIN = 0.1;
             const bins = {};
-            for (const x of g) { const k = Math.round(x[0] / BIN) * BIN; bins[k] = (bins[k] || 0) + x[1]; }
+            for (const x of g) { const k = Math.round(x[0] / BIN); bins[k] = (bins[k] || 0) + x[1]; }
             let m = 0, best = 0;
             for (const k in bins) {
-              const kv = Number(k);
+              const kv = Number(k) * BIN;
               if (bins[k] > best || (bins[k] === best && Math.abs(kv) > Math.abs(m))) { best = bins[k]; m = kv; }
             }
             out.push([s, +(({lo: lo, hi: hi, m: m})["lo"]).toFixed(2)]);
@@ -704,12 +704,12 @@ cards:
               const v = pts[i].v;
               if (t > f && Number.isFinite(v)) { lo = Math.min(lo, v); hi = Math.max(hi, v); if (v !== 0) g.push([v, t - f]); }
             }
-            const BIN = 0.5;
+            const BIN = 0.1;
             const bins = {};
-            for (const x of g) { const k = Math.round(x[0] / BIN) * BIN; bins[k] = (bins[k] || 0) + x[1]; }
+            for (const x of g) { const k = Math.round(x[0] / BIN); bins[k] = (bins[k] || 0) + x[1]; }
             let m = 0, best = 0;
             for (const k in bins) {
-              const kv = Number(k);
+              const kv = Number(k) * BIN;
               if (bins[k] > best || (bins[k] === best && Math.abs(kv) > Math.abs(m))) { best = bins[k]; m = kv; }
             }
             out.push([s, +(({lo: lo, hi: hi, m: m})["hi"]).toFixed(2)]);
@@ -747,12 +747,12 @@ cards:
               const v = pts[i].v;
               if (t > f && Number.isFinite(v)) { lo = Math.min(lo, v); hi = Math.max(hi, v); if (v !== 0) g.push([v, t - f]); }
             }
-            const BIN = 0.5;
+            const BIN = 0.1;
             const bins = {};
-            for (const x of g) { const k = Math.round(x[0] / BIN) * BIN; bins[k] = (bins[k] || 0) + x[1]; }
+            for (const x of g) { const k = Math.round(x[0] / BIN); bins[k] = (bins[k] || 0) + x[1]; }
             let m = 0, best = 0;
             for (const k in bins) {
-              const kv = Number(k);
+              const kv = Number(k) * BIN;
               if (bins[k] > best || (bins[k] === best && Math.abs(kv) > Math.abs(m))) { best = bins[k]; m = kv; }
             }
             out.push([s, +(({lo: lo, hi: hi, m: m})["m"]).toFixed(2)]);
@@ -766,7 +766,7 @@ cards:
           in_chart: false
           in_header: true
         data_generator: |
-          const ID = "sensor.hvac_deviation_bruce_break_room", BIN = 0.5;
+          const ID = "sensor.hvac_deviation_bruce_break_room", BIN = 0.1;
           const now = new Date(), cur = new Date(now);
           cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
           const ws = new Date(cur); ws.setDate(ws.getDate() - 2 * 7);
@@ -783,11 +783,11 @@ cards:
             const f = Math.max(pts[i].t, s);
             const t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
             const v = pts[i].v;
-            if (t > f && Number.isFinite(v) && v !== 0) { const k = Math.round(v / BIN) * BIN; bins[k] = (bins[k] || 0) + (t - f); }
+            if (t > f && Number.isFinite(v) && v !== 0) { const k = Math.round(v / BIN); bins[k] = (bins[k] || 0) + (t - f); }
           }
           let m = 0, best = 0;
           for (const k in bins) {
-            const kv = Number(k);
+            const kv = Number(k) * BIN;
             if (bins[k] > best || (bins[k] === best && Math.abs(kv) > Math.abs(m))) { best = bins[k]; m = kv; }
           }
           return [[s, +m.toFixed(2)]];
@@ -799,7 +799,7 @@ cards:
           in_chart: false
           in_header: true
         data_generator: |
-          const ID = "sensor.hvac_deviation_bruce_break_room", BIN = 0.5;
+          const ID = "sensor.hvac_deviation_bruce_break_room", BIN = 0.1;
           const now = new Date(), cur = new Date(now);
           cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
           const ws = new Date(cur); ws.setDate(ws.getDate() - 1 * 7);
@@ -816,11 +816,11 @@ cards:
             const f = Math.max(pts[i].t, s);
             const t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
             const v = pts[i].v;
-            if (t > f && Number.isFinite(v) && v !== 0) { const k = Math.round(v / BIN) * BIN; bins[k] = (bins[k] || 0) + (t - f); }
+            if (t > f && Number.isFinite(v) && v !== 0) { const k = Math.round(v / BIN); bins[k] = (bins[k] || 0) + (t - f); }
           }
           let m = 0, best = 0;
           for (const k in bins) {
-            const kv = Number(k);
+            const kv = Number(k) * BIN;
             if (bins[k] > best || (bins[k] === best && Math.abs(kv) > Math.abs(m))) { best = bins[k]; m = kv; }
           }
           return [[s, +m.toFixed(2)]];
@@ -832,7 +832,7 @@ cards:
           in_chart: false
           in_header: true
         data_generator: |
-          const ID = "sensor.hvac_deviation_bruce_break_room", BIN = 0.5;
+          const ID = "sensor.hvac_deviation_bruce_break_room", BIN = 0.1;
           const now = new Date(), cur = new Date(now);
           cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
           const ws = new Date(cur); ws.setDate(ws.getDate() - 0 * 7);
@@ -849,11 +849,11 @@ cards:
             const f = Math.max(pts[i].t, s);
             const t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
             const v = pts[i].v;
-            if (t > f && Number.isFinite(v) && v !== 0) { const k = Math.round(v / BIN) * BIN; bins[k] = (bins[k] || 0) + (t - f); }
+            if (t > f && Number.isFinite(v) && v !== 0) { const k = Math.round(v / BIN); bins[k] = (bins[k] || 0) + (t - f); }
           }
           let m = 0, best = 0;
           for (const k in bins) {
-            const kv = Number(k);
+            const kv = Number(k) * BIN;
             if (bins[k] > best || (bins[k] === best && Math.abs(kv) > Math.abs(m))) { best = bins[k]; m = kv; }
           }
           return [[s, +m.toFixed(2)]];
@@ -946,12 +946,12 @@ cards:
               const v = pts[i].v;
               if (t > f && Number.isFinite(v)) { lo = Math.min(lo, v); hi = Math.max(hi, v); if (v !== 0) g.push([v, t - f]); }
             }
-            const BIN = 0.5;
+            const BIN = 0.1;
             const bins = {};
-            for (const x of g) { const k = Math.round(x[0] / BIN) * BIN; bins[k] = (bins[k] || 0) + x[1]; }
+            for (const x of g) { const k = Math.round(x[0] / BIN); bins[k] = (bins[k] || 0) + x[1]; }
             let m = 0, best = 0;
             for (const k in bins) {
-              const kv = Number(k);
+              const kv = Number(k) * BIN;
               if (bins[k] > best || (bins[k] === best && Math.abs(kv) > Math.abs(m))) { best = bins[k]; m = kv; }
             }
             out.push([s, +(({lo: lo, hi: hi, m: m})["lo"]).toFixed(2)]);
@@ -988,12 +988,12 @@ cards:
               const v = pts[i].v;
               if (t > f && Number.isFinite(v)) { lo = Math.min(lo, v); hi = Math.max(hi, v); if (v !== 0) g.push([v, t - f]); }
             }
-            const BIN = 0.5;
+            const BIN = 0.1;
             const bins = {};
-            for (const x of g) { const k = Math.round(x[0] / BIN) * BIN; bins[k] = (bins[k] || 0) + x[1]; }
+            for (const x of g) { const k = Math.round(x[0] / BIN); bins[k] = (bins[k] || 0) + x[1]; }
             let m = 0, best = 0;
             for (const k in bins) {
-              const kv = Number(k);
+              const kv = Number(k) * BIN;
               if (bins[k] > best || (bins[k] === best && Math.abs(kv) > Math.abs(m))) { best = bins[k]; m = kv; }
             }
             out.push([s, +(({lo: lo, hi: hi, m: m})["hi"]).toFixed(2)]);
@@ -1031,12 +1031,12 @@ cards:
               const v = pts[i].v;
               if (t > f && Number.isFinite(v)) { lo = Math.min(lo, v); hi = Math.max(hi, v); if (v !== 0) g.push([v, t - f]); }
             }
-            const BIN = 0.5;
+            const BIN = 0.1;
             const bins = {};
-            for (const x of g) { const k = Math.round(x[0] / BIN) * BIN; bins[k] = (bins[k] || 0) + x[1]; }
+            for (const x of g) { const k = Math.round(x[0] / BIN); bins[k] = (bins[k] || 0) + x[1]; }
             let m = 0, best = 0;
             for (const k in bins) {
-              const kv = Number(k);
+              const kv = Number(k) * BIN;
               if (bins[k] > best || (bins[k] === best && Math.abs(kv) > Math.abs(m))) { best = bins[k]; m = kv; }
             }
             out.push([s, +(({lo: lo, hi: hi, m: m})["m"]).toFixed(2)]);
@@ -1050,7 +1050,7 @@ cards:
           in_chart: false
           in_header: true
         data_generator: |
-          const ID = "sensor.hvac_deviation_dethac_hall", BIN = 0.5;
+          const ID = "sensor.hvac_deviation_dethac_hall", BIN = 0.1;
           const now = new Date(), cur = new Date(now);
           cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
           const ws = new Date(cur); ws.setDate(ws.getDate() - 2 * 7);
@@ -1067,11 +1067,11 @@ cards:
             const f = Math.max(pts[i].t, s);
             const t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
             const v = pts[i].v;
-            if (t > f && Number.isFinite(v) && v !== 0) { const k = Math.round(v / BIN) * BIN; bins[k] = (bins[k] || 0) + (t - f); }
+            if (t > f && Number.isFinite(v) && v !== 0) { const k = Math.round(v / BIN); bins[k] = (bins[k] || 0) + (t - f); }
           }
           let m = 0, best = 0;
           for (const k in bins) {
-            const kv = Number(k);
+            const kv = Number(k) * BIN;
             if (bins[k] > best || (bins[k] === best && Math.abs(kv) > Math.abs(m))) { best = bins[k]; m = kv; }
           }
           return [[s, +m.toFixed(2)]];
@@ -1083,7 +1083,7 @@ cards:
           in_chart: false
           in_header: true
         data_generator: |
-          const ID = "sensor.hvac_deviation_dethac_hall", BIN = 0.5;
+          const ID = "sensor.hvac_deviation_dethac_hall", BIN = 0.1;
           const now = new Date(), cur = new Date(now);
           cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
           const ws = new Date(cur); ws.setDate(ws.getDate() - 1 * 7);
@@ -1100,11 +1100,11 @@ cards:
             const f = Math.max(pts[i].t, s);
             const t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
             const v = pts[i].v;
-            if (t > f && Number.isFinite(v) && v !== 0) { const k = Math.round(v / BIN) * BIN; bins[k] = (bins[k] || 0) + (t - f); }
+            if (t > f && Number.isFinite(v) && v !== 0) { const k = Math.round(v / BIN); bins[k] = (bins[k] || 0) + (t - f); }
           }
           let m = 0, best = 0;
           for (const k in bins) {
-            const kv = Number(k);
+            const kv = Number(k) * BIN;
             if (bins[k] > best || (bins[k] === best && Math.abs(kv) > Math.abs(m))) { best = bins[k]; m = kv; }
           }
           return [[s, +m.toFixed(2)]];
@@ -1116,7 +1116,7 @@ cards:
           in_chart: false
           in_header: true
         data_generator: |
-          const ID = "sensor.hvac_deviation_dethac_hall", BIN = 0.5;
+          const ID = "sensor.hvac_deviation_dethac_hall", BIN = 0.1;
           const now = new Date(), cur = new Date(now);
           cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
           const ws = new Date(cur); ws.setDate(ws.getDate() - 0 * 7);
@@ -1133,11 +1133,11 @@ cards:
             const f = Math.max(pts[i].t, s);
             const t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
             const v = pts[i].v;
-            if (t > f && Number.isFinite(v) && v !== 0) { const k = Math.round(v / BIN) * BIN; bins[k] = (bins[k] || 0) + (t - f); }
+            if (t > f && Number.isFinite(v) && v !== 0) { const k = Math.round(v / BIN); bins[k] = (bins[k] || 0) + (t - f); }
           }
           let m = 0, best = 0;
           for (const k in bins) {
-            const kv = Number(k);
+            const kv = Number(k) * BIN;
             if (bins[k] > best || (bins[k] === best && Math.abs(kv) > Math.abs(m))) { best = bins[k]; m = kv; }
           }
           return [[s, +m.toFixed(2)]];
@@ -1230,12 +1230,12 @@ cards:
               const v = pts[i].v;
               if (t > f && Number.isFinite(v)) { lo = Math.min(lo, v); hi = Math.max(hi, v); if (v !== 0) g.push([v, t - f]); }
             }
-            const BIN = 0.5;
+            const BIN = 0.1;
             const bins = {};
-            for (const x of g) { const k = Math.round(x[0] / BIN) * BIN; bins[k] = (bins[k] || 0) + x[1]; }
+            for (const x of g) { const k = Math.round(x[0] / BIN); bins[k] = (bins[k] || 0) + x[1]; }
             let m = 0, best = 0;
             for (const k in bins) {
-              const kv = Number(k);
+              const kv = Number(k) * BIN;
               if (bins[k] > best || (bins[k] === best && Math.abs(kv) > Math.abs(m))) { best = bins[k]; m = kv; }
             }
             out.push([s, +(({lo: lo, hi: hi, m: m})["lo"]).toFixed(2)]);
@@ -1272,12 +1272,12 @@ cards:
               const v = pts[i].v;
               if (t > f && Number.isFinite(v)) { lo = Math.min(lo, v); hi = Math.max(hi, v); if (v !== 0) g.push([v, t - f]); }
             }
-            const BIN = 0.5;
+            const BIN = 0.1;
             const bins = {};
-            for (const x of g) { const k = Math.round(x[0] / BIN) * BIN; bins[k] = (bins[k] || 0) + x[1]; }
+            for (const x of g) { const k = Math.round(x[0] / BIN); bins[k] = (bins[k] || 0) + x[1]; }
             let m = 0, best = 0;
             for (const k in bins) {
-              const kv = Number(k);
+              const kv = Number(k) * BIN;
               if (bins[k] > best || (bins[k] === best && Math.abs(kv) > Math.abs(m))) { best = bins[k]; m = kv; }
             }
             out.push([s, +(({lo: lo, hi: hi, m: m})["hi"]).toFixed(2)]);
@@ -1315,12 +1315,12 @@ cards:
               const v = pts[i].v;
               if (t > f && Number.isFinite(v)) { lo = Math.min(lo, v); hi = Math.max(hi, v); if (v !== 0) g.push([v, t - f]); }
             }
-            const BIN = 0.5;
+            const BIN = 0.1;
             const bins = {};
-            for (const x of g) { const k = Math.round(x[0] / BIN) * BIN; bins[k] = (bins[k] || 0) + x[1]; }
+            for (const x of g) { const k = Math.round(x[0] / BIN); bins[k] = (bins[k] || 0) + x[1]; }
             let m = 0, best = 0;
             for (const k in bins) {
-              const kv = Number(k);
+              const kv = Number(k) * BIN;
               if (bins[k] > best || (bins[k] === best && Math.abs(kv) > Math.abs(m))) { best = bins[k]; m = kv; }
             }
             out.push([s, +(({lo: lo, hi: hi, m: m})["m"]).toFixed(2)]);
@@ -1334,7 +1334,7 @@ cards:
           in_chart: false
           in_header: true
         data_generator: |
-          const ID = "sensor.hvac_deviation_minepoint", BIN = 0.5;
+          const ID = "sensor.hvac_deviation_minepoint", BIN = 0.1;
           const now = new Date(), cur = new Date(now);
           cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
           const ws = new Date(cur); ws.setDate(ws.getDate() - 2 * 7);
@@ -1351,11 +1351,11 @@ cards:
             const f = Math.max(pts[i].t, s);
             const t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
             const v = pts[i].v;
-            if (t > f && Number.isFinite(v) && v !== 0) { const k = Math.round(v / BIN) * BIN; bins[k] = (bins[k] || 0) + (t - f); }
+            if (t > f && Number.isFinite(v) && v !== 0) { const k = Math.round(v / BIN); bins[k] = (bins[k] || 0) + (t - f); }
           }
           let m = 0, best = 0;
           for (const k in bins) {
-            const kv = Number(k);
+            const kv = Number(k) * BIN;
             if (bins[k] > best || (bins[k] === best && Math.abs(kv) > Math.abs(m))) { best = bins[k]; m = kv; }
           }
           return [[s, +m.toFixed(2)]];
@@ -1367,7 +1367,7 @@ cards:
           in_chart: false
           in_header: true
         data_generator: |
-          const ID = "sensor.hvac_deviation_minepoint", BIN = 0.5;
+          const ID = "sensor.hvac_deviation_minepoint", BIN = 0.1;
           const now = new Date(), cur = new Date(now);
           cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
           const ws = new Date(cur); ws.setDate(ws.getDate() - 1 * 7);
@@ -1384,11 +1384,11 @@ cards:
             const f = Math.max(pts[i].t, s);
             const t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
             const v = pts[i].v;
-            if (t > f && Number.isFinite(v) && v !== 0) { const k = Math.round(v / BIN) * BIN; bins[k] = (bins[k] || 0) + (t - f); }
+            if (t > f && Number.isFinite(v) && v !== 0) { const k = Math.round(v / BIN); bins[k] = (bins[k] || 0) + (t - f); }
           }
           let m = 0, best = 0;
           for (const k in bins) {
-            const kv = Number(k);
+            const kv = Number(k) * BIN;
             if (bins[k] > best || (bins[k] === best && Math.abs(kv) > Math.abs(m))) { best = bins[k]; m = kv; }
           }
           return [[s, +m.toFixed(2)]];
@@ -1400,7 +1400,7 @@ cards:
           in_chart: false
           in_header: true
         data_generator: |
-          const ID = "sensor.hvac_deviation_minepoint", BIN = 0.5;
+          const ID = "sensor.hvac_deviation_minepoint", BIN = 0.1;
           const now = new Date(), cur = new Date(now);
           cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
           const ws = new Date(cur); ws.setDate(ws.getDate() - 0 * 7);
@@ -1417,11 +1417,11 @@ cards:
             const f = Math.max(pts[i].t, s);
             const t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
             const v = pts[i].v;
-            if (t > f && Number.isFinite(v) && v !== 0) { const k = Math.round(v / BIN) * BIN; bins[k] = (bins[k] || 0) + (t - f); }
+            if (t > f && Number.isFinite(v) && v !== 0) { const k = Math.round(v / BIN); bins[k] = (bins[k] || 0) + (t - f); }
           }
           let m = 0, best = 0;
           for (const k in bins) {
-            const kv = Number(k);
+            const kv = Number(k) * BIN;
             if (bins[k] > best || (bins[k] === best && Math.abs(kv) > Math.abs(m))) { best = bins[k]; m = kv; }
           }
           return [[s, +m.toFixed(2)]];
@@ -1514,12 +1514,12 @@ cards:
               const v = pts[i].v;
               if (t > f && Number.isFinite(v)) { lo = Math.min(lo, v); hi = Math.max(hi, v); if (v !== 0) g.push([v, t - f]); }
             }
-            const BIN = 0.5;
+            const BIN = 0.1;
             const bins = {};
-            for (const x of g) { const k = Math.round(x[0] / BIN) * BIN; bins[k] = (bins[k] || 0) + x[1]; }
+            for (const x of g) { const k = Math.round(x[0] / BIN); bins[k] = (bins[k] || 0) + x[1]; }
             let m = 0, best = 0;
             for (const k in bins) {
-              const kv = Number(k);
+              const kv = Number(k) * BIN;
               if (bins[k] > best || (bins[k] === best && Math.abs(kv) > Math.abs(m))) { best = bins[k]; m = kv; }
             }
             out.push([s, +(({lo: lo, hi: hi, m: m})["lo"]).toFixed(2)]);
@@ -1556,12 +1556,12 @@ cards:
               const v = pts[i].v;
               if (t > f && Number.isFinite(v)) { lo = Math.min(lo, v); hi = Math.max(hi, v); if (v !== 0) g.push([v, t - f]); }
             }
-            const BIN = 0.5;
+            const BIN = 0.1;
             const bins = {};
-            for (const x of g) { const k = Math.round(x[0] / BIN) * BIN; bins[k] = (bins[k] || 0) + x[1]; }
+            for (const x of g) { const k = Math.round(x[0] / BIN); bins[k] = (bins[k] || 0) + x[1]; }
             let m = 0, best = 0;
             for (const k in bins) {
-              const kv = Number(k);
+              const kv = Number(k) * BIN;
               if (bins[k] > best || (bins[k] === best && Math.abs(kv) > Math.abs(m))) { best = bins[k]; m = kv; }
             }
             out.push([s, +(({lo: lo, hi: hi, m: m})["hi"]).toFixed(2)]);
@@ -1599,12 +1599,12 @@ cards:
               const v = pts[i].v;
               if (t > f && Number.isFinite(v)) { lo = Math.min(lo, v); hi = Math.max(hi, v); if (v !== 0) g.push([v, t - f]); }
             }
-            const BIN = 0.5;
+            const BIN = 0.1;
             const bins = {};
-            for (const x of g) { const k = Math.round(x[0] / BIN) * BIN; bins[k] = (bins[k] || 0) + x[1]; }
+            for (const x of g) { const k = Math.round(x[0] / BIN); bins[k] = (bins[k] || 0) + x[1]; }
             let m = 0, best = 0;
             for (const k in bins) {
-              const kv = Number(k);
+              const kv = Number(k) * BIN;
               if (bins[k] > best || (bins[k] === best && Math.abs(kv) > Math.abs(m))) { best = bins[k]; m = kv; }
             }
             out.push([s, +(({lo: lo, hi: hi, m: m})["m"]).toFixed(2)]);
@@ -1618,7 +1618,7 @@ cards:
           in_chart: false
           in_header: true
         data_generator: |
-          const ID = "sensor.hvac_deviation_new_offices", BIN = 0.5;
+          const ID = "sensor.hvac_deviation_new_offices", BIN = 0.1;
           const now = new Date(), cur = new Date(now);
           cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
           const ws = new Date(cur); ws.setDate(ws.getDate() - 2 * 7);
@@ -1635,11 +1635,11 @@ cards:
             const f = Math.max(pts[i].t, s);
             const t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
             const v = pts[i].v;
-            if (t > f && Number.isFinite(v) && v !== 0) { const k = Math.round(v / BIN) * BIN; bins[k] = (bins[k] || 0) + (t - f); }
+            if (t > f && Number.isFinite(v) && v !== 0) { const k = Math.round(v / BIN); bins[k] = (bins[k] || 0) + (t - f); }
           }
           let m = 0, best = 0;
           for (const k in bins) {
-            const kv = Number(k);
+            const kv = Number(k) * BIN;
             if (bins[k] > best || (bins[k] === best && Math.abs(kv) > Math.abs(m))) { best = bins[k]; m = kv; }
           }
           return [[s, +m.toFixed(2)]];
@@ -1651,7 +1651,7 @@ cards:
           in_chart: false
           in_header: true
         data_generator: |
-          const ID = "sensor.hvac_deviation_new_offices", BIN = 0.5;
+          const ID = "sensor.hvac_deviation_new_offices", BIN = 0.1;
           const now = new Date(), cur = new Date(now);
           cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
           const ws = new Date(cur); ws.setDate(ws.getDate() - 1 * 7);
@@ -1668,11 +1668,11 @@ cards:
             const f = Math.max(pts[i].t, s);
             const t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
             const v = pts[i].v;
-            if (t > f && Number.isFinite(v) && v !== 0) { const k = Math.round(v / BIN) * BIN; bins[k] = (bins[k] || 0) + (t - f); }
+            if (t > f && Number.isFinite(v) && v !== 0) { const k = Math.round(v / BIN); bins[k] = (bins[k] || 0) + (t - f); }
           }
           let m = 0, best = 0;
           for (const k in bins) {
-            const kv = Number(k);
+            const kv = Number(k) * BIN;
             if (bins[k] > best || (bins[k] === best && Math.abs(kv) > Math.abs(m))) { best = bins[k]; m = kv; }
           }
           return [[s, +m.toFixed(2)]];
@@ -1684,7 +1684,7 @@ cards:
           in_chart: false
           in_header: true
         data_generator: |
-          const ID = "sensor.hvac_deviation_new_offices", BIN = 0.5;
+          const ID = "sensor.hvac_deviation_new_offices", BIN = 0.1;
           const now = new Date(), cur = new Date(now);
           cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
           const ws = new Date(cur); ws.setDate(ws.getDate() - 0 * 7);
@@ -1701,11 +1701,11 @@ cards:
             const f = Math.max(pts[i].t, s);
             const t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
             const v = pts[i].v;
-            if (t > f && Number.isFinite(v) && v !== 0) { const k = Math.round(v / BIN) * BIN; bins[k] = (bins[k] || 0) + (t - f); }
+            if (t > f && Number.isFinite(v) && v !== 0) { const k = Math.round(v / BIN); bins[k] = (bins[k] || 0) + (t - f); }
           }
           let m = 0, best = 0;
           for (const k in bins) {
-            const kv = Number(k);
+            const kv = Number(k) * BIN;
             if (bins[k] > best || (bins[k] === best && Math.abs(kv) > Math.abs(m))) { best = bins[k]; m = kv; }
           }
           return [[s, +m.toFixed(2)]];
@@ -1798,12 +1798,12 @@ cards:
               const v = pts[i].v;
               if (t > f && Number.isFinite(v)) { lo = Math.min(lo, v); hi = Math.max(hi, v); if (v !== 0) g.push([v, t - f]); }
             }
-            const BIN = 0.5;
+            const BIN = 0.1;
             const bins = {};
-            for (const x of g) { const k = Math.round(x[0] / BIN) * BIN; bins[k] = (bins[k] || 0) + x[1]; }
+            for (const x of g) { const k = Math.round(x[0] / BIN); bins[k] = (bins[k] || 0) + x[1]; }
             let m = 0, best = 0;
             for (const k in bins) {
-              const kv = Number(k);
+              const kv = Number(k) * BIN;
               if (bins[k] > best || (bins[k] === best && Math.abs(kv) > Math.abs(m))) { best = bins[k]; m = kv; }
             }
             out.push([s, +(({lo: lo, hi: hi, m: m})["lo"]).toFixed(2)]);
@@ -1840,12 +1840,12 @@ cards:
               const v = pts[i].v;
               if (t > f && Number.isFinite(v)) { lo = Math.min(lo, v); hi = Math.max(hi, v); if (v !== 0) g.push([v, t - f]); }
             }
-            const BIN = 0.5;
+            const BIN = 0.1;
             const bins = {};
-            for (const x of g) { const k = Math.round(x[0] / BIN) * BIN; bins[k] = (bins[k] || 0) + x[1]; }
+            for (const x of g) { const k = Math.round(x[0] / BIN); bins[k] = (bins[k] || 0) + x[1]; }
             let m = 0, best = 0;
             for (const k in bins) {
-              const kv = Number(k);
+              const kv = Number(k) * BIN;
               if (bins[k] > best || (bins[k] === best && Math.abs(kv) > Math.abs(m))) { best = bins[k]; m = kv; }
             }
             out.push([s, +(({lo: lo, hi: hi, m: m})["hi"]).toFixed(2)]);
@@ -1883,12 +1883,12 @@ cards:
               const v = pts[i].v;
               if (t > f && Number.isFinite(v)) { lo = Math.min(lo, v); hi = Math.max(hi, v); if (v !== 0) g.push([v, t - f]); }
             }
-            const BIN = 0.5;
+            const BIN = 0.1;
             const bins = {};
-            for (const x of g) { const k = Math.round(x[0] / BIN) * BIN; bins[k] = (bins[k] || 0) + x[1]; }
+            for (const x of g) { const k = Math.round(x[0] / BIN); bins[k] = (bins[k] || 0) + x[1]; }
             let m = 0, best = 0;
             for (const k in bins) {
-              const kv = Number(k);
+              const kv = Number(k) * BIN;
               if (bins[k] > best || (bins[k] === best && Math.abs(kv) > Math.abs(m))) { best = bins[k]; m = kv; }
             }
             out.push([s, +(({lo: lo, hi: hi, m: m})["m"]).toFixed(2)]);
@@ -1902,7 +1902,7 @@ cards:
           in_chart: false
           in_header: true
         data_generator: |
-          const ID = "sensor.hvac_deviation_software_support", BIN = 0.5;
+          const ID = "sensor.hvac_deviation_software_support", BIN = 0.1;
           const now = new Date(), cur = new Date(now);
           cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
           const ws = new Date(cur); ws.setDate(ws.getDate() - 2 * 7);
@@ -1919,11 +1919,11 @@ cards:
             const f = Math.max(pts[i].t, s);
             const t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
             const v = pts[i].v;
-            if (t > f && Number.isFinite(v) && v !== 0) { const k = Math.round(v / BIN) * BIN; bins[k] = (bins[k] || 0) + (t - f); }
+            if (t > f && Number.isFinite(v) && v !== 0) { const k = Math.round(v / BIN); bins[k] = (bins[k] || 0) + (t - f); }
           }
           let m = 0, best = 0;
           for (const k in bins) {
-            const kv = Number(k);
+            const kv = Number(k) * BIN;
             if (bins[k] > best || (bins[k] === best && Math.abs(kv) > Math.abs(m))) { best = bins[k]; m = kv; }
           }
           return [[s, +m.toFixed(2)]];
@@ -1935,7 +1935,7 @@ cards:
           in_chart: false
           in_header: true
         data_generator: |
-          const ID = "sensor.hvac_deviation_software_support", BIN = 0.5;
+          const ID = "sensor.hvac_deviation_software_support", BIN = 0.1;
           const now = new Date(), cur = new Date(now);
           cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
           const ws = new Date(cur); ws.setDate(ws.getDate() - 1 * 7);
@@ -1952,11 +1952,11 @@ cards:
             const f = Math.max(pts[i].t, s);
             const t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
             const v = pts[i].v;
-            if (t > f && Number.isFinite(v) && v !== 0) { const k = Math.round(v / BIN) * BIN; bins[k] = (bins[k] || 0) + (t - f); }
+            if (t > f && Number.isFinite(v) && v !== 0) { const k = Math.round(v / BIN); bins[k] = (bins[k] || 0) + (t - f); }
           }
           let m = 0, best = 0;
           for (const k in bins) {
-            const kv = Number(k);
+            const kv = Number(k) * BIN;
             if (bins[k] > best || (bins[k] === best && Math.abs(kv) > Math.abs(m))) { best = bins[k]; m = kv; }
           }
           return [[s, +m.toFixed(2)]];
@@ -1968,7 +1968,7 @@ cards:
           in_chart: false
           in_header: true
         data_generator: |
-          const ID = "sensor.hvac_deviation_software_support", BIN = 0.5;
+          const ID = "sensor.hvac_deviation_software_support", BIN = 0.1;
           const now = new Date(), cur = new Date(now);
           cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
           const ws = new Date(cur); ws.setDate(ws.getDate() - 0 * 7);
@@ -1985,11 +1985,11 @@ cards:
             const f = Math.max(pts[i].t, s);
             const t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
             const v = pts[i].v;
-            if (t > f && Number.isFinite(v) && v !== 0) { const k = Math.round(v / BIN) * BIN; bins[k] = (bins[k] || 0) + (t - f); }
+            if (t > f && Number.isFinite(v) && v !== 0) { const k = Math.round(v / BIN); bins[k] = (bins[k] || 0) + (t - f); }
           }
           let m = 0, best = 0;
           for (const k in bins) {
-            const kv = Number(k);
+            const kv = Number(k) * BIN;
             if (bins[k] > best || (bins[k] === best && Math.abs(kv) > Math.abs(m))) { best = bins[k]; m = kv; }
           }
           return [[s, +m.toFixed(2)]];
