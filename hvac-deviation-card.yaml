@@ -1,6 +1,6 @@
 square: false
 type: grid
-title: Business-hours deviation — last 8 weeks
+title: Business-hours deviation — weekly mode (top), last 8 weeks
 columns: 2
 grid_options:
   columns: full
@@ -19,6 +19,12 @@ cards:
       - decimals: 1
         min: "~-5"
         max: "~5"
+    card_mod:
+      style: |
+        .state__value { font-size: 18px !important; }
+        .state__uom { font-size: 10px !important; }
+        .state__name { font-size: 10px !important; white-space: nowrap; }
+        #states { gap: 4px !important; }
     apex_config:
       chart:
         height: 280
@@ -26,7 +32,7 @@ cards:
         animations:
           enabled: false
       legend:
-        show: true
+        show: false
       plotOptions:
         bar:
           columnWidth: 55%
@@ -191,7 +197,7 @@ cards:
           }
           return out;
       - entity: sensor.hvac_deviation_sales
-        name: "Mode: week before last"
+        name: "Week before"
         color: "#90a4ae"
         float_precision: 1
         show:
@@ -224,7 +230,7 @@ cards:
           }
           return [[s, +m.toFixed(2)]];
       - entity: sensor.hvac_deviation_sales
-        name: "Mode: last week"
+        name: "Last week"
         color: "#78909c"
         float_precision: 1
         show:
@@ -257,7 +263,7 @@ cards:
           }
           return [[s, +m.toFixed(2)]];
       - entity: sensor.hvac_deviation_sales
-        name: "Mode: this week"
+        name: "This week"
         color: "#ffca28"
         float_precision: 1
         show:
@@ -303,6 +309,12 @@ cards:
       - decimals: 1
         min: "~-5"
         max: "~5"
+    card_mod:
+      style: |
+        .state__value { font-size: 18px !important; }
+        .state__uom { font-size: 10px !important; }
+        .state__name { font-size: 10px !important; white-space: nowrap; }
+        #states { gap: 4px !important; }
     apex_config:
       chart:
         height: 280
@@ -310,7 +322,7 @@ cards:
         animations:
           enabled: false
       legend:
-        show: true
+        show: false
       plotOptions:
         bar:
           columnWidth: 55%
@@ -475,7 +487,7 @@ cards:
           }
           return out;
       - entity: sensor.hvac_deviation_amy
-        name: "Mode: week before last"
+        name: "Week before"
         color: "#90a4ae"
         float_precision: 1
         show:
@@ -508,7 +520,7 @@ cards:
           }
           return [[s, +m.toFixed(2)]];
       - entity: sensor.hvac_deviation_amy
-        name: "Mode: last week"
+        name: "Last week"
         color: "#78909c"
         float_precision: 1
         show:
@@ -541,7 +553,7 @@ cards:
           }
           return [[s, +m.toFixed(2)]];
       - entity: sensor.hvac_deviation_amy
-        name: "Mode: this week"
+        name: "This week"
         color: "#ffca28"
         float_precision: 1
         show:
@@ -587,6 +599,12 @@ cards:
       - decimals: 1
         min: "~-5"
         max: "~5"
+    card_mod:
+      style: |
+        .state__value { font-size: 18px !important; }
+        .state__uom { font-size: 10px !important; }
+        .state__name { font-size: 10px !important; white-space: nowrap; }
+        #states { gap: 4px !important; }
     apex_config:
       chart:
         height: 280
@@ -594,7 +612,7 @@ cards:
         animations:
           enabled: false
       legend:
-        show: true
+        show: false
       plotOptions:
         bar:
           columnWidth: 55%
@@ -759,7 +777,7 @@ cards:
           }
           return out;
       - entity: sensor.hvac_deviation_bruce_break_room
-        name: "Mode: week before last"
+        name: "Week before"
         color: "#90a4ae"
         float_precision: 1
         show:
@@ -792,7 +810,7 @@ cards:
           }
           return [[s, +m.toFixed(2)]];
       - entity: sensor.hvac_deviation_bruce_break_room
-        name: "Mode: last week"
+        name: "Last week"
         color: "#78909c"
         float_precision: 1
         show:
@@ -825,7 +843,7 @@ cards:
           }
           return [[s, +m.toFixed(2)]];
       - entity: sensor.hvac_deviation_bruce_break_room
-        name: "Mode: this week"
+        name: "This week"
         color: "#ffca28"
         float_precision: 1
         show:
@@ -871,6 +889,12 @@ cards:
       - decimals: 1
         min: "~-5"
         max: "~5"
+    card_mod:
+      style: |
+        .state__value { font-size: 18px !important; }
+        .state__uom { font-size: 10px !important; }
+        .state__name { font-size: 10px !important; white-space: nowrap; }
+        #states { gap: 4px !important; }
     apex_config:
       chart:
         height: 280
@@ -878,7 +902,7 @@ cards:
         animations:
           enabled: false
       legend:
-        show: true
+        show: false
       plotOptions:
         bar:
           columnWidth: 55%
@@ -1043,7 +1067,7 @@ cards:
           }
           return out;
       - entity: sensor.hvac_deviation_minepoint
-        name: "Mode: week before last"
+        name: "Week before"
         color: "#90a4ae"
         float_precision: 1
         show:
@@ -1076,7 +1100,7 @@ cards:
           }
           return [[s, +m.toFixed(2)]];
       - entity: sensor.hvac_deviation_minepoint
-        name: "Mode: last week"
+        name: "Last week"
         color: "#78909c"
         float_precision: 1
         show:
@@ -1109,7 +1133,7 @@ cards:
           }
           return [[s, +m.toFixed(2)]];
       - entity: sensor.hvac_deviation_minepoint
-        name: "Mode: this week"
+        name: "This week"
         color: "#ffca28"
         float_precision: 1
         show:
@@ -1155,6 +1179,12 @@ cards:
       - decimals: 1
         min: "~-5"
         max: "~5"
+    card_mod:
+      style: |
+        .state__value { font-size: 18px !important; }
+        .state__uom { font-size: 10px !important; }
+        .state__name { font-size: 10px !important; white-space: nowrap; }
+        #states { gap: 4px !important; }
     apex_config:
       chart:
         height: 280
@@ -1162,7 +1192,7 @@ cards:
         animations:
           enabled: false
       legend:
-        show: true
+        show: false
       plotOptions:
         bar:
           columnWidth: 55%
@@ -1327,7 +1357,7 @@ cards:
           }
           return out;
       - entity: sensor.hvac_deviation_new_offices
-        name: "Mode: week before last"
+        name: "Week before"
         color: "#90a4ae"
         float_precision: 1
         show:
@@ -1360,7 +1390,7 @@ cards:
           }
           return [[s, +m.toFixed(2)]];
       - entity: sensor.hvac_deviation_new_offices
-        name: "Mode: last week"
+        name: "Last week"
         color: "#78909c"
         float_precision: 1
         show:
@@ -1393,7 +1423,7 @@ cards:
           }
           return [[s, +m.toFixed(2)]];
       - entity: sensor.hvac_deviation_new_offices
-        name: "Mode: this week"
+        name: "This week"
         color: "#ffca28"
         float_precision: 1
         show:
@@ -1439,6 +1469,12 @@ cards:
       - decimals: 1
         min: "~-5"
         max: "~5"
+    card_mod:
+      style: |
+        .state__value { font-size: 18px !important; }
+        .state__uom { font-size: 10px !important; }
+        .state__name { font-size: 10px !important; white-space: nowrap; }
+        #states { gap: 4px !important; }
     apex_config:
       chart:
         height: 280
@@ -1446,7 +1482,7 @@ cards:
         animations:
           enabled: false
       legend:
-        show: true
+        show: false
       plotOptions:
         bar:
           columnWidth: 55%
@@ -1611,7 +1647,7 @@ cards:
           }
           return out;
       - entity: sensor.hvac_deviation_software_support
-        name: "Mode: week before last"
+        name: "Week before"
         color: "#90a4ae"
         float_precision: 1
         show:
@@ -1644,7 +1680,7 @@ cards:
           }
           return [[s, +m.toFixed(2)]];
       - entity: sensor.hvac_deviation_software_support
-        name: "Mode: last week"
+        name: "Last week"
         color: "#78909c"
         float_precision: 1
         show:
@@ -1677,7 +1713,7 @@ cards:
           }
           return [[s, +m.toFixed(2)]];
       - entity: sensor.hvac_deviation_software_support
-        name: "Mode: this week"
+        name: "This week"
         color: "#ffca28"
         float_precision: 1
         show:
