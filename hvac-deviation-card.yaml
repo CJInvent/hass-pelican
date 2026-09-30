@@ -69,37 +69,38 @@ cards:
         stroke_width: 0
         float_precision: 1
         data_generator: |
-          const ID = "sensor.hvac_deviation_sales", K = "hvacDev:" + ID, C = (window.__hvacDevCache ??= {});
-          if (!C[K] || Date.now() - C[K].t > 300000) {
-            C[K] = { t: Date.now(), p: (async () => {
-              const now = new Date(), cur = new Date(now);
-              cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
-              const first = new Date(cur); first.setDate(first.getDate() - 49);
-              const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(first.toISOString()) +
-                "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
-                "&significant_changes_only=0");
-              const pts = (h?.[0] || [])
-                .map(r => ({ t: new Date(r.last_updated).getTime(), v: parseFloat(r.state) }))
-                .filter(r => Number.isFinite(r.t)).sort((a, b) => a.t - b.t);
-              const out = [];
-              for (let w = 7; w >= 0; w--) {
-                const ws = new Date(cur); ws.setDate(ws.getDate() - w * 7);
-                const we = new Date(ws); we.setDate(we.getDate() + 7);
-                const s = ws.getTime(), e = Math.min(we.getTime(), now.getTime());
-                let lo = 0, hi = 0; const g = [];
-                pts.forEach((p, i) => {
-                  const f = Math.max(p.t, s), t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
-                  if (t > f && Number.isFinite(p.v)) { lo = Math.min(lo, p.v); hi = Math.max(hi, p.v); if (p.v !== 0) g.push([p.v, t - f]); }
-                });
-                let m = 0;
-                if (g.length) { g.sort((a, b) => a[0] - b[0]); const half = g.reduce((n, x) => n + x[1], 0) / 2; let a = 0; for (const x of g) { a += x[1]; if (a >= half) { m = x[0]; break; } } }
-                out.push({ s, lo: +lo.toFixed(2), hi: +hi.toFixed(2), m: +m.toFixed(2) });
-              }
-              return out;
-            })() };
-            C[K].p.catch(err => { console.error("hvacDev", ID, err); delete C[K]; });
+          const ID = "sensor.hvac_deviation_sales";
+          const now = new Date(), cur = new Date(now);
+          cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
+          const first = new Date(cur); first.setDate(first.getDate() - 49);
+          const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(first.toISOString()) +
+            "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
+            "&significant_changes_only=0");
+          const pts = (h?.[0] || [])
+            .map(r => ({ t: new Date(r.last_updated).getTime(), v: parseFloat(r.state) }))
+            .filter(r => Number.isFinite(r.t)).sort((a, b) => a.t - b.t);
+          const out = [];
+          for (let w = 7; w >= 0; w--) {
+            const ws = new Date(cur); ws.setDate(ws.getDate() - w * 7);
+            const we = new Date(ws); we.setDate(we.getDate() + 7);
+            const s = ws.getTime(), e = Math.min(we.getTime(), now.getTime());
+            let lo = 0, hi = 0; const g = [];
+            for (let i = 0; i < pts.length; i++) {
+              const f = Math.max(pts[i].t, s);
+              const t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
+              const v = pts[i].v;
+              if (t > f && Number.isFinite(v)) { lo = Math.min(lo, v); hi = Math.max(hi, v); if (v !== 0) g.push([v, t - f]); }
+            }
+            let m = 0;
+            if (g.length) {
+              g.sort((a, b) => a[0] - b[0]);
+              const half = g.reduce((n, x) => n + x[1], 0) / 2;
+              let acc = 0;
+              for (const x of g) { acc += x[1]; if (acc >= half) { m = x[0]; break; } }
+            }
+            out.push([s, +(({lo: lo, hi: hi, m: m})["lo"]).toFixed(2)]);
           }
-          return (await C[K].p).map(x => [x.s, x.lo]);
+          return out;
       - entity: sensor.hvac_deviation_sales
         name: Max above
         color: "#e53935"
@@ -107,37 +108,38 @@ cards:
         stroke_width: 0
         float_precision: 1
         data_generator: |
-          const ID = "sensor.hvac_deviation_sales", K = "hvacDev:" + ID, C = (window.__hvacDevCache ??= {});
-          if (!C[K] || Date.now() - C[K].t > 300000) {
-            C[K] = { t: Date.now(), p: (async () => {
-              const now = new Date(), cur = new Date(now);
-              cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
-              const first = new Date(cur); first.setDate(first.getDate() - 49);
-              const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(first.toISOString()) +
-                "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
-                "&significant_changes_only=0");
-              const pts = (h?.[0] || [])
-                .map(r => ({ t: new Date(r.last_updated).getTime(), v: parseFloat(r.state) }))
-                .filter(r => Number.isFinite(r.t)).sort((a, b) => a.t - b.t);
-              const out = [];
-              for (let w = 7; w >= 0; w--) {
-                const ws = new Date(cur); ws.setDate(ws.getDate() - w * 7);
-                const we = new Date(ws); we.setDate(we.getDate() + 7);
-                const s = ws.getTime(), e = Math.min(we.getTime(), now.getTime());
-                let lo = 0, hi = 0; const g = [];
-                pts.forEach((p, i) => {
-                  const f = Math.max(p.t, s), t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
-                  if (t > f && Number.isFinite(p.v)) { lo = Math.min(lo, p.v); hi = Math.max(hi, p.v); if (p.v !== 0) g.push([p.v, t - f]); }
-                });
-                let m = 0;
-                if (g.length) { g.sort((a, b) => a[0] - b[0]); const half = g.reduce((n, x) => n + x[1], 0) / 2; let a = 0; for (const x of g) { a += x[1]; if (a >= half) { m = x[0]; break; } } }
-                out.push({ s, lo: +lo.toFixed(2), hi: +hi.toFixed(2), m: +m.toFixed(2) });
-              }
-              return out;
-            })() };
-            C[K].p.catch(err => { console.error("hvacDev", ID, err); delete C[K]; });
+          const ID = "sensor.hvac_deviation_sales";
+          const now = new Date(), cur = new Date(now);
+          cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
+          const first = new Date(cur); first.setDate(first.getDate() - 49);
+          const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(first.toISOString()) +
+            "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
+            "&significant_changes_only=0");
+          const pts = (h?.[0] || [])
+            .map(r => ({ t: new Date(r.last_updated).getTime(), v: parseFloat(r.state) }))
+            .filter(r => Number.isFinite(r.t)).sort((a, b) => a.t - b.t);
+          const out = [];
+          for (let w = 7; w >= 0; w--) {
+            const ws = new Date(cur); ws.setDate(ws.getDate() - w * 7);
+            const we = new Date(ws); we.setDate(we.getDate() + 7);
+            const s = ws.getTime(), e = Math.min(we.getTime(), now.getTime());
+            let lo = 0, hi = 0; const g = [];
+            for (let i = 0; i < pts.length; i++) {
+              const f = Math.max(pts[i].t, s);
+              const t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
+              const v = pts[i].v;
+              if (t > f && Number.isFinite(v)) { lo = Math.min(lo, v); hi = Math.max(hi, v); if (v !== 0) g.push([v, t - f]); }
+            }
+            let m = 0;
+            if (g.length) {
+              g.sort((a, b) => a[0] - b[0]);
+              const half = g.reduce((n, x) => n + x[1], 0) / 2;
+              let acc = 0;
+              for (const x of g) { acc += x[1]; if (acc >= half) { m = x[0]; break; } }
+            }
+            out.push([s, +(({lo: lo, hi: hi, m: m})["hi"]).toFixed(2)]);
           }
-          return (await C[K].p).map(x => [x.s, x.hi]);
+          return out;
       - entity: sensor.hvac_deviation_sales
         name: Median
         color: "#ffca28"
@@ -146,37 +148,38 @@ cards:
         curve: straight
         float_precision: 1
         data_generator: |
-          const ID = "sensor.hvac_deviation_sales", K = "hvacDev:" + ID, C = (window.__hvacDevCache ??= {});
-          if (!C[K] || Date.now() - C[K].t > 300000) {
-            C[K] = { t: Date.now(), p: (async () => {
-              const now = new Date(), cur = new Date(now);
-              cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
-              const first = new Date(cur); first.setDate(first.getDate() - 49);
-              const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(first.toISOString()) +
-                "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
-                "&significant_changes_only=0");
-              const pts = (h?.[0] || [])
-                .map(r => ({ t: new Date(r.last_updated).getTime(), v: parseFloat(r.state) }))
-                .filter(r => Number.isFinite(r.t)).sort((a, b) => a.t - b.t);
-              const out = [];
-              for (let w = 7; w >= 0; w--) {
-                const ws = new Date(cur); ws.setDate(ws.getDate() - w * 7);
-                const we = new Date(ws); we.setDate(we.getDate() + 7);
-                const s = ws.getTime(), e = Math.min(we.getTime(), now.getTime());
-                let lo = 0, hi = 0; const g = [];
-                pts.forEach((p, i) => {
-                  const f = Math.max(p.t, s), t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
-                  if (t > f && Number.isFinite(p.v)) { lo = Math.min(lo, p.v); hi = Math.max(hi, p.v); if (p.v !== 0) g.push([p.v, t - f]); }
-                });
-                let m = 0;
-                if (g.length) { g.sort((a, b) => a[0] - b[0]); const half = g.reduce((n, x) => n + x[1], 0) / 2; let a = 0; for (const x of g) { a += x[1]; if (a >= half) { m = x[0]; break; } } }
-                out.push({ s, lo: +lo.toFixed(2), hi: +hi.toFixed(2), m: +m.toFixed(2) });
-              }
-              return out;
-            })() };
-            C[K].p.catch(err => { console.error("hvacDev", ID, err); delete C[K]; });
+          const ID = "sensor.hvac_deviation_sales";
+          const now = new Date(), cur = new Date(now);
+          cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
+          const first = new Date(cur); first.setDate(first.getDate() - 49);
+          const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(first.toISOString()) +
+            "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
+            "&significant_changes_only=0");
+          const pts = (h?.[0] || [])
+            .map(r => ({ t: new Date(r.last_updated).getTime(), v: parseFloat(r.state) }))
+            .filter(r => Number.isFinite(r.t)).sort((a, b) => a.t - b.t);
+          const out = [];
+          for (let w = 7; w >= 0; w--) {
+            const ws = new Date(cur); ws.setDate(ws.getDate() - w * 7);
+            const we = new Date(ws); we.setDate(we.getDate() + 7);
+            const s = ws.getTime(), e = Math.min(we.getTime(), now.getTime());
+            let lo = 0, hi = 0; const g = [];
+            for (let i = 0; i < pts.length; i++) {
+              const f = Math.max(pts[i].t, s);
+              const t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
+              const v = pts[i].v;
+              if (t > f && Number.isFinite(v)) { lo = Math.min(lo, v); hi = Math.max(hi, v); if (v !== 0) g.push([v, t - f]); }
+            }
+            let m = 0;
+            if (g.length) {
+              g.sort((a, b) => a[0] - b[0]);
+              const half = g.reduce((n, x) => n + x[1], 0) / 2;
+              let acc = 0;
+              for (const x of g) { acc += x[1]; if (acc >= half) { m = x[0]; break; } }
+            }
+            out.push([s, +(({lo: lo, hi: hi, m: m})["m"]).toFixed(2)]);
           }
-          return (await C[K].p).map(x => [x.s, x.m]);
+          return out;
   - type: custom:apexcharts-card
     header:
       show: true
@@ -241,37 +244,38 @@ cards:
         stroke_width: 0
         float_precision: 1
         data_generator: |
-          const ID = "sensor.hvac_deviation_amy", K = "hvacDev:" + ID, C = (window.__hvacDevCache ??= {});
-          if (!C[K] || Date.now() - C[K].t > 300000) {
-            C[K] = { t: Date.now(), p: (async () => {
-              const now = new Date(), cur = new Date(now);
-              cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
-              const first = new Date(cur); first.setDate(first.getDate() - 49);
-              const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(first.toISOString()) +
-                "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
-                "&significant_changes_only=0");
-              const pts = (h?.[0] || [])
-                .map(r => ({ t: new Date(r.last_updated).getTime(), v: parseFloat(r.state) }))
-                .filter(r => Number.isFinite(r.t)).sort((a, b) => a.t - b.t);
-              const out = [];
-              for (let w = 7; w >= 0; w--) {
-                const ws = new Date(cur); ws.setDate(ws.getDate() - w * 7);
-                const we = new Date(ws); we.setDate(we.getDate() + 7);
-                const s = ws.getTime(), e = Math.min(we.getTime(), now.getTime());
-                let lo = 0, hi = 0; const g = [];
-                pts.forEach((p, i) => {
-                  const f = Math.max(p.t, s), t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
-                  if (t > f && Number.isFinite(p.v)) { lo = Math.min(lo, p.v); hi = Math.max(hi, p.v); if (p.v !== 0) g.push([p.v, t - f]); }
-                });
-                let m = 0;
-                if (g.length) { g.sort((a, b) => a[0] - b[0]); const half = g.reduce((n, x) => n + x[1], 0) / 2; let a = 0; for (const x of g) { a += x[1]; if (a >= half) { m = x[0]; break; } } }
-                out.push({ s, lo: +lo.toFixed(2), hi: +hi.toFixed(2), m: +m.toFixed(2) });
-              }
-              return out;
-            })() };
-            C[K].p.catch(err => { console.error("hvacDev", ID, err); delete C[K]; });
+          const ID = "sensor.hvac_deviation_amy";
+          const now = new Date(), cur = new Date(now);
+          cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
+          const first = new Date(cur); first.setDate(first.getDate() - 49);
+          const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(first.toISOString()) +
+            "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
+            "&significant_changes_only=0");
+          const pts = (h?.[0] || [])
+            .map(r => ({ t: new Date(r.last_updated).getTime(), v: parseFloat(r.state) }))
+            .filter(r => Number.isFinite(r.t)).sort((a, b) => a.t - b.t);
+          const out = [];
+          for (let w = 7; w >= 0; w--) {
+            const ws = new Date(cur); ws.setDate(ws.getDate() - w * 7);
+            const we = new Date(ws); we.setDate(we.getDate() + 7);
+            const s = ws.getTime(), e = Math.min(we.getTime(), now.getTime());
+            let lo = 0, hi = 0; const g = [];
+            for (let i = 0; i < pts.length; i++) {
+              const f = Math.max(pts[i].t, s);
+              const t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
+              const v = pts[i].v;
+              if (t > f && Number.isFinite(v)) { lo = Math.min(lo, v); hi = Math.max(hi, v); if (v !== 0) g.push([v, t - f]); }
+            }
+            let m = 0;
+            if (g.length) {
+              g.sort((a, b) => a[0] - b[0]);
+              const half = g.reduce((n, x) => n + x[1], 0) / 2;
+              let acc = 0;
+              for (const x of g) { acc += x[1]; if (acc >= half) { m = x[0]; break; } }
+            }
+            out.push([s, +(({lo: lo, hi: hi, m: m})["lo"]).toFixed(2)]);
           }
-          return (await C[K].p).map(x => [x.s, x.lo]);
+          return out;
       - entity: sensor.hvac_deviation_amy
         name: Max above
         color: "#e53935"
@@ -279,37 +283,38 @@ cards:
         stroke_width: 0
         float_precision: 1
         data_generator: |
-          const ID = "sensor.hvac_deviation_amy", K = "hvacDev:" + ID, C = (window.__hvacDevCache ??= {});
-          if (!C[K] || Date.now() - C[K].t > 300000) {
-            C[K] = { t: Date.now(), p: (async () => {
-              const now = new Date(), cur = new Date(now);
-              cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
-              const first = new Date(cur); first.setDate(first.getDate() - 49);
-              const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(first.toISOString()) +
-                "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
-                "&significant_changes_only=0");
-              const pts = (h?.[0] || [])
-                .map(r => ({ t: new Date(r.last_updated).getTime(), v: parseFloat(r.state) }))
-                .filter(r => Number.isFinite(r.t)).sort((a, b) => a.t - b.t);
-              const out = [];
-              for (let w = 7; w >= 0; w--) {
-                const ws = new Date(cur); ws.setDate(ws.getDate() - w * 7);
-                const we = new Date(ws); we.setDate(we.getDate() + 7);
-                const s = ws.getTime(), e = Math.min(we.getTime(), now.getTime());
-                let lo = 0, hi = 0; const g = [];
-                pts.forEach((p, i) => {
-                  const f = Math.max(p.t, s), t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
-                  if (t > f && Number.isFinite(p.v)) { lo = Math.min(lo, p.v); hi = Math.max(hi, p.v); if (p.v !== 0) g.push([p.v, t - f]); }
-                });
-                let m = 0;
-                if (g.length) { g.sort((a, b) => a[0] - b[0]); const half = g.reduce((n, x) => n + x[1], 0) / 2; let a = 0; for (const x of g) { a += x[1]; if (a >= half) { m = x[0]; break; } } }
-                out.push({ s, lo: +lo.toFixed(2), hi: +hi.toFixed(2), m: +m.toFixed(2) });
-              }
-              return out;
-            })() };
-            C[K].p.catch(err => { console.error("hvacDev", ID, err); delete C[K]; });
+          const ID = "sensor.hvac_deviation_amy";
+          const now = new Date(), cur = new Date(now);
+          cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
+          const first = new Date(cur); first.setDate(first.getDate() - 49);
+          const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(first.toISOString()) +
+            "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
+            "&significant_changes_only=0");
+          const pts = (h?.[0] || [])
+            .map(r => ({ t: new Date(r.last_updated).getTime(), v: parseFloat(r.state) }))
+            .filter(r => Number.isFinite(r.t)).sort((a, b) => a.t - b.t);
+          const out = [];
+          for (let w = 7; w >= 0; w--) {
+            const ws = new Date(cur); ws.setDate(ws.getDate() - w * 7);
+            const we = new Date(ws); we.setDate(we.getDate() + 7);
+            const s = ws.getTime(), e = Math.min(we.getTime(), now.getTime());
+            let lo = 0, hi = 0; const g = [];
+            for (let i = 0; i < pts.length; i++) {
+              const f = Math.max(pts[i].t, s);
+              const t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
+              const v = pts[i].v;
+              if (t > f && Number.isFinite(v)) { lo = Math.min(lo, v); hi = Math.max(hi, v); if (v !== 0) g.push([v, t - f]); }
+            }
+            let m = 0;
+            if (g.length) {
+              g.sort((a, b) => a[0] - b[0]);
+              const half = g.reduce((n, x) => n + x[1], 0) / 2;
+              let acc = 0;
+              for (const x of g) { acc += x[1]; if (acc >= half) { m = x[0]; break; } }
+            }
+            out.push([s, +(({lo: lo, hi: hi, m: m})["hi"]).toFixed(2)]);
           }
-          return (await C[K].p).map(x => [x.s, x.hi]);
+          return out;
       - entity: sensor.hvac_deviation_amy
         name: Median
         color: "#ffca28"
@@ -318,37 +323,38 @@ cards:
         curve: straight
         float_precision: 1
         data_generator: |
-          const ID = "sensor.hvac_deviation_amy", K = "hvacDev:" + ID, C = (window.__hvacDevCache ??= {});
-          if (!C[K] || Date.now() - C[K].t > 300000) {
-            C[K] = { t: Date.now(), p: (async () => {
-              const now = new Date(), cur = new Date(now);
-              cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
-              const first = new Date(cur); first.setDate(first.getDate() - 49);
-              const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(first.toISOString()) +
-                "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
-                "&significant_changes_only=0");
-              const pts = (h?.[0] || [])
-                .map(r => ({ t: new Date(r.last_updated).getTime(), v: parseFloat(r.state) }))
-                .filter(r => Number.isFinite(r.t)).sort((a, b) => a.t - b.t);
-              const out = [];
-              for (let w = 7; w >= 0; w--) {
-                const ws = new Date(cur); ws.setDate(ws.getDate() - w * 7);
-                const we = new Date(ws); we.setDate(we.getDate() + 7);
-                const s = ws.getTime(), e = Math.min(we.getTime(), now.getTime());
-                let lo = 0, hi = 0; const g = [];
-                pts.forEach((p, i) => {
-                  const f = Math.max(p.t, s), t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
-                  if (t > f && Number.isFinite(p.v)) { lo = Math.min(lo, p.v); hi = Math.max(hi, p.v); if (p.v !== 0) g.push([p.v, t - f]); }
-                });
-                let m = 0;
-                if (g.length) { g.sort((a, b) => a[0] - b[0]); const half = g.reduce((n, x) => n + x[1], 0) / 2; let a = 0; for (const x of g) { a += x[1]; if (a >= half) { m = x[0]; break; } } }
-                out.push({ s, lo: +lo.toFixed(2), hi: +hi.toFixed(2), m: +m.toFixed(2) });
-              }
-              return out;
-            })() };
-            C[K].p.catch(err => { console.error("hvacDev", ID, err); delete C[K]; });
+          const ID = "sensor.hvac_deviation_amy";
+          const now = new Date(), cur = new Date(now);
+          cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
+          const first = new Date(cur); first.setDate(first.getDate() - 49);
+          const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(first.toISOString()) +
+            "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
+            "&significant_changes_only=0");
+          const pts = (h?.[0] || [])
+            .map(r => ({ t: new Date(r.last_updated).getTime(), v: parseFloat(r.state) }))
+            .filter(r => Number.isFinite(r.t)).sort((a, b) => a.t - b.t);
+          const out = [];
+          for (let w = 7; w >= 0; w--) {
+            const ws = new Date(cur); ws.setDate(ws.getDate() - w * 7);
+            const we = new Date(ws); we.setDate(we.getDate() + 7);
+            const s = ws.getTime(), e = Math.min(we.getTime(), now.getTime());
+            let lo = 0, hi = 0; const g = [];
+            for (let i = 0; i < pts.length; i++) {
+              const f = Math.max(pts[i].t, s);
+              const t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
+              const v = pts[i].v;
+              if (t > f && Number.isFinite(v)) { lo = Math.min(lo, v); hi = Math.max(hi, v); if (v !== 0) g.push([v, t - f]); }
+            }
+            let m = 0;
+            if (g.length) {
+              g.sort((a, b) => a[0] - b[0]);
+              const half = g.reduce((n, x) => n + x[1], 0) / 2;
+              let acc = 0;
+              for (const x of g) { acc += x[1]; if (acc >= half) { m = x[0]; break; } }
+            }
+            out.push([s, +(({lo: lo, hi: hi, m: m})["m"]).toFixed(2)]);
           }
-          return (await C[K].p).map(x => [x.s, x.m]);
+          return out;
   - type: custom:apexcharts-card
     header:
       show: true
@@ -413,37 +419,38 @@ cards:
         stroke_width: 0
         float_precision: 1
         data_generator: |
-          const ID = "sensor.hvac_deviation_bruce_break_room", K = "hvacDev:" + ID, C = (window.__hvacDevCache ??= {});
-          if (!C[K] || Date.now() - C[K].t > 300000) {
-            C[K] = { t: Date.now(), p: (async () => {
-              const now = new Date(), cur = new Date(now);
-              cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
-              const first = new Date(cur); first.setDate(first.getDate() - 49);
-              const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(first.toISOString()) +
-                "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
-                "&significant_changes_only=0");
-              const pts = (h?.[0] || [])
-                .map(r => ({ t: new Date(r.last_updated).getTime(), v: parseFloat(r.state) }))
-                .filter(r => Number.isFinite(r.t)).sort((a, b) => a.t - b.t);
-              const out = [];
-              for (let w = 7; w >= 0; w--) {
-                const ws = new Date(cur); ws.setDate(ws.getDate() - w * 7);
-                const we = new Date(ws); we.setDate(we.getDate() + 7);
-                const s = ws.getTime(), e = Math.min(we.getTime(), now.getTime());
-                let lo = 0, hi = 0; const g = [];
-                pts.forEach((p, i) => {
-                  const f = Math.max(p.t, s), t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
-                  if (t > f && Number.isFinite(p.v)) { lo = Math.min(lo, p.v); hi = Math.max(hi, p.v); if (p.v !== 0) g.push([p.v, t - f]); }
-                });
-                let m = 0;
-                if (g.length) { g.sort((a, b) => a[0] - b[0]); const half = g.reduce((n, x) => n + x[1], 0) / 2; let a = 0; for (const x of g) { a += x[1]; if (a >= half) { m = x[0]; break; } } }
-                out.push({ s, lo: +lo.toFixed(2), hi: +hi.toFixed(2), m: +m.toFixed(2) });
-              }
-              return out;
-            })() };
-            C[K].p.catch(err => { console.error("hvacDev", ID, err); delete C[K]; });
+          const ID = "sensor.hvac_deviation_bruce_break_room";
+          const now = new Date(), cur = new Date(now);
+          cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
+          const first = new Date(cur); first.setDate(first.getDate() - 49);
+          const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(first.toISOString()) +
+            "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
+            "&significant_changes_only=0");
+          const pts = (h?.[0] || [])
+            .map(r => ({ t: new Date(r.last_updated).getTime(), v: parseFloat(r.state) }))
+            .filter(r => Number.isFinite(r.t)).sort((a, b) => a.t - b.t);
+          const out = [];
+          for (let w = 7; w >= 0; w--) {
+            const ws = new Date(cur); ws.setDate(ws.getDate() - w * 7);
+            const we = new Date(ws); we.setDate(we.getDate() + 7);
+            const s = ws.getTime(), e = Math.min(we.getTime(), now.getTime());
+            let lo = 0, hi = 0; const g = [];
+            for (let i = 0; i < pts.length; i++) {
+              const f = Math.max(pts[i].t, s);
+              const t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
+              const v = pts[i].v;
+              if (t > f && Number.isFinite(v)) { lo = Math.min(lo, v); hi = Math.max(hi, v); if (v !== 0) g.push([v, t - f]); }
+            }
+            let m = 0;
+            if (g.length) {
+              g.sort((a, b) => a[0] - b[0]);
+              const half = g.reduce((n, x) => n + x[1], 0) / 2;
+              let acc = 0;
+              for (const x of g) { acc += x[1]; if (acc >= half) { m = x[0]; break; } }
+            }
+            out.push([s, +(({lo: lo, hi: hi, m: m})["lo"]).toFixed(2)]);
           }
-          return (await C[K].p).map(x => [x.s, x.lo]);
+          return out;
       - entity: sensor.hvac_deviation_bruce_break_room
         name: Max above
         color: "#e53935"
@@ -451,37 +458,38 @@ cards:
         stroke_width: 0
         float_precision: 1
         data_generator: |
-          const ID = "sensor.hvac_deviation_bruce_break_room", K = "hvacDev:" + ID, C = (window.__hvacDevCache ??= {});
-          if (!C[K] || Date.now() - C[K].t > 300000) {
-            C[K] = { t: Date.now(), p: (async () => {
-              const now = new Date(), cur = new Date(now);
-              cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
-              const first = new Date(cur); first.setDate(first.getDate() - 49);
-              const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(first.toISOString()) +
-                "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
-                "&significant_changes_only=0");
-              const pts = (h?.[0] || [])
-                .map(r => ({ t: new Date(r.last_updated).getTime(), v: parseFloat(r.state) }))
-                .filter(r => Number.isFinite(r.t)).sort((a, b) => a.t - b.t);
-              const out = [];
-              for (let w = 7; w >= 0; w--) {
-                const ws = new Date(cur); ws.setDate(ws.getDate() - w * 7);
-                const we = new Date(ws); we.setDate(we.getDate() + 7);
-                const s = ws.getTime(), e = Math.min(we.getTime(), now.getTime());
-                let lo = 0, hi = 0; const g = [];
-                pts.forEach((p, i) => {
-                  const f = Math.max(p.t, s), t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
-                  if (t > f && Number.isFinite(p.v)) { lo = Math.min(lo, p.v); hi = Math.max(hi, p.v); if (p.v !== 0) g.push([p.v, t - f]); }
-                });
-                let m = 0;
-                if (g.length) { g.sort((a, b) => a[0] - b[0]); const half = g.reduce((n, x) => n + x[1], 0) / 2; let a = 0; for (const x of g) { a += x[1]; if (a >= half) { m = x[0]; break; } } }
-                out.push({ s, lo: +lo.toFixed(2), hi: +hi.toFixed(2), m: +m.toFixed(2) });
-              }
-              return out;
-            })() };
-            C[K].p.catch(err => { console.error("hvacDev", ID, err); delete C[K]; });
+          const ID = "sensor.hvac_deviation_bruce_break_room";
+          const now = new Date(), cur = new Date(now);
+          cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
+          const first = new Date(cur); first.setDate(first.getDate() - 49);
+          const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(first.toISOString()) +
+            "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
+            "&significant_changes_only=0");
+          const pts = (h?.[0] || [])
+            .map(r => ({ t: new Date(r.last_updated).getTime(), v: parseFloat(r.state) }))
+            .filter(r => Number.isFinite(r.t)).sort((a, b) => a.t - b.t);
+          const out = [];
+          for (let w = 7; w >= 0; w--) {
+            const ws = new Date(cur); ws.setDate(ws.getDate() - w * 7);
+            const we = new Date(ws); we.setDate(we.getDate() + 7);
+            const s = ws.getTime(), e = Math.min(we.getTime(), now.getTime());
+            let lo = 0, hi = 0; const g = [];
+            for (let i = 0; i < pts.length; i++) {
+              const f = Math.max(pts[i].t, s);
+              const t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
+              const v = pts[i].v;
+              if (t > f && Number.isFinite(v)) { lo = Math.min(lo, v); hi = Math.max(hi, v); if (v !== 0) g.push([v, t - f]); }
+            }
+            let m = 0;
+            if (g.length) {
+              g.sort((a, b) => a[0] - b[0]);
+              const half = g.reduce((n, x) => n + x[1], 0) / 2;
+              let acc = 0;
+              for (const x of g) { acc += x[1]; if (acc >= half) { m = x[0]; break; } }
+            }
+            out.push([s, +(({lo: lo, hi: hi, m: m})["hi"]).toFixed(2)]);
           }
-          return (await C[K].p).map(x => [x.s, x.hi]);
+          return out;
       - entity: sensor.hvac_deviation_bruce_break_room
         name: Median
         color: "#ffca28"
@@ -490,37 +498,38 @@ cards:
         curve: straight
         float_precision: 1
         data_generator: |
-          const ID = "sensor.hvac_deviation_bruce_break_room", K = "hvacDev:" + ID, C = (window.__hvacDevCache ??= {});
-          if (!C[K] || Date.now() - C[K].t > 300000) {
-            C[K] = { t: Date.now(), p: (async () => {
-              const now = new Date(), cur = new Date(now);
-              cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
-              const first = new Date(cur); first.setDate(first.getDate() - 49);
-              const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(first.toISOString()) +
-                "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
-                "&significant_changes_only=0");
-              const pts = (h?.[0] || [])
-                .map(r => ({ t: new Date(r.last_updated).getTime(), v: parseFloat(r.state) }))
-                .filter(r => Number.isFinite(r.t)).sort((a, b) => a.t - b.t);
-              const out = [];
-              for (let w = 7; w >= 0; w--) {
-                const ws = new Date(cur); ws.setDate(ws.getDate() - w * 7);
-                const we = new Date(ws); we.setDate(we.getDate() + 7);
-                const s = ws.getTime(), e = Math.min(we.getTime(), now.getTime());
-                let lo = 0, hi = 0; const g = [];
-                pts.forEach((p, i) => {
-                  const f = Math.max(p.t, s), t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
-                  if (t > f && Number.isFinite(p.v)) { lo = Math.min(lo, p.v); hi = Math.max(hi, p.v); if (p.v !== 0) g.push([p.v, t - f]); }
-                });
-                let m = 0;
-                if (g.length) { g.sort((a, b) => a[0] - b[0]); const half = g.reduce((n, x) => n + x[1], 0) / 2; let a = 0; for (const x of g) { a += x[1]; if (a >= half) { m = x[0]; break; } } }
-                out.push({ s, lo: +lo.toFixed(2), hi: +hi.toFixed(2), m: +m.toFixed(2) });
-              }
-              return out;
-            })() };
-            C[K].p.catch(err => { console.error("hvacDev", ID, err); delete C[K]; });
+          const ID = "sensor.hvac_deviation_bruce_break_room";
+          const now = new Date(), cur = new Date(now);
+          cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
+          const first = new Date(cur); first.setDate(first.getDate() - 49);
+          const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(first.toISOString()) +
+            "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
+            "&significant_changes_only=0");
+          const pts = (h?.[0] || [])
+            .map(r => ({ t: new Date(r.last_updated).getTime(), v: parseFloat(r.state) }))
+            .filter(r => Number.isFinite(r.t)).sort((a, b) => a.t - b.t);
+          const out = [];
+          for (let w = 7; w >= 0; w--) {
+            const ws = new Date(cur); ws.setDate(ws.getDate() - w * 7);
+            const we = new Date(ws); we.setDate(we.getDate() + 7);
+            const s = ws.getTime(), e = Math.min(we.getTime(), now.getTime());
+            let lo = 0, hi = 0; const g = [];
+            for (let i = 0; i < pts.length; i++) {
+              const f = Math.max(pts[i].t, s);
+              const t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
+              const v = pts[i].v;
+              if (t > f && Number.isFinite(v)) { lo = Math.min(lo, v); hi = Math.max(hi, v); if (v !== 0) g.push([v, t - f]); }
+            }
+            let m = 0;
+            if (g.length) {
+              g.sort((a, b) => a[0] - b[0]);
+              const half = g.reduce((n, x) => n + x[1], 0) / 2;
+              let acc = 0;
+              for (const x of g) { acc += x[1]; if (acc >= half) { m = x[0]; break; } }
+            }
+            out.push([s, +(({lo: lo, hi: hi, m: m})["m"]).toFixed(2)]);
           }
-          return (await C[K].p).map(x => [x.s, x.m]);
+          return out;
   - type: custom:apexcharts-card
     header:
       show: true
@@ -585,37 +594,38 @@ cards:
         stroke_width: 0
         float_precision: 1
         data_generator: |
-          const ID = "sensor.hvac_deviation_dethac_hall", K = "hvacDev:" + ID, C = (window.__hvacDevCache ??= {});
-          if (!C[K] || Date.now() - C[K].t > 300000) {
-            C[K] = { t: Date.now(), p: (async () => {
-              const now = new Date(), cur = new Date(now);
-              cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
-              const first = new Date(cur); first.setDate(first.getDate() - 49);
-              const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(first.toISOString()) +
-                "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
-                "&significant_changes_only=0");
-              const pts = (h?.[0] || [])
-                .map(r => ({ t: new Date(r.last_updated).getTime(), v: parseFloat(r.state) }))
-                .filter(r => Number.isFinite(r.t)).sort((a, b) => a.t - b.t);
-              const out = [];
-              for (let w = 7; w >= 0; w--) {
-                const ws = new Date(cur); ws.setDate(ws.getDate() - w * 7);
-                const we = new Date(ws); we.setDate(we.getDate() + 7);
-                const s = ws.getTime(), e = Math.min(we.getTime(), now.getTime());
-                let lo = 0, hi = 0; const g = [];
-                pts.forEach((p, i) => {
-                  const f = Math.max(p.t, s), t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
-                  if (t > f && Number.isFinite(p.v)) { lo = Math.min(lo, p.v); hi = Math.max(hi, p.v); if (p.v !== 0) g.push([p.v, t - f]); }
-                });
-                let m = 0;
-                if (g.length) { g.sort((a, b) => a[0] - b[0]); const half = g.reduce((n, x) => n + x[1], 0) / 2; let a = 0; for (const x of g) { a += x[1]; if (a >= half) { m = x[0]; break; } } }
-                out.push({ s, lo: +lo.toFixed(2), hi: +hi.toFixed(2), m: +m.toFixed(2) });
-              }
-              return out;
-            })() };
-            C[K].p.catch(err => { console.error("hvacDev", ID, err); delete C[K]; });
+          const ID = "sensor.hvac_deviation_dethac_hall";
+          const now = new Date(), cur = new Date(now);
+          cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
+          const first = new Date(cur); first.setDate(first.getDate() - 49);
+          const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(first.toISOString()) +
+            "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
+            "&significant_changes_only=0");
+          const pts = (h?.[0] || [])
+            .map(r => ({ t: new Date(r.last_updated).getTime(), v: parseFloat(r.state) }))
+            .filter(r => Number.isFinite(r.t)).sort((a, b) => a.t - b.t);
+          const out = [];
+          for (let w = 7; w >= 0; w--) {
+            const ws = new Date(cur); ws.setDate(ws.getDate() - w * 7);
+            const we = new Date(ws); we.setDate(we.getDate() + 7);
+            const s = ws.getTime(), e = Math.min(we.getTime(), now.getTime());
+            let lo = 0, hi = 0; const g = [];
+            for (let i = 0; i < pts.length; i++) {
+              const f = Math.max(pts[i].t, s);
+              const t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
+              const v = pts[i].v;
+              if (t > f && Number.isFinite(v)) { lo = Math.min(lo, v); hi = Math.max(hi, v); if (v !== 0) g.push([v, t - f]); }
+            }
+            let m = 0;
+            if (g.length) {
+              g.sort((a, b) => a[0] - b[0]);
+              const half = g.reduce((n, x) => n + x[1], 0) / 2;
+              let acc = 0;
+              for (const x of g) { acc += x[1]; if (acc >= half) { m = x[0]; break; } }
+            }
+            out.push([s, +(({lo: lo, hi: hi, m: m})["lo"]).toFixed(2)]);
           }
-          return (await C[K].p).map(x => [x.s, x.lo]);
+          return out;
       - entity: sensor.hvac_deviation_dethac_hall
         name: Max above
         color: "#e53935"
@@ -623,37 +633,38 @@ cards:
         stroke_width: 0
         float_precision: 1
         data_generator: |
-          const ID = "sensor.hvac_deviation_dethac_hall", K = "hvacDev:" + ID, C = (window.__hvacDevCache ??= {});
-          if (!C[K] || Date.now() - C[K].t > 300000) {
-            C[K] = { t: Date.now(), p: (async () => {
-              const now = new Date(), cur = new Date(now);
-              cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
-              const first = new Date(cur); first.setDate(first.getDate() - 49);
-              const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(first.toISOString()) +
-                "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
-                "&significant_changes_only=0");
-              const pts = (h?.[0] || [])
-                .map(r => ({ t: new Date(r.last_updated).getTime(), v: parseFloat(r.state) }))
-                .filter(r => Number.isFinite(r.t)).sort((a, b) => a.t - b.t);
-              const out = [];
-              for (let w = 7; w >= 0; w--) {
-                const ws = new Date(cur); ws.setDate(ws.getDate() - w * 7);
-                const we = new Date(ws); we.setDate(we.getDate() + 7);
-                const s = ws.getTime(), e = Math.min(we.getTime(), now.getTime());
-                let lo = 0, hi = 0; const g = [];
-                pts.forEach((p, i) => {
-                  const f = Math.max(p.t, s), t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
-                  if (t > f && Number.isFinite(p.v)) { lo = Math.min(lo, p.v); hi = Math.max(hi, p.v); if (p.v !== 0) g.push([p.v, t - f]); }
-                });
-                let m = 0;
-                if (g.length) { g.sort((a, b) => a[0] - b[0]); const half = g.reduce((n, x) => n + x[1], 0) / 2; let a = 0; for (const x of g) { a += x[1]; if (a >= half) { m = x[0]; break; } } }
-                out.push({ s, lo: +lo.toFixed(2), hi: +hi.toFixed(2), m: +m.toFixed(2) });
-              }
-              return out;
-            })() };
-            C[K].p.catch(err => { console.error("hvacDev", ID, err); delete C[K]; });
+          const ID = "sensor.hvac_deviation_dethac_hall";
+          const now = new Date(), cur = new Date(now);
+          cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
+          const first = new Date(cur); first.setDate(first.getDate() - 49);
+          const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(first.toISOString()) +
+            "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
+            "&significant_changes_only=0");
+          const pts = (h?.[0] || [])
+            .map(r => ({ t: new Date(r.last_updated).getTime(), v: parseFloat(r.state) }))
+            .filter(r => Number.isFinite(r.t)).sort((a, b) => a.t - b.t);
+          const out = [];
+          for (let w = 7; w >= 0; w--) {
+            const ws = new Date(cur); ws.setDate(ws.getDate() - w * 7);
+            const we = new Date(ws); we.setDate(we.getDate() + 7);
+            const s = ws.getTime(), e = Math.min(we.getTime(), now.getTime());
+            let lo = 0, hi = 0; const g = [];
+            for (let i = 0; i < pts.length; i++) {
+              const f = Math.max(pts[i].t, s);
+              const t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
+              const v = pts[i].v;
+              if (t > f && Number.isFinite(v)) { lo = Math.min(lo, v); hi = Math.max(hi, v); if (v !== 0) g.push([v, t - f]); }
+            }
+            let m = 0;
+            if (g.length) {
+              g.sort((a, b) => a[0] - b[0]);
+              const half = g.reduce((n, x) => n + x[1], 0) / 2;
+              let acc = 0;
+              for (const x of g) { acc += x[1]; if (acc >= half) { m = x[0]; break; } }
+            }
+            out.push([s, +(({lo: lo, hi: hi, m: m})["hi"]).toFixed(2)]);
           }
-          return (await C[K].p).map(x => [x.s, x.hi]);
+          return out;
       - entity: sensor.hvac_deviation_dethac_hall
         name: Median
         color: "#ffca28"
@@ -662,37 +673,38 @@ cards:
         curve: straight
         float_precision: 1
         data_generator: |
-          const ID = "sensor.hvac_deviation_dethac_hall", K = "hvacDev:" + ID, C = (window.__hvacDevCache ??= {});
-          if (!C[K] || Date.now() - C[K].t > 300000) {
-            C[K] = { t: Date.now(), p: (async () => {
-              const now = new Date(), cur = new Date(now);
-              cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
-              const first = new Date(cur); first.setDate(first.getDate() - 49);
-              const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(first.toISOString()) +
-                "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
-                "&significant_changes_only=0");
-              const pts = (h?.[0] || [])
-                .map(r => ({ t: new Date(r.last_updated).getTime(), v: parseFloat(r.state) }))
-                .filter(r => Number.isFinite(r.t)).sort((a, b) => a.t - b.t);
-              const out = [];
-              for (let w = 7; w >= 0; w--) {
-                const ws = new Date(cur); ws.setDate(ws.getDate() - w * 7);
-                const we = new Date(ws); we.setDate(we.getDate() + 7);
-                const s = ws.getTime(), e = Math.min(we.getTime(), now.getTime());
-                let lo = 0, hi = 0; const g = [];
-                pts.forEach((p, i) => {
-                  const f = Math.max(p.t, s), t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
-                  if (t > f && Number.isFinite(p.v)) { lo = Math.min(lo, p.v); hi = Math.max(hi, p.v); if (p.v !== 0) g.push([p.v, t - f]); }
-                });
-                let m = 0;
-                if (g.length) { g.sort((a, b) => a[0] - b[0]); const half = g.reduce((n, x) => n + x[1], 0) / 2; let a = 0; for (const x of g) { a += x[1]; if (a >= half) { m = x[0]; break; } } }
-                out.push({ s, lo: +lo.toFixed(2), hi: +hi.toFixed(2), m: +m.toFixed(2) });
-              }
-              return out;
-            })() };
-            C[K].p.catch(err => { console.error("hvacDev", ID, err); delete C[K]; });
+          const ID = "sensor.hvac_deviation_dethac_hall";
+          const now = new Date(), cur = new Date(now);
+          cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
+          const first = new Date(cur); first.setDate(first.getDate() - 49);
+          const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(first.toISOString()) +
+            "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
+            "&significant_changes_only=0");
+          const pts = (h?.[0] || [])
+            .map(r => ({ t: new Date(r.last_updated).getTime(), v: parseFloat(r.state) }))
+            .filter(r => Number.isFinite(r.t)).sort((a, b) => a.t - b.t);
+          const out = [];
+          for (let w = 7; w >= 0; w--) {
+            const ws = new Date(cur); ws.setDate(ws.getDate() - w * 7);
+            const we = new Date(ws); we.setDate(we.getDate() + 7);
+            const s = ws.getTime(), e = Math.min(we.getTime(), now.getTime());
+            let lo = 0, hi = 0; const g = [];
+            for (let i = 0; i < pts.length; i++) {
+              const f = Math.max(pts[i].t, s);
+              const t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
+              const v = pts[i].v;
+              if (t > f && Number.isFinite(v)) { lo = Math.min(lo, v); hi = Math.max(hi, v); if (v !== 0) g.push([v, t - f]); }
+            }
+            let m = 0;
+            if (g.length) {
+              g.sort((a, b) => a[0] - b[0]);
+              const half = g.reduce((n, x) => n + x[1], 0) / 2;
+              let acc = 0;
+              for (const x of g) { acc += x[1]; if (acc >= half) { m = x[0]; break; } }
+            }
+            out.push([s, +(({lo: lo, hi: hi, m: m})["m"]).toFixed(2)]);
           }
-          return (await C[K].p).map(x => [x.s, x.m]);
+          return out;
   - type: custom:apexcharts-card
     header:
       show: true
@@ -757,37 +769,38 @@ cards:
         stroke_width: 0
         float_precision: 1
         data_generator: |
-          const ID = "sensor.hvac_deviation_minepoint", K = "hvacDev:" + ID, C = (window.__hvacDevCache ??= {});
-          if (!C[K] || Date.now() - C[K].t > 300000) {
-            C[K] = { t: Date.now(), p: (async () => {
-              const now = new Date(), cur = new Date(now);
-              cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
-              const first = new Date(cur); first.setDate(first.getDate() - 49);
-              const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(first.toISOString()) +
-                "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
-                "&significant_changes_only=0");
-              const pts = (h?.[0] || [])
-                .map(r => ({ t: new Date(r.last_updated).getTime(), v: parseFloat(r.state) }))
-                .filter(r => Number.isFinite(r.t)).sort((a, b) => a.t - b.t);
-              const out = [];
-              for (let w = 7; w >= 0; w--) {
-                const ws = new Date(cur); ws.setDate(ws.getDate() - w * 7);
-                const we = new Date(ws); we.setDate(we.getDate() + 7);
-                const s = ws.getTime(), e = Math.min(we.getTime(), now.getTime());
-                let lo = 0, hi = 0; const g = [];
-                pts.forEach((p, i) => {
-                  const f = Math.max(p.t, s), t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
-                  if (t > f && Number.isFinite(p.v)) { lo = Math.min(lo, p.v); hi = Math.max(hi, p.v); if (p.v !== 0) g.push([p.v, t - f]); }
-                });
-                let m = 0;
-                if (g.length) { g.sort((a, b) => a[0] - b[0]); const half = g.reduce((n, x) => n + x[1], 0) / 2; let a = 0; for (const x of g) { a += x[1]; if (a >= half) { m = x[0]; break; } } }
-                out.push({ s, lo: +lo.toFixed(2), hi: +hi.toFixed(2), m: +m.toFixed(2) });
-              }
-              return out;
-            })() };
-            C[K].p.catch(err => { console.error("hvacDev", ID, err); delete C[K]; });
+          const ID = "sensor.hvac_deviation_minepoint";
+          const now = new Date(), cur = new Date(now);
+          cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
+          const first = new Date(cur); first.setDate(first.getDate() - 49);
+          const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(first.toISOString()) +
+            "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
+            "&significant_changes_only=0");
+          const pts = (h?.[0] || [])
+            .map(r => ({ t: new Date(r.last_updated).getTime(), v: parseFloat(r.state) }))
+            .filter(r => Number.isFinite(r.t)).sort((a, b) => a.t - b.t);
+          const out = [];
+          for (let w = 7; w >= 0; w--) {
+            const ws = new Date(cur); ws.setDate(ws.getDate() - w * 7);
+            const we = new Date(ws); we.setDate(we.getDate() + 7);
+            const s = ws.getTime(), e = Math.min(we.getTime(), now.getTime());
+            let lo = 0, hi = 0; const g = [];
+            for (let i = 0; i < pts.length; i++) {
+              const f = Math.max(pts[i].t, s);
+              const t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
+              const v = pts[i].v;
+              if (t > f && Number.isFinite(v)) { lo = Math.min(lo, v); hi = Math.max(hi, v); if (v !== 0) g.push([v, t - f]); }
+            }
+            let m = 0;
+            if (g.length) {
+              g.sort((a, b) => a[0] - b[0]);
+              const half = g.reduce((n, x) => n + x[1], 0) / 2;
+              let acc = 0;
+              for (const x of g) { acc += x[1]; if (acc >= half) { m = x[0]; break; } }
+            }
+            out.push([s, +(({lo: lo, hi: hi, m: m})["lo"]).toFixed(2)]);
           }
-          return (await C[K].p).map(x => [x.s, x.lo]);
+          return out;
       - entity: sensor.hvac_deviation_minepoint
         name: Max above
         color: "#e53935"
@@ -795,37 +808,38 @@ cards:
         stroke_width: 0
         float_precision: 1
         data_generator: |
-          const ID = "sensor.hvac_deviation_minepoint", K = "hvacDev:" + ID, C = (window.__hvacDevCache ??= {});
-          if (!C[K] || Date.now() - C[K].t > 300000) {
-            C[K] = { t: Date.now(), p: (async () => {
-              const now = new Date(), cur = new Date(now);
-              cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
-              const first = new Date(cur); first.setDate(first.getDate() - 49);
-              const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(first.toISOString()) +
-                "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
-                "&significant_changes_only=0");
-              const pts = (h?.[0] || [])
-                .map(r => ({ t: new Date(r.last_updated).getTime(), v: parseFloat(r.state) }))
-                .filter(r => Number.isFinite(r.t)).sort((a, b) => a.t - b.t);
-              const out = [];
-              for (let w = 7; w >= 0; w--) {
-                const ws = new Date(cur); ws.setDate(ws.getDate() - w * 7);
-                const we = new Date(ws); we.setDate(we.getDate() + 7);
-                const s = ws.getTime(), e = Math.min(we.getTime(), now.getTime());
-                let lo = 0, hi = 0; const g = [];
-                pts.forEach((p, i) => {
-                  const f = Math.max(p.t, s), t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
-                  if (t > f && Number.isFinite(p.v)) { lo = Math.min(lo, p.v); hi = Math.max(hi, p.v); if (p.v !== 0) g.push([p.v, t - f]); }
-                });
-                let m = 0;
-                if (g.length) { g.sort((a, b) => a[0] - b[0]); const half = g.reduce((n, x) => n + x[1], 0) / 2; let a = 0; for (const x of g) { a += x[1]; if (a >= half) { m = x[0]; break; } } }
-                out.push({ s, lo: +lo.toFixed(2), hi: +hi.toFixed(2), m: +m.toFixed(2) });
-              }
-              return out;
-            })() };
-            C[K].p.catch(err => { console.error("hvacDev", ID, err); delete C[K]; });
+          const ID = "sensor.hvac_deviation_minepoint";
+          const now = new Date(), cur = new Date(now);
+          cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
+          const first = new Date(cur); first.setDate(first.getDate() - 49);
+          const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(first.toISOString()) +
+            "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
+            "&significant_changes_only=0");
+          const pts = (h?.[0] || [])
+            .map(r => ({ t: new Date(r.last_updated).getTime(), v: parseFloat(r.state) }))
+            .filter(r => Number.isFinite(r.t)).sort((a, b) => a.t - b.t);
+          const out = [];
+          for (let w = 7; w >= 0; w--) {
+            const ws = new Date(cur); ws.setDate(ws.getDate() - w * 7);
+            const we = new Date(ws); we.setDate(we.getDate() + 7);
+            const s = ws.getTime(), e = Math.min(we.getTime(), now.getTime());
+            let lo = 0, hi = 0; const g = [];
+            for (let i = 0; i < pts.length; i++) {
+              const f = Math.max(pts[i].t, s);
+              const t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
+              const v = pts[i].v;
+              if (t > f && Number.isFinite(v)) { lo = Math.min(lo, v); hi = Math.max(hi, v); if (v !== 0) g.push([v, t - f]); }
+            }
+            let m = 0;
+            if (g.length) {
+              g.sort((a, b) => a[0] - b[0]);
+              const half = g.reduce((n, x) => n + x[1], 0) / 2;
+              let acc = 0;
+              for (const x of g) { acc += x[1]; if (acc >= half) { m = x[0]; break; } }
+            }
+            out.push([s, +(({lo: lo, hi: hi, m: m})["hi"]).toFixed(2)]);
           }
-          return (await C[K].p).map(x => [x.s, x.hi]);
+          return out;
       - entity: sensor.hvac_deviation_minepoint
         name: Median
         color: "#ffca28"
@@ -834,37 +848,38 @@ cards:
         curve: straight
         float_precision: 1
         data_generator: |
-          const ID = "sensor.hvac_deviation_minepoint", K = "hvacDev:" + ID, C = (window.__hvacDevCache ??= {});
-          if (!C[K] || Date.now() - C[K].t > 300000) {
-            C[K] = { t: Date.now(), p: (async () => {
-              const now = new Date(), cur = new Date(now);
-              cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
-              const first = new Date(cur); first.setDate(first.getDate() - 49);
-              const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(first.toISOString()) +
-                "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
-                "&significant_changes_only=0");
-              const pts = (h?.[0] || [])
-                .map(r => ({ t: new Date(r.last_updated).getTime(), v: parseFloat(r.state) }))
-                .filter(r => Number.isFinite(r.t)).sort((a, b) => a.t - b.t);
-              const out = [];
-              for (let w = 7; w >= 0; w--) {
-                const ws = new Date(cur); ws.setDate(ws.getDate() - w * 7);
-                const we = new Date(ws); we.setDate(we.getDate() + 7);
-                const s = ws.getTime(), e = Math.min(we.getTime(), now.getTime());
-                let lo = 0, hi = 0; const g = [];
-                pts.forEach((p, i) => {
-                  const f = Math.max(p.t, s), t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
-                  if (t > f && Number.isFinite(p.v)) { lo = Math.min(lo, p.v); hi = Math.max(hi, p.v); if (p.v !== 0) g.push([p.v, t - f]); }
-                });
-                let m = 0;
-                if (g.length) { g.sort((a, b) => a[0] - b[0]); const half = g.reduce((n, x) => n + x[1], 0) / 2; let a = 0; for (const x of g) { a += x[1]; if (a >= half) { m = x[0]; break; } } }
-                out.push({ s, lo: +lo.toFixed(2), hi: +hi.toFixed(2), m: +m.toFixed(2) });
-              }
-              return out;
-            })() };
-            C[K].p.catch(err => { console.error("hvacDev", ID, err); delete C[K]; });
+          const ID = "sensor.hvac_deviation_minepoint";
+          const now = new Date(), cur = new Date(now);
+          cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
+          const first = new Date(cur); first.setDate(first.getDate() - 49);
+          const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(first.toISOString()) +
+            "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
+            "&significant_changes_only=0");
+          const pts = (h?.[0] || [])
+            .map(r => ({ t: new Date(r.last_updated).getTime(), v: parseFloat(r.state) }))
+            .filter(r => Number.isFinite(r.t)).sort((a, b) => a.t - b.t);
+          const out = [];
+          for (let w = 7; w >= 0; w--) {
+            const ws = new Date(cur); ws.setDate(ws.getDate() - w * 7);
+            const we = new Date(ws); we.setDate(we.getDate() + 7);
+            const s = ws.getTime(), e = Math.min(we.getTime(), now.getTime());
+            let lo = 0, hi = 0; const g = [];
+            for (let i = 0; i < pts.length; i++) {
+              const f = Math.max(pts[i].t, s);
+              const t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
+              const v = pts[i].v;
+              if (t > f && Number.isFinite(v)) { lo = Math.min(lo, v); hi = Math.max(hi, v); if (v !== 0) g.push([v, t - f]); }
+            }
+            let m = 0;
+            if (g.length) {
+              g.sort((a, b) => a[0] - b[0]);
+              const half = g.reduce((n, x) => n + x[1], 0) / 2;
+              let acc = 0;
+              for (const x of g) { acc += x[1]; if (acc >= half) { m = x[0]; break; } }
+            }
+            out.push([s, +(({lo: lo, hi: hi, m: m})["m"]).toFixed(2)]);
           }
-          return (await C[K].p).map(x => [x.s, x.m]);
+          return out;
   - type: custom:apexcharts-card
     header:
       show: true
@@ -929,37 +944,38 @@ cards:
         stroke_width: 0
         float_precision: 1
         data_generator: |
-          const ID = "sensor.hvac_deviation_new_offices", K = "hvacDev:" + ID, C = (window.__hvacDevCache ??= {});
-          if (!C[K] || Date.now() - C[K].t > 300000) {
-            C[K] = { t: Date.now(), p: (async () => {
-              const now = new Date(), cur = new Date(now);
-              cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
-              const first = new Date(cur); first.setDate(first.getDate() - 49);
-              const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(first.toISOString()) +
-                "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
-                "&significant_changes_only=0");
-              const pts = (h?.[0] || [])
-                .map(r => ({ t: new Date(r.last_updated).getTime(), v: parseFloat(r.state) }))
-                .filter(r => Number.isFinite(r.t)).sort((a, b) => a.t - b.t);
-              const out = [];
-              for (let w = 7; w >= 0; w--) {
-                const ws = new Date(cur); ws.setDate(ws.getDate() - w * 7);
-                const we = new Date(ws); we.setDate(we.getDate() + 7);
-                const s = ws.getTime(), e = Math.min(we.getTime(), now.getTime());
-                let lo = 0, hi = 0; const g = [];
-                pts.forEach((p, i) => {
-                  const f = Math.max(p.t, s), t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
-                  if (t > f && Number.isFinite(p.v)) { lo = Math.min(lo, p.v); hi = Math.max(hi, p.v); if (p.v !== 0) g.push([p.v, t - f]); }
-                });
-                let m = 0;
-                if (g.length) { g.sort((a, b) => a[0] - b[0]); const half = g.reduce((n, x) => n + x[1], 0) / 2; let a = 0; for (const x of g) { a += x[1]; if (a >= half) { m = x[0]; break; } } }
-                out.push({ s, lo: +lo.toFixed(2), hi: +hi.toFixed(2), m: +m.toFixed(2) });
-              }
-              return out;
-            })() };
-            C[K].p.catch(err => { console.error("hvacDev", ID, err); delete C[K]; });
+          const ID = "sensor.hvac_deviation_new_offices";
+          const now = new Date(), cur = new Date(now);
+          cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
+          const first = new Date(cur); first.setDate(first.getDate() - 49);
+          const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(first.toISOString()) +
+            "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
+            "&significant_changes_only=0");
+          const pts = (h?.[0] || [])
+            .map(r => ({ t: new Date(r.last_updated).getTime(), v: parseFloat(r.state) }))
+            .filter(r => Number.isFinite(r.t)).sort((a, b) => a.t - b.t);
+          const out = [];
+          for (let w = 7; w >= 0; w--) {
+            const ws = new Date(cur); ws.setDate(ws.getDate() - w * 7);
+            const we = new Date(ws); we.setDate(we.getDate() + 7);
+            const s = ws.getTime(), e = Math.min(we.getTime(), now.getTime());
+            let lo = 0, hi = 0; const g = [];
+            for (let i = 0; i < pts.length; i++) {
+              const f = Math.max(pts[i].t, s);
+              const t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
+              const v = pts[i].v;
+              if (t > f && Number.isFinite(v)) { lo = Math.min(lo, v); hi = Math.max(hi, v); if (v !== 0) g.push([v, t - f]); }
+            }
+            let m = 0;
+            if (g.length) {
+              g.sort((a, b) => a[0] - b[0]);
+              const half = g.reduce((n, x) => n + x[1], 0) / 2;
+              let acc = 0;
+              for (const x of g) { acc += x[1]; if (acc >= half) { m = x[0]; break; } }
+            }
+            out.push([s, +(({lo: lo, hi: hi, m: m})["lo"]).toFixed(2)]);
           }
-          return (await C[K].p).map(x => [x.s, x.lo]);
+          return out;
       - entity: sensor.hvac_deviation_new_offices
         name: Max above
         color: "#e53935"
@@ -967,37 +983,38 @@ cards:
         stroke_width: 0
         float_precision: 1
         data_generator: |
-          const ID = "sensor.hvac_deviation_new_offices", K = "hvacDev:" + ID, C = (window.__hvacDevCache ??= {});
-          if (!C[K] || Date.now() - C[K].t > 300000) {
-            C[K] = { t: Date.now(), p: (async () => {
-              const now = new Date(), cur = new Date(now);
-              cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
-              const first = new Date(cur); first.setDate(first.getDate() - 49);
-              const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(first.toISOString()) +
-                "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
-                "&significant_changes_only=0");
-              const pts = (h?.[0] || [])
-                .map(r => ({ t: new Date(r.last_updated).getTime(), v: parseFloat(r.state) }))
-                .filter(r => Number.isFinite(r.t)).sort((a, b) => a.t - b.t);
-              const out = [];
-              for (let w = 7; w >= 0; w--) {
-                const ws = new Date(cur); ws.setDate(ws.getDate() - w * 7);
-                const we = new Date(ws); we.setDate(we.getDate() + 7);
-                const s = ws.getTime(), e = Math.min(we.getTime(), now.getTime());
-                let lo = 0, hi = 0; const g = [];
-                pts.forEach((p, i) => {
-                  const f = Math.max(p.t, s), t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
-                  if (t > f && Number.isFinite(p.v)) { lo = Math.min(lo, p.v); hi = Math.max(hi, p.v); if (p.v !== 0) g.push([p.v, t - f]); }
-                });
-                let m = 0;
-                if (g.length) { g.sort((a, b) => a[0] - b[0]); const half = g.reduce((n, x) => n + x[1], 0) / 2; let a = 0; for (const x of g) { a += x[1]; if (a >= half) { m = x[0]; break; } } }
-                out.push({ s, lo: +lo.toFixed(2), hi: +hi.toFixed(2), m: +m.toFixed(2) });
-              }
-              return out;
-            })() };
-            C[K].p.catch(err => { console.error("hvacDev", ID, err); delete C[K]; });
+          const ID = "sensor.hvac_deviation_new_offices";
+          const now = new Date(), cur = new Date(now);
+          cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
+          const first = new Date(cur); first.setDate(first.getDate() - 49);
+          const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(first.toISOString()) +
+            "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
+            "&significant_changes_only=0");
+          const pts = (h?.[0] || [])
+            .map(r => ({ t: new Date(r.last_updated).getTime(), v: parseFloat(r.state) }))
+            .filter(r => Number.isFinite(r.t)).sort((a, b) => a.t - b.t);
+          const out = [];
+          for (let w = 7; w >= 0; w--) {
+            const ws = new Date(cur); ws.setDate(ws.getDate() - w * 7);
+            const we = new Date(ws); we.setDate(we.getDate() + 7);
+            const s = ws.getTime(), e = Math.min(we.getTime(), now.getTime());
+            let lo = 0, hi = 0; const g = [];
+            for (let i = 0; i < pts.length; i++) {
+              const f = Math.max(pts[i].t, s);
+              const t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
+              const v = pts[i].v;
+              if (t > f && Number.isFinite(v)) { lo = Math.min(lo, v); hi = Math.max(hi, v); if (v !== 0) g.push([v, t - f]); }
+            }
+            let m = 0;
+            if (g.length) {
+              g.sort((a, b) => a[0] - b[0]);
+              const half = g.reduce((n, x) => n + x[1], 0) / 2;
+              let acc = 0;
+              for (const x of g) { acc += x[1]; if (acc >= half) { m = x[0]; break; } }
+            }
+            out.push([s, +(({lo: lo, hi: hi, m: m})["hi"]).toFixed(2)]);
           }
-          return (await C[K].p).map(x => [x.s, x.hi]);
+          return out;
       - entity: sensor.hvac_deviation_new_offices
         name: Median
         color: "#ffca28"
@@ -1006,37 +1023,38 @@ cards:
         curve: straight
         float_precision: 1
         data_generator: |
-          const ID = "sensor.hvac_deviation_new_offices", K = "hvacDev:" + ID, C = (window.__hvacDevCache ??= {});
-          if (!C[K] || Date.now() - C[K].t > 300000) {
-            C[K] = { t: Date.now(), p: (async () => {
-              const now = new Date(), cur = new Date(now);
-              cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
-              const first = new Date(cur); first.setDate(first.getDate() - 49);
-              const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(first.toISOString()) +
-                "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
-                "&significant_changes_only=0");
-              const pts = (h?.[0] || [])
-                .map(r => ({ t: new Date(r.last_updated).getTime(), v: parseFloat(r.state) }))
-                .filter(r => Number.isFinite(r.t)).sort((a, b) => a.t - b.t);
-              const out = [];
-              for (let w = 7; w >= 0; w--) {
-                const ws = new Date(cur); ws.setDate(ws.getDate() - w * 7);
-                const we = new Date(ws); we.setDate(we.getDate() + 7);
-                const s = ws.getTime(), e = Math.min(we.getTime(), now.getTime());
-                let lo = 0, hi = 0; const g = [];
-                pts.forEach((p, i) => {
-                  const f = Math.max(p.t, s), t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
-                  if (t > f && Number.isFinite(p.v)) { lo = Math.min(lo, p.v); hi = Math.max(hi, p.v); if (p.v !== 0) g.push([p.v, t - f]); }
-                });
-                let m = 0;
-                if (g.length) { g.sort((a, b) => a[0] - b[0]); const half = g.reduce((n, x) => n + x[1], 0) / 2; let a = 0; for (const x of g) { a += x[1]; if (a >= half) { m = x[0]; break; } } }
-                out.push({ s, lo: +lo.toFixed(2), hi: +hi.toFixed(2), m: +m.toFixed(2) });
-              }
-              return out;
-            })() };
-            C[K].p.catch(err => { console.error("hvacDev", ID, err); delete C[K]; });
+          const ID = "sensor.hvac_deviation_new_offices";
+          const now = new Date(), cur = new Date(now);
+          cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
+          const first = new Date(cur); first.setDate(first.getDate() - 49);
+          const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(first.toISOString()) +
+            "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
+            "&significant_changes_only=0");
+          const pts = (h?.[0] || [])
+            .map(r => ({ t: new Date(r.last_updated).getTime(), v: parseFloat(r.state) }))
+            .filter(r => Number.isFinite(r.t)).sort((a, b) => a.t - b.t);
+          const out = [];
+          for (let w = 7; w >= 0; w--) {
+            const ws = new Date(cur); ws.setDate(ws.getDate() - w * 7);
+            const we = new Date(ws); we.setDate(we.getDate() + 7);
+            const s = ws.getTime(), e = Math.min(we.getTime(), now.getTime());
+            let lo = 0, hi = 0; const g = [];
+            for (let i = 0; i < pts.length; i++) {
+              const f = Math.max(pts[i].t, s);
+              const t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
+              const v = pts[i].v;
+              if (t > f && Number.isFinite(v)) { lo = Math.min(lo, v); hi = Math.max(hi, v); if (v !== 0) g.push([v, t - f]); }
+            }
+            let m = 0;
+            if (g.length) {
+              g.sort((a, b) => a[0] - b[0]);
+              const half = g.reduce((n, x) => n + x[1], 0) / 2;
+              let acc = 0;
+              for (const x of g) { acc += x[1]; if (acc >= half) { m = x[0]; break; } }
+            }
+            out.push([s, +(({lo: lo, hi: hi, m: m})["m"]).toFixed(2)]);
           }
-          return (await C[K].p).map(x => [x.s, x.m]);
+          return out;
   - type: custom:apexcharts-card
     header:
       show: true
@@ -1101,37 +1119,38 @@ cards:
         stroke_width: 0
         float_precision: 1
         data_generator: |
-          const ID = "sensor.hvac_deviation_software_support", K = "hvacDev:" + ID, C = (window.__hvacDevCache ??= {});
-          if (!C[K] || Date.now() - C[K].t > 300000) {
-            C[K] = { t: Date.now(), p: (async () => {
-              const now = new Date(), cur = new Date(now);
-              cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
-              const first = new Date(cur); first.setDate(first.getDate() - 49);
-              const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(first.toISOString()) +
-                "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
-                "&significant_changes_only=0");
-              const pts = (h?.[0] || [])
-                .map(r => ({ t: new Date(r.last_updated).getTime(), v: parseFloat(r.state) }))
-                .filter(r => Number.isFinite(r.t)).sort((a, b) => a.t - b.t);
-              const out = [];
-              for (let w = 7; w >= 0; w--) {
-                const ws = new Date(cur); ws.setDate(ws.getDate() - w * 7);
-                const we = new Date(ws); we.setDate(we.getDate() + 7);
-                const s = ws.getTime(), e = Math.min(we.getTime(), now.getTime());
-                let lo = 0, hi = 0; const g = [];
-                pts.forEach((p, i) => {
-                  const f = Math.max(p.t, s), t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
-                  if (t > f && Number.isFinite(p.v)) { lo = Math.min(lo, p.v); hi = Math.max(hi, p.v); if (p.v !== 0) g.push([p.v, t - f]); }
-                });
-                let m = 0;
-                if (g.length) { g.sort((a, b) => a[0] - b[0]); const half = g.reduce((n, x) => n + x[1], 0) / 2; let a = 0; for (const x of g) { a += x[1]; if (a >= half) { m = x[0]; break; } } }
-                out.push({ s, lo: +lo.toFixed(2), hi: +hi.toFixed(2), m: +m.toFixed(2) });
-              }
-              return out;
-            })() };
-            C[K].p.catch(err => { console.error("hvacDev", ID, err); delete C[K]; });
+          const ID = "sensor.hvac_deviation_software_support";
+          const now = new Date(), cur = new Date(now);
+          cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
+          const first = new Date(cur); first.setDate(first.getDate() - 49);
+          const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(first.toISOString()) +
+            "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
+            "&significant_changes_only=0");
+          const pts = (h?.[0] || [])
+            .map(r => ({ t: new Date(r.last_updated).getTime(), v: parseFloat(r.state) }))
+            .filter(r => Number.isFinite(r.t)).sort((a, b) => a.t - b.t);
+          const out = [];
+          for (let w = 7; w >= 0; w--) {
+            const ws = new Date(cur); ws.setDate(ws.getDate() - w * 7);
+            const we = new Date(ws); we.setDate(we.getDate() + 7);
+            const s = ws.getTime(), e = Math.min(we.getTime(), now.getTime());
+            let lo = 0, hi = 0; const g = [];
+            for (let i = 0; i < pts.length; i++) {
+              const f = Math.max(pts[i].t, s);
+              const t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
+              const v = pts[i].v;
+              if (t > f && Number.isFinite(v)) { lo = Math.min(lo, v); hi = Math.max(hi, v); if (v !== 0) g.push([v, t - f]); }
+            }
+            let m = 0;
+            if (g.length) {
+              g.sort((a, b) => a[0] - b[0]);
+              const half = g.reduce((n, x) => n + x[1], 0) / 2;
+              let acc = 0;
+              for (const x of g) { acc += x[1]; if (acc >= half) { m = x[0]; break; } }
+            }
+            out.push([s, +(({lo: lo, hi: hi, m: m})["lo"]).toFixed(2)]);
           }
-          return (await C[K].p).map(x => [x.s, x.lo]);
+          return out;
       - entity: sensor.hvac_deviation_software_support
         name: Max above
         color: "#e53935"
@@ -1139,37 +1158,38 @@ cards:
         stroke_width: 0
         float_precision: 1
         data_generator: |
-          const ID = "sensor.hvac_deviation_software_support", K = "hvacDev:" + ID, C = (window.__hvacDevCache ??= {});
-          if (!C[K] || Date.now() - C[K].t > 300000) {
-            C[K] = { t: Date.now(), p: (async () => {
-              const now = new Date(), cur = new Date(now);
-              cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
-              const first = new Date(cur); first.setDate(first.getDate() - 49);
-              const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(first.toISOString()) +
-                "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
-                "&significant_changes_only=0");
-              const pts = (h?.[0] || [])
-                .map(r => ({ t: new Date(r.last_updated).getTime(), v: parseFloat(r.state) }))
-                .filter(r => Number.isFinite(r.t)).sort((a, b) => a.t - b.t);
-              const out = [];
-              for (let w = 7; w >= 0; w--) {
-                const ws = new Date(cur); ws.setDate(ws.getDate() - w * 7);
-                const we = new Date(ws); we.setDate(we.getDate() + 7);
-                const s = ws.getTime(), e = Math.min(we.getTime(), now.getTime());
-                let lo = 0, hi = 0; const g = [];
-                pts.forEach((p, i) => {
-                  const f = Math.max(p.t, s), t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
-                  if (t > f && Number.isFinite(p.v)) { lo = Math.min(lo, p.v); hi = Math.max(hi, p.v); if (p.v !== 0) g.push([p.v, t - f]); }
-                });
-                let m = 0;
-                if (g.length) { g.sort((a, b) => a[0] - b[0]); const half = g.reduce((n, x) => n + x[1], 0) / 2; let a = 0; for (const x of g) { a += x[1]; if (a >= half) { m = x[0]; break; } } }
-                out.push({ s, lo: +lo.toFixed(2), hi: +hi.toFixed(2), m: +m.toFixed(2) });
-              }
-              return out;
-            })() };
-            C[K].p.catch(err => { console.error("hvacDev", ID, err); delete C[K]; });
+          const ID = "sensor.hvac_deviation_software_support";
+          const now = new Date(), cur = new Date(now);
+          cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
+          const first = new Date(cur); first.setDate(first.getDate() - 49);
+          const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(first.toISOString()) +
+            "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
+            "&significant_changes_only=0");
+          const pts = (h?.[0] || [])
+            .map(r => ({ t: new Date(r.last_updated).getTime(), v: parseFloat(r.state) }))
+            .filter(r => Number.isFinite(r.t)).sort((a, b) => a.t - b.t);
+          const out = [];
+          for (let w = 7; w >= 0; w--) {
+            const ws = new Date(cur); ws.setDate(ws.getDate() - w * 7);
+            const we = new Date(ws); we.setDate(we.getDate() + 7);
+            const s = ws.getTime(), e = Math.min(we.getTime(), now.getTime());
+            let lo = 0, hi = 0; const g = [];
+            for (let i = 0; i < pts.length; i++) {
+              const f = Math.max(pts[i].t, s);
+              const t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
+              const v = pts[i].v;
+              if (t > f && Number.isFinite(v)) { lo = Math.min(lo, v); hi = Math.max(hi, v); if (v !== 0) g.push([v, t - f]); }
+            }
+            let m = 0;
+            if (g.length) {
+              g.sort((a, b) => a[0] - b[0]);
+              const half = g.reduce((n, x) => n + x[1], 0) / 2;
+              let acc = 0;
+              for (const x of g) { acc += x[1]; if (acc >= half) { m = x[0]; break; } }
+            }
+            out.push([s, +(({lo: lo, hi: hi, m: m})["hi"]).toFixed(2)]);
           }
-          return (await C[K].p).map(x => [x.s, x.hi]);
+          return out;
       - entity: sensor.hvac_deviation_software_support
         name: Median
         color: "#ffca28"
@@ -1178,34 +1198,35 @@ cards:
         curve: straight
         float_precision: 1
         data_generator: |
-          const ID = "sensor.hvac_deviation_software_support", K = "hvacDev:" + ID, C = (window.__hvacDevCache ??= {});
-          if (!C[K] || Date.now() - C[K].t > 300000) {
-            C[K] = { t: Date.now(), p: (async () => {
-              const now = new Date(), cur = new Date(now);
-              cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
-              const first = new Date(cur); first.setDate(first.getDate() - 49);
-              const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(first.toISOString()) +
-                "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
-                "&significant_changes_only=0");
-              const pts = (h?.[0] || [])
-                .map(r => ({ t: new Date(r.last_updated).getTime(), v: parseFloat(r.state) }))
-                .filter(r => Number.isFinite(r.t)).sort((a, b) => a.t - b.t);
-              const out = [];
-              for (let w = 7; w >= 0; w--) {
-                const ws = new Date(cur); ws.setDate(ws.getDate() - w * 7);
-                const we = new Date(ws); we.setDate(we.getDate() + 7);
-                const s = ws.getTime(), e = Math.min(we.getTime(), now.getTime());
-                let lo = 0, hi = 0; const g = [];
-                pts.forEach((p, i) => {
-                  const f = Math.max(p.t, s), t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
-                  if (t > f && Number.isFinite(p.v)) { lo = Math.min(lo, p.v); hi = Math.max(hi, p.v); if (p.v !== 0) g.push([p.v, t - f]); }
-                });
-                let m = 0;
-                if (g.length) { g.sort((a, b) => a[0] - b[0]); const half = g.reduce((n, x) => n + x[1], 0) / 2; let a = 0; for (const x of g) { a += x[1]; if (a >= half) { m = x[0]; break; } } }
-                out.push({ s, lo: +lo.toFixed(2), hi: +hi.toFixed(2), m: +m.toFixed(2) });
-              }
-              return out;
-            })() };
-            C[K].p.catch(err => { console.error("hvacDev", ID, err); delete C[K]; });
+          const ID = "sensor.hvac_deviation_software_support";
+          const now = new Date(), cur = new Date(now);
+          cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
+          const first = new Date(cur); first.setDate(first.getDate() - 49);
+          const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(first.toISOString()) +
+            "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
+            "&significant_changes_only=0");
+          const pts = (h?.[0] || [])
+            .map(r => ({ t: new Date(r.last_updated).getTime(), v: parseFloat(r.state) }))
+            .filter(r => Number.isFinite(r.t)).sort((a, b) => a.t - b.t);
+          const out = [];
+          for (let w = 7; w >= 0; w--) {
+            const ws = new Date(cur); ws.setDate(ws.getDate() - w * 7);
+            const we = new Date(ws); we.setDate(we.getDate() + 7);
+            const s = ws.getTime(), e = Math.min(we.getTime(), now.getTime());
+            let lo = 0, hi = 0; const g = [];
+            for (let i = 0; i < pts.length; i++) {
+              const f = Math.max(pts[i].t, s);
+              const t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
+              const v = pts[i].v;
+              if (t > f && Number.isFinite(v)) { lo = Math.min(lo, v); hi = Math.max(hi, v); if (v !== 0) g.push([v, t - f]); }
+            }
+            let m = 0;
+            if (g.length) {
+              g.sort((a, b) => a[0] - b[0]);
+              const half = g.reduce((n, x) => n + x[1], 0) / 2;
+              let acc = 0;
+              for (const x of g) { acc += x[1]; if (acc >= half) { m = x[0]; break; } }
+            }
+            out.push([s, +(({lo: lo, hi: hi, m: m})["m"]).toFixed(2)]);
           }
-          return (await C[K].p).map(x => [x.s, x.m]);
+          return out;
