@@ -141,11 +141,6 @@ cards:
         decimals: 1
         min: 50
         max: 85
-      - id: hum
-        opposite: true
-        decimals: 0
-        min: 0
-        max: 100
     apex_config:
       chart:
         height: 280
@@ -208,18 +203,6 @@ cards:
           duration: 15min
           func: last
       - entity: climate.amy
-        attribute: current_humidity
-        name: Humidity
-        color: '#26a69a'
-        type: line
-        yaxis_id: hum
-        show:
-          in_header: false
-        float_precision: 1
-        group_by:
-          duration: 15min
-          func: avg
-      - entity: climate.amy
         name: Peak temp
         color: "#ef5350"
         unit: "°F"
@@ -229,22 +212,6 @@ cards:
           in_header: true
         data_generator: |
           const ID = "climate.amy", ATTR = "current_temperature";
-          const now = new Date(), since = new Date(now.getTime() - 36 * 3600000);
-          const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(since.toISOString()) +
-            "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
-            "&significant_changes_only=0");
-          const vals = (h?.[0] || []).map(r => parseFloat(r.attributes?.[ATTR])).filter(Number.isFinite);
-          return vals.length ? [[now.getTime(), Math.max(...vals)]] : [];
-      - entity: climate.amy
-        name: Peak humidity
-        color: "#26a69a"
-        unit: "%"
-        float_precision: 0
-        show:
-          in_chart: false
-          in_header: true
-        data_generator: |
-          const ID = "climate.amy", ATTR = "current_humidity";
           const now = new Date(), since = new Date(now.getTime() - 36 * 3600000);
           const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(since.toISOString()) +
             "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
@@ -264,11 +231,6 @@ cards:
         decimals: 1
         min: 50
         max: 85
-      - id: hum
-        opposite: true
-        decimals: 0
-        min: 0
-        max: 100
     apex_config:
       chart:
         height: 280
@@ -331,18 +293,6 @@ cards:
           duration: 15min
           func: last
       - entity: climate.bruce_break_room
-        attribute: current_humidity
-        name: Humidity
-        color: '#26a69a'
-        type: line
-        yaxis_id: hum
-        show:
-          in_header: false
-        float_precision: 1
-        group_by:
-          duration: 15min
-          func: avg
-      - entity: climate.bruce_break_room
         name: Peak temp
         color: "#ef5350"
         unit: "°F"
@@ -352,22 +302,6 @@ cards:
           in_header: true
         data_generator: |
           const ID = "climate.bruce_break_room", ATTR = "current_temperature";
-          const now = new Date(), since = new Date(now.getTime() - 36 * 3600000);
-          const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(since.toISOString()) +
-            "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
-            "&significant_changes_only=0");
-          const vals = (h?.[0] || []).map(r => parseFloat(r.attributes?.[ATTR])).filter(Number.isFinite);
-          return vals.length ? [[now.getTime(), Math.max(...vals)]] : [];
-      - entity: climate.bruce_break_room
-        name: Peak humidity
-        color: "#26a69a"
-        unit: "%"
-        float_precision: 0
-        show:
-          in_chart: false
-          in_header: true
-        data_generator: |
-          const ID = "climate.bruce_break_room", ATTR = "current_humidity";
           const now = new Date(), since = new Date(now.getTime() - 36 * 3600000);
           const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(since.toISOString()) +
             "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
@@ -387,11 +321,6 @@ cards:
         decimals: 1
         min: 50
         max: 85
-      - id: hum
-        opposite: true
-        decimals: 0
-        min: 0
-        max: 100
     apex_config:
       chart:
         height: 280
@@ -454,18 +383,6 @@ cards:
           duration: 15min
           func: last
       - entity: climate.dethac_hall
-        attribute: current_humidity
-        name: Humidity
-        color: '#26a69a'
-        type: line
-        yaxis_id: hum
-        show:
-          in_header: false
-        float_precision: 1
-        group_by:
-          duration: 15min
-          func: avg
-      - entity: climate.dethac_hall
         name: Peak temp
         color: "#ef5350"
         unit: "°F"
@@ -475,22 +392,6 @@ cards:
           in_header: true
         data_generator: |
           const ID = "climate.dethac_hall", ATTR = "current_temperature";
-          const now = new Date(), since = new Date(now.getTime() - 36 * 3600000);
-          const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(since.toISOString()) +
-            "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
-            "&significant_changes_only=0");
-          const vals = (h?.[0] || []).map(r => parseFloat(r.attributes?.[ATTR])).filter(Number.isFinite);
-          return vals.length ? [[now.getTime(), Math.max(...vals)]] : [];
-      - entity: climate.dethac_hall
-        name: Peak humidity
-        color: "#26a69a"
-        unit: "%"
-        float_precision: 0
-        show:
-          in_chart: false
-          in_header: true
-        data_generator: |
-          const ID = "climate.dethac_hall", ATTR = "current_humidity";
           const now = new Date(), since = new Date(now.getTime() - 36 * 3600000);
           const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(since.toISOString()) +
             "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
@@ -510,11 +411,6 @@ cards:
         decimals: 1
         min: 50
         max: 85
-      - id: hum
-        opposite: true
-        decimals: 0
-        min: 0
-        max: 100
     apex_config:
       chart:
         height: 280
@@ -577,18 +473,6 @@ cards:
           duration: 15min
           func: last
       - entity: climate.minepoint
-        attribute: current_humidity
-        name: Humidity
-        color: '#26a69a'
-        type: line
-        yaxis_id: hum
-        show:
-          in_header: false
-        float_precision: 1
-        group_by:
-          duration: 15min
-          func: avg
-      - entity: climate.minepoint
         name: Peak temp
         color: "#ef5350"
         unit: "°F"
@@ -598,22 +482,6 @@ cards:
           in_header: true
         data_generator: |
           const ID = "climate.minepoint", ATTR = "current_temperature";
-          const now = new Date(), since = new Date(now.getTime() - 36 * 3600000);
-          const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(since.toISOString()) +
-            "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
-            "&significant_changes_only=0");
-          const vals = (h?.[0] || []).map(r => parseFloat(r.attributes?.[ATTR])).filter(Number.isFinite);
-          return vals.length ? [[now.getTime(), Math.max(...vals)]] : [];
-      - entity: climate.minepoint
-        name: Peak humidity
-        color: "#26a69a"
-        unit: "%"
-        float_precision: 0
-        show:
-          in_chart: false
-          in_header: true
-        data_generator: |
-          const ID = "climate.minepoint", ATTR = "current_humidity";
           const now = new Date(), since = new Date(now.getTime() - 36 * 3600000);
           const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(since.toISOString()) +
             "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
@@ -633,11 +501,6 @@ cards:
         decimals: 1
         min: 50
         max: 85
-      - id: hum
-        opposite: true
-        decimals: 0
-        min: 0
-        max: 100
     apex_config:
       chart:
         height: 280
@@ -700,18 +563,6 @@ cards:
           duration: 15min
           func: last
       - entity: climate.new_offices
-        attribute: current_humidity
-        name: Humidity
-        color: '#26a69a'
-        type: line
-        yaxis_id: hum
-        show:
-          in_header: false
-        float_precision: 1
-        group_by:
-          duration: 15min
-          func: avg
-      - entity: climate.new_offices
         name: Peak temp
         color: "#ef5350"
         unit: "°F"
@@ -721,22 +572,6 @@ cards:
           in_header: true
         data_generator: |
           const ID = "climate.new_offices", ATTR = "current_temperature";
-          const now = new Date(), since = new Date(now.getTime() - 36 * 3600000);
-          const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(since.toISOString()) +
-            "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
-            "&significant_changes_only=0");
-          const vals = (h?.[0] || []).map(r => parseFloat(r.attributes?.[ATTR])).filter(Number.isFinite);
-          return vals.length ? [[now.getTime(), Math.max(...vals)]] : [];
-      - entity: climate.new_offices
-        name: Peak humidity
-        color: "#26a69a"
-        unit: "%"
-        float_precision: 0
-        show:
-          in_chart: false
-          in_header: true
-        data_generator: |
-          const ID = "climate.new_offices", ATTR = "current_humidity";
           const now = new Date(), since = new Date(now.getTime() - 36 * 3600000);
           const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(since.toISOString()) +
             "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
