@@ -106,8 +106,8 @@ cards:
           in_header: true
         data_generator: |
           const ID = "climate.sales", ATTR = "current_temperature";
-          const now = new Date(), start = new Date(now.getTime() - 36 * 3600000);
-          const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(start.toISOString()) +
+          const now = new Date(), since = new Date(now.getTime() - 36 * 3600000);
+          const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(since.toISOString()) +
             "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
             "&significant_changes_only=0");
           const vals = (h?.[0] || []).map(r => parseFloat(r.attributes?.[ATTR])).filter(Number.isFinite);
@@ -122,8 +122,8 @@ cards:
           in_header: true
         data_generator: |
           const ID = "climate.sales", ATTR = "current_humidity";
-          const now = new Date(), start = new Date(now.getTime() - 36 * 3600000);
-          const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(start.toISOString()) +
+          const now = new Date(), since = new Date(now.getTime() - 36 * 3600000);
+          const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(since.toISOString()) +
             "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
             "&significant_changes_only=0");
           const vals = (h?.[0] || []).map(r => parseFloat(r.attributes?.[ATTR])).filter(Number.isFinite);
@@ -229,8 +229,8 @@ cards:
           in_header: true
         data_generator: |
           const ID = "climate.amy", ATTR = "current_temperature";
-          const now = new Date(), start = new Date(now.getTime() - 36 * 3600000);
-          const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(start.toISOString()) +
+          const now = new Date(), since = new Date(now.getTime() - 36 * 3600000);
+          const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(since.toISOString()) +
             "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
             "&significant_changes_only=0");
           const vals = (h?.[0] || []).map(r => parseFloat(r.attributes?.[ATTR])).filter(Number.isFinite);
@@ -245,8 +245,8 @@ cards:
           in_header: true
         data_generator: |
           const ID = "climate.amy", ATTR = "current_humidity";
-          const now = new Date(), start = new Date(now.getTime() - 36 * 3600000);
-          const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(start.toISOString()) +
+          const now = new Date(), since = new Date(now.getTime() - 36 * 3600000);
+          const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(since.toISOString()) +
             "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
             "&significant_changes_only=0");
           const vals = (h?.[0] || []).map(r => parseFloat(r.attributes?.[ATTR])).filter(Number.isFinite);
@@ -352,8 +352,8 @@ cards:
           in_header: true
         data_generator: |
           const ID = "climate.bruce_break_room", ATTR = "current_temperature";
-          const now = new Date(), start = new Date(now.getTime() - 36 * 3600000);
-          const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(start.toISOString()) +
+          const now = new Date(), since = new Date(now.getTime() - 36 * 3600000);
+          const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(since.toISOString()) +
             "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
             "&significant_changes_only=0");
           const vals = (h?.[0] || []).map(r => parseFloat(r.attributes?.[ATTR])).filter(Number.isFinite);
@@ -368,8 +368,8 @@ cards:
           in_header: true
         data_generator: |
           const ID = "climate.bruce_break_room", ATTR = "current_humidity";
-          const now = new Date(), start = new Date(now.getTime() - 36 * 3600000);
-          const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(start.toISOString()) +
+          const now = new Date(), since = new Date(now.getTime() - 36 * 3600000);
+          const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(since.toISOString()) +
             "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
             "&significant_changes_only=0");
           const vals = (h?.[0] || []).map(r => parseFloat(r.attributes?.[ATTR])).filter(Number.isFinite);
@@ -475,8 +475,8 @@ cards:
           in_header: true
         data_generator: |
           const ID = "climate.dethac_hall", ATTR = "current_temperature";
-          const now = new Date(), start = new Date(now.getTime() - 36 * 3600000);
-          const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(start.toISOString()) +
+          const now = new Date(), since = new Date(now.getTime() - 36 * 3600000);
+          const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(since.toISOString()) +
             "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
             "&significant_changes_only=0");
           const vals = (h?.[0] || []).map(r => parseFloat(r.attributes?.[ATTR])).filter(Number.isFinite);
@@ -491,8 +491,8 @@ cards:
           in_header: true
         data_generator: |
           const ID = "climate.dethac_hall", ATTR = "current_humidity";
-          const now = new Date(), start = new Date(now.getTime() - 36 * 3600000);
-          const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(start.toISOString()) +
+          const now = new Date(), since = new Date(now.getTime() - 36 * 3600000);
+          const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(since.toISOString()) +
             "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
             "&significant_changes_only=0");
           const vals = (h?.[0] || []).map(r => parseFloat(r.attributes?.[ATTR])).filter(Number.isFinite);
@@ -598,8 +598,8 @@ cards:
           in_header: true
         data_generator: |
           const ID = "climate.minepoint", ATTR = "current_temperature";
-          const now = new Date(), start = new Date(now.getTime() - 36 * 3600000);
-          const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(start.toISOString()) +
+          const now = new Date(), since = new Date(now.getTime() - 36 * 3600000);
+          const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(since.toISOString()) +
             "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
             "&significant_changes_only=0");
           const vals = (h?.[0] || []).map(r => parseFloat(r.attributes?.[ATTR])).filter(Number.isFinite);
@@ -614,8 +614,8 @@ cards:
           in_header: true
         data_generator: |
           const ID = "climate.minepoint", ATTR = "current_humidity";
-          const now = new Date(), start = new Date(now.getTime() - 36 * 3600000);
-          const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(start.toISOString()) +
+          const now = new Date(), since = new Date(now.getTime() - 36 * 3600000);
+          const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(since.toISOString()) +
             "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
             "&significant_changes_only=0");
           const vals = (h?.[0] || []).map(r => parseFloat(r.attributes?.[ATTR])).filter(Number.isFinite);
@@ -721,8 +721,8 @@ cards:
           in_header: true
         data_generator: |
           const ID = "climate.new_offices", ATTR = "current_temperature";
-          const now = new Date(), start = new Date(now.getTime() - 36 * 3600000);
-          const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(start.toISOString()) +
+          const now = new Date(), since = new Date(now.getTime() - 36 * 3600000);
+          const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(since.toISOString()) +
             "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
             "&significant_changes_only=0");
           const vals = (h?.[0] || []).map(r => parseFloat(r.attributes?.[ATTR])).filter(Number.isFinite);
@@ -737,8 +737,8 @@ cards:
           in_header: true
         data_generator: |
           const ID = "climate.new_offices", ATTR = "current_humidity";
-          const now = new Date(), start = new Date(now.getTime() - 36 * 3600000);
-          const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(start.toISOString()) +
+          const now = new Date(), since = new Date(now.getTime() - 36 * 3600000);
+          const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(since.toISOString()) +
             "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
             "&significant_changes_only=0");
           const vals = (h?.[0] || []).map(r => parseFloat(r.attributes?.[ATTR])).filter(Number.isFinite);
@@ -844,8 +844,8 @@ cards:
           in_header: true
         data_generator: |
           const ID = "climate.software_support", ATTR = "current_temperature";
-          const now = new Date(), start = new Date(now.getTime() - 36 * 3600000);
-          const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(start.toISOString()) +
+          const now = new Date(), since = new Date(now.getTime() - 36 * 3600000);
+          const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(since.toISOString()) +
             "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
             "&significant_changes_only=0");
           const vals = (h?.[0] || []).map(r => parseFloat(r.attributes?.[ATTR])).filter(Number.isFinite);
@@ -860,8 +860,8 @@ cards:
           in_header: true
         data_generator: |
           const ID = "climate.software_support", ATTR = "current_humidity";
-          const now = new Date(), start = new Date(now.getTime() - 36 * 3600000);
-          const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(start.toISOString()) +
+          const now = new Date(), since = new Date(now.getTime() - 36 * 3600000);
+          const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(since.toISOString()) +
             "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
             "&significant_changes_only=0");
           const vals = (h?.[0] || []).map(r => parseFloat(r.attributes?.[ATTR])).filter(Number.isFinite);
