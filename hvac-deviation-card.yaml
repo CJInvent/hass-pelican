@@ -1,0 +1,1211 @@
+square: false
+type: grid
+title: Business-hours deviation — last 8 weeks
+columns: 2
+grid_options:
+  columns: full
+cards:
+  - type: custom:apexcharts-card
+    header:
+      show: true
+      title: Sales
+      show_states: false
+    graph_span: 8w
+    span:
+      end: week
+    update_interval: 15min
+    yaxis:
+      - decimals: 1
+        min: "~-5"
+        max: "~5"
+    apex_config:
+      chart:
+        height: 280
+        stacked: true
+        animations:
+          enabled: false
+      legend:
+        show: true
+      plotOptions:
+        bar:
+          columnWidth: 55%
+      fill:
+        opacity: [0.85, 0.85, 1]
+      markers:
+        size: 0
+        hover:
+          size: 3
+      dataLabels:
+        enabled: false
+      tooltip:
+        shared: true
+        intersect: false
+        theme: dark
+        custom: |
+          EVAL:function(o){
+            var w = o.w, i = o.dataPointIndex;
+            var d = new Date(w.globals.seriesX[0][i]);
+            var html = '<div style="padding:8px 10px;font-size:12px">' +
+              '<div style="margin-bottom:6px;font-weight:600">Week of ' +
+              d.toLocaleDateString(undefined, {month: 'short', day: 'numeric'}) + '</div>';
+            w.globals.seriesNames.forEach(function(n, k){
+              var v = o.series[k] ? o.series[k][i] : null;
+              html += '<div><span style="display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;background:' +
+                w.globals.colors[k] + '"></span>' + n + ': <b>' +
+                (v == null ? '\u2013' : Number(v).toFixed(1) + '\u00b0') + '</b></div>';
+            });
+            return html + '</div>';
+          }
+      xaxis:
+        type: datetime
+        labels:
+          datetimeUTC: false
+          format: dd MMM
+    series:
+      - entity: sensor.hvac_deviation_sales
+        name: Max below
+        color: "#1e88e5"
+        type: column
+        stroke_width: 0
+        float_precision: 1
+        data_generator: |
+          const ID = "sensor.hvac_deviation_sales", K = "hvacDev:" + ID, C = (window.__hvacDevCache ??= {});
+          if (!C[K] || Date.now() - C[K].t > 300000) {
+            C[K] = { t: Date.now(), p: (async () => {
+              const now = new Date(), cur = new Date(now);
+              cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
+              const first = new Date(cur); first.setDate(first.getDate() - 49);
+              const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(first.toISOString()) +
+                "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
+                "&significant_changes_only=0");
+              const pts = (h?.[0] || [])
+                .map(r => ({ t: new Date(r.last_updated).getTime(), v: parseFloat(r.state) }))
+                .filter(r => Number.isFinite(r.t)).sort((a, b) => a.t - b.t);
+              const out = [];
+              for (let w = 7; w >= 0; w--) {
+                const ws = new Date(cur); ws.setDate(ws.getDate() - w * 7);
+                const we = new Date(ws); we.setDate(we.getDate() + 7);
+                const s = ws.getTime(), e = Math.min(we.getTime(), now.getTime());
+                let lo = 0, hi = 0; const g = [];
+                pts.forEach((p, i) => {
+                  const f = Math.max(p.t, s), t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
+                  if (t > f && Number.isFinite(p.v)) { lo = Math.min(lo, p.v); hi = Math.max(hi, p.v); if (p.v !== 0) g.push([p.v, t - f]); }
+                });
+                let m = 0;
+                if (g.length) { g.sort((a, b) => a[0] - b[0]); const half = g.reduce((n, x) => n + x[1], 0) / 2; let a = 0; for (const x of g) { a += x[1]; if (a >= half) { m = x[0]; break; } } }
+                out.push({ s, lo: +lo.toFixed(2), hi: +hi.toFixed(2), m: +m.toFixed(2) });
+              }
+              return out;
+            })() };
+            C[K].p.catch(err => { console.error("hvacDev", ID, err); delete C[K]; });
+          }
+          return (await C[K].p).map(x => [x.s, x.lo]);
+      - entity: sensor.hvac_deviation_sales
+        name: Max above
+        color: "#e53935"
+        type: column
+        stroke_width: 0
+        float_precision: 1
+        data_generator: |
+          const ID = "sensor.hvac_deviation_sales", K = "hvacDev:" + ID, C = (window.__hvacDevCache ??= {});
+          if (!C[K] || Date.now() - C[K].t > 300000) {
+            C[K] = { t: Date.now(), p: (async () => {
+              const now = new Date(), cur = new Date(now);
+              cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
+              const first = new Date(cur); first.setDate(first.getDate() - 49);
+              const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(first.toISOString()) +
+                "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
+                "&significant_changes_only=0");
+              const pts = (h?.[0] || [])
+                .map(r => ({ t: new Date(r.last_updated).getTime(), v: parseFloat(r.state) }))
+                .filter(r => Number.isFinite(r.t)).sort((a, b) => a.t - b.t);
+              const out = [];
+              for (let w = 7; w >= 0; w--) {
+                const ws = new Date(cur); ws.setDate(ws.getDate() - w * 7);
+                const we = new Date(ws); we.setDate(we.getDate() + 7);
+                const s = ws.getTime(), e = Math.min(we.getTime(), now.getTime());
+                let lo = 0, hi = 0; const g = [];
+                pts.forEach((p, i) => {
+                  const f = Math.max(p.t, s), t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
+                  if (t > f && Number.isFinite(p.v)) { lo = Math.min(lo, p.v); hi = Math.max(hi, p.v); if (p.v !== 0) g.push([p.v, t - f]); }
+                });
+                let m = 0;
+                if (g.length) { g.sort((a, b) => a[0] - b[0]); const half = g.reduce((n, x) => n + x[1], 0) / 2; let a = 0; for (const x of g) { a += x[1]; if (a >= half) { m = x[0]; break; } } }
+                out.push({ s, lo: +lo.toFixed(2), hi: +hi.toFixed(2), m: +m.toFixed(2) });
+              }
+              return out;
+            })() };
+            C[K].p.catch(err => { console.error("hvacDev", ID, err); delete C[K]; });
+          }
+          return (await C[K].p).map(x => [x.s, x.hi]);
+      - entity: sensor.hvac_deviation_sales
+        name: Median
+        color: "#ffca28"
+        type: line
+        stroke_width: 1.5
+        curve: straight
+        float_precision: 1
+        data_generator: |
+          const ID = "sensor.hvac_deviation_sales", K = "hvacDev:" + ID, C = (window.__hvacDevCache ??= {});
+          if (!C[K] || Date.now() - C[K].t > 300000) {
+            C[K] = { t: Date.now(), p: (async () => {
+              const now = new Date(), cur = new Date(now);
+              cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
+              const first = new Date(cur); first.setDate(first.getDate() - 49);
+              const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(first.toISOString()) +
+                "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
+                "&significant_changes_only=0");
+              const pts = (h?.[0] || [])
+                .map(r => ({ t: new Date(r.last_updated).getTime(), v: parseFloat(r.state) }))
+                .filter(r => Number.isFinite(r.t)).sort((a, b) => a.t - b.t);
+              const out = [];
+              for (let w = 7; w >= 0; w--) {
+                const ws = new Date(cur); ws.setDate(ws.getDate() - w * 7);
+                const we = new Date(ws); we.setDate(we.getDate() + 7);
+                const s = ws.getTime(), e = Math.min(we.getTime(), now.getTime());
+                let lo = 0, hi = 0; const g = [];
+                pts.forEach((p, i) => {
+                  const f = Math.max(p.t, s), t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
+                  if (t > f && Number.isFinite(p.v)) { lo = Math.min(lo, p.v); hi = Math.max(hi, p.v); if (p.v !== 0) g.push([p.v, t - f]); }
+                });
+                let m = 0;
+                if (g.length) { g.sort((a, b) => a[0] - b[0]); const half = g.reduce((n, x) => n + x[1], 0) / 2; let a = 0; for (const x of g) { a += x[1]; if (a >= half) { m = x[0]; break; } } }
+                out.push({ s, lo: +lo.toFixed(2), hi: +hi.toFixed(2), m: +m.toFixed(2) });
+              }
+              return out;
+            })() };
+            C[K].p.catch(err => { console.error("hvacDev", ID, err); delete C[K]; });
+          }
+          return (await C[K].p).map(x => [x.s, x.m]);
+  - type: custom:apexcharts-card
+    header:
+      show: true
+      title: Amy
+      show_states: false
+    graph_span: 8w
+    span:
+      end: week
+    update_interval: 15min
+    yaxis:
+      - decimals: 1
+        min: "~-5"
+        max: "~5"
+    apex_config:
+      chart:
+        height: 280
+        stacked: true
+        animations:
+          enabled: false
+      legend:
+        show: true
+      plotOptions:
+        bar:
+          columnWidth: 55%
+      fill:
+        opacity: [0.85, 0.85, 1]
+      markers:
+        size: 0
+        hover:
+          size: 3
+      dataLabels:
+        enabled: false
+      tooltip:
+        shared: true
+        intersect: false
+        theme: dark
+        custom: |
+          EVAL:function(o){
+            var w = o.w, i = o.dataPointIndex;
+            var d = new Date(w.globals.seriesX[0][i]);
+            var html = '<div style="padding:8px 10px;font-size:12px">' +
+              '<div style="margin-bottom:6px;font-weight:600">Week of ' +
+              d.toLocaleDateString(undefined, {month: 'short', day: 'numeric'}) + '</div>';
+            w.globals.seriesNames.forEach(function(n, k){
+              var v = o.series[k] ? o.series[k][i] : null;
+              html += '<div><span style="display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;background:' +
+                w.globals.colors[k] + '"></span>' + n + ': <b>' +
+                (v == null ? '\u2013' : Number(v).toFixed(1) + '\u00b0') + '</b></div>';
+            });
+            return html + '</div>';
+          }
+      xaxis:
+        type: datetime
+        labels:
+          datetimeUTC: false
+          format: dd MMM
+    series:
+      - entity: sensor.hvac_deviation_amy
+        name: Max below
+        color: "#1e88e5"
+        type: column
+        stroke_width: 0
+        float_precision: 1
+        data_generator: |
+          const ID = "sensor.hvac_deviation_amy", K = "hvacDev:" + ID, C = (window.__hvacDevCache ??= {});
+          if (!C[K] || Date.now() - C[K].t > 300000) {
+            C[K] = { t: Date.now(), p: (async () => {
+              const now = new Date(), cur = new Date(now);
+              cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
+              const first = new Date(cur); first.setDate(first.getDate() - 49);
+              const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(first.toISOString()) +
+                "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
+                "&significant_changes_only=0");
+              const pts = (h?.[0] || [])
+                .map(r => ({ t: new Date(r.last_updated).getTime(), v: parseFloat(r.state) }))
+                .filter(r => Number.isFinite(r.t)).sort((a, b) => a.t - b.t);
+              const out = [];
+              for (let w = 7; w >= 0; w--) {
+                const ws = new Date(cur); ws.setDate(ws.getDate() - w * 7);
+                const we = new Date(ws); we.setDate(we.getDate() + 7);
+                const s = ws.getTime(), e = Math.min(we.getTime(), now.getTime());
+                let lo = 0, hi = 0; const g = [];
+                pts.forEach((p, i) => {
+                  const f = Math.max(p.t, s), t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
+                  if (t > f && Number.isFinite(p.v)) { lo = Math.min(lo, p.v); hi = Math.max(hi, p.v); if (p.v !== 0) g.push([p.v, t - f]); }
+                });
+                let m = 0;
+                if (g.length) { g.sort((a, b) => a[0] - b[0]); const half = g.reduce((n, x) => n + x[1], 0) / 2; let a = 0; for (const x of g) { a += x[1]; if (a >= half) { m = x[0]; break; } } }
+                out.push({ s, lo: +lo.toFixed(2), hi: +hi.toFixed(2), m: +m.toFixed(2) });
+              }
+              return out;
+            })() };
+            C[K].p.catch(err => { console.error("hvacDev", ID, err); delete C[K]; });
+          }
+          return (await C[K].p).map(x => [x.s, x.lo]);
+      - entity: sensor.hvac_deviation_amy
+        name: Max above
+        color: "#e53935"
+        type: column
+        stroke_width: 0
+        float_precision: 1
+        data_generator: |
+          const ID = "sensor.hvac_deviation_amy", K = "hvacDev:" + ID, C = (window.__hvacDevCache ??= {});
+          if (!C[K] || Date.now() - C[K].t > 300000) {
+            C[K] = { t: Date.now(), p: (async () => {
+              const now = new Date(), cur = new Date(now);
+              cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
+              const first = new Date(cur); first.setDate(first.getDate() - 49);
+              const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(first.toISOString()) +
+                "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
+                "&significant_changes_only=0");
+              const pts = (h?.[0] || [])
+                .map(r => ({ t: new Date(r.last_updated).getTime(), v: parseFloat(r.state) }))
+                .filter(r => Number.isFinite(r.t)).sort((a, b) => a.t - b.t);
+              const out = [];
+              for (let w = 7; w >= 0; w--) {
+                const ws = new Date(cur); ws.setDate(ws.getDate() - w * 7);
+                const we = new Date(ws); we.setDate(we.getDate() + 7);
+                const s = ws.getTime(), e = Math.min(we.getTime(), now.getTime());
+                let lo = 0, hi = 0; const g = [];
+                pts.forEach((p, i) => {
+                  const f = Math.max(p.t, s), t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
+                  if (t > f && Number.isFinite(p.v)) { lo = Math.min(lo, p.v); hi = Math.max(hi, p.v); if (p.v !== 0) g.push([p.v, t - f]); }
+                });
+                let m = 0;
+                if (g.length) { g.sort((a, b) => a[0] - b[0]); const half = g.reduce((n, x) => n + x[1], 0) / 2; let a = 0; for (const x of g) { a += x[1]; if (a >= half) { m = x[0]; break; } } }
+                out.push({ s, lo: +lo.toFixed(2), hi: +hi.toFixed(2), m: +m.toFixed(2) });
+              }
+              return out;
+            })() };
+            C[K].p.catch(err => { console.error("hvacDev", ID, err); delete C[K]; });
+          }
+          return (await C[K].p).map(x => [x.s, x.hi]);
+      - entity: sensor.hvac_deviation_amy
+        name: Median
+        color: "#ffca28"
+        type: line
+        stroke_width: 1.5
+        curve: straight
+        float_precision: 1
+        data_generator: |
+          const ID = "sensor.hvac_deviation_amy", K = "hvacDev:" + ID, C = (window.__hvacDevCache ??= {});
+          if (!C[K] || Date.now() - C[K].t > 300000) {
+            C[K] = { t: Date.now(), p: (async () => {
+              const now = new Date(), cur = new Date(now);
+              cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
+              const first = new Date(cur); first.setDate(first.getDate() - 49);
+              const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(first.toISOString()) +
+                "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
+                "&significant_changes_only=0");
+              const pts = (h?.[0] || [])
+                .map(r => ({ t: new Date(r.last_updated).getTime(), v: parseFloat(r.state) }))
+                .filter(r => Number.isFinite(r.t)).sort((a, b) => a.t - b.t);
+              const out = [];
+              for (let w = 7; w >= 0; w--) {
+                const ws = new Date(cur); ws.setDate(ws.getDate() - w * 7);
+                const we = new Date(ws); we.setDate(we.getDate() + 7);
+                const s = ws.getTime(), e = Math.min(we.getTime(), now.getTime());
+                let lo = 0, hi = 0; const g = [];
+                pts.forEach((p, i) => {
+                  const f = Math.max(p.t, s), t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
+                  if (t > f && Number.isFinite(p.v)) { lo = Math.min(lo, p.v); hi = Math.max(hi, p.v); if (p.v !== 0) g.push([p.v, t - f]); }
+                });
+                let m = 0;
+                if (g.length) { g.sort((a, b) => a[0] - b[0]); const half = g.reduce((n, x) => n + x[1], 0) / 2; let a = 0; for (const x of g) { a += x[1]; if (a >= half) { m = x[0]; break; } } }
+                out.push({ s, lo: +lo.toFixed(2), hi: +hi.toFixed(2), m: +m.toFixed(2) });
+              }
+              return out;
+            })() };
+            C[K].p.catch(err => { console.error("hvacDev", ID, err); delete C[K]; });
+          }
+          return (await C[K].p).map(x => [x.s, x.m]);
+  - type: custom:apexcharts-card
+    header:
+      show: true
+      title: Bruce & Break Room
+      show_states: false
+    graph_span: 8w
+    span:
+      end: week
+    update_interval: 15min
+    yaxis:
+      - decimals: 1
+        min: "~-5"
+        max: "~5"
+    apex_config:
+      chart:
+        height: 280
+        stacked: true
+        animations:
+          enabled: false
+      legend:
+        show: true
+      plotOptions:
+        bar:
+          columnWidth: 55%
+      fill:
+        opacity: [0.85, 0.85, 1]
+      markers:
+        size: 0
+        hover:
+          size: 3
+      dataLabels:
+        enabled: false
+      tooltip:
+        shared: true
+        intersect: false
+        theme: dark
+        custom: |
+          EVAL:function(o){
+            var w = o.w, i = o.dataPointIndex;
+            var d = new Date(w.globals.seriesX[0][i]);
+            var html = '<div style="padding:8px 10px;font-size:12px">' +
+              '<div style="margin-bottom:6px;font-weight:600">Week of ' +
+              d.toLocaleDateString(undefined, {month: 'short', day: 'numeric'}) + '</div>';
+            w.globals.seriesNames.forEach(function(n, k){
+              var v = o.series[k] ? o.series[k][i] : null;
+              html += '<div><span style="display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;background:' +
+                w.globals.colors[k] + '"></span>' + n + ': <b>' +
+                (v == null ? '\u2013' : Number(v).toFixed(1) + '\u00b0') + '</b></div>';
+            });
+            return html + '</div>';
+          }
+      xaxis:
+        type: datetime
+        labels:
+          datetimeUTC: false
+          format: dd MMM
+    series:
+      - entity: sensor.hvac_deviation_bruce_break_room
+        name: Max below
+        color: "#1e88e5"
+        type: column
+        stroke_width: 0
+        float_precision: 1
+        data_generator: |
+          const ID = "sensor.hvac_deviation_bruce_break_room", K = "hvacDev:" + ID, C = (window.__hvacDevCache ??= {});
+          if (!C[K] || Date.now() - C[K].t > 300000) {
+            C[K] = { t: Date.now(), p: (async () => {
+              const now = new Date(), cur = new Date(now);
+              cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
+              const first = new Date(cur); first.setDate(first.getDate() - 49);
+              const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(first.toISOString()) +
+                "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
+                "&significant_changes_only=0");
+              const pts = (h?.[0] || [])
+                .map(r => ({ t: new Date(r.last_updated).getTime(), v: parseFloat(r.state) }))
+                .filter(r => Number.isFinite(r.t)).sort((a, b) => a.t - b.t);
+              const out = [];
+              for (let w = 7; w >= 0; w--) {
+                const ws = new Date(cur); ws.setDate(ws.getDate() - w * 7);
+                const we = new Date(ws); we.setDate(we.getDate() + 7);
+                const s = ws.getTime(), e = Math.min(we.getTime(), now.getTime());
+                let lo = 0, hi = 0; const g = [];
+                pts.forEach((p, i) => {
+                  const f = Math.max(p.t, s), t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
+                  if (t > f && Number.isFinite(p.v)) { lo = Math.min(lo, p.v); hi = Math.max(hi, p.v); if (p.v !== 0) g.push([p.v, t - f]); }
+                });
+                let m = 0;
+                if (g.length) { g.sort((a, b) => a[0] - b[0]); const half = g.reduce((n, x) => n + x[1], 0) / 2; let a = 0; for (const x of g) { a += x[1]; if (a >= half) { m = x[0]; break; } } }
+                out.push({ s, lo: +lo.toFixed(2), hi: +hi.toFixed(2), m: +m.toFixed(2) });
+              }
+              return out;
+            })() };
+            C[K].p.catch(err => { console.error("hvacDev", ID, err); delete C[K]; });
+          }
+          return (await C[K].p).map(x => [x.s, x.lo]);
+      - entity: sensor.hvac_deviation_bruce_break_room
+        name: Max above
+        color: "#e53935"
+        type: column
+        stroke_width: 0
+        float_precision: 1
+        data_generator: |
+          const ID = "sensor.hvac_deviation_bruce_break_room", K = "hvacDev:" + ID, C = (window.__hvacDevCache ??= {});
+          if (!C[K] || Date.now() - C[K].t > 300000) {
+            C[K] = { t: Date.now(), p: (async () => {
+              const now = new Date(), cur = new Date(now);
+              cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
+              const first = new Date(cur); first.setDate(first.getDate() - 49);
+              const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(first.toISOString()) +
+                "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
+                "&significant_changes_only=0");
+              const pts = (h?.[0] || [])
+                .map(r => ({ t: new Date(r.last_updated).getTime(), v: parseFloat(r.state) }))
+                .filter(r => Number.isFinite(r.t)).sort((a, b) => a.t - b.t);
+              const out = [];
+              for (let w = 7; w >= 0; w--) {
+                const ws = new Date(cur); ws.setDate(ws.getDate() - w * 7);
+                const we = new Date(ws); we.setDate(we.getDate() + 7);
+                const s = ws.getTime(), e = Math.min(we.getTime(), now.getTime());
+                let lo = 0, hi = 0; const g = [];
+                pts.forEach((p, i) => {
+                  const f = Math.max(p.t, s), t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
+                  if (t > f && Number.isFinite(p.v)) { lo = Math.min(lo, p.v); hi = Math.max(hi, p.v); if (p.v !== 0) g.push([p.v, t - f]); }
+                });
+                let m = 0;
+                if (g.length) { g.sort((a, b) => a[0] - b[0]); const half = g.reduce((n, x) => n + x[1], 0) / 2; let a = 0; for (const x of g) { a += x[1]; if (a >= half) { m = x[0]; break; } } }
+                out.push({ s, lo: +lo.toFixed(2), hi: +hi.toFixed(2), m: +m.toFixed(2) });
+              }
+              return out;
+            })() };
+            C[K].p.catch(err => { console.error("hvacDev", ID, err); delete C[K]; });
+          }
+          return (await C[K].p).map(x => [x.s, x.hi]);
+      - entity: sensor.hvac_deviation_bruce_break_room
+        name: Median
+        color: "#ffca28"
+        type: line
+        stroke_width: 1.5
+        curve: straight
+        float_precision: 1
+        data_generator: |
+          const ID = "sensor.hvac_deviation_bruce_break_room", K = "hvacDev:" + ID, C = (window.__hvacDevCache ??= {});
+          if (!C[K] || Date.now() - C[K].t > 300000) {
+            C[K] = { t: Date.now(), p: (async () => {
+              const now = new Date(), cur = new Date(now);
+              cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
+              const first = new Date(cur); first.setDate(first.getDate() - 49);
+              const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(first.toISOString()) +
+                "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
+                "&significant_changes_only=0");
+              const pts = (h?.[0] || [])
+                .map(r => ({ t: new Date(r.last_updated).getTime(), v: parseFloat(r.state) }))
+                .filter(r => Number.isFinite(r.t)).sort((a, b) => a.t - b.t);
+              const out = [];
+              for (let w = 7; w >= 0; w--) {
+                const ws = new Date(cur); ws.setDate(ws.getDate() - w * 7);
+                const we = new Date(ws); we.setDate(we.getDate() + 7);
+                const s = ws.getTime(), e = Math.min(we.getTime(), now.getTime());
+                let lo = 0, hi = 0; const g = [];
+                pts.forEach((p, i) => {
+                  const f = Math.max(p.t, s), t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
+                  if (t > f && Number.isFinite(p.v)) { lo = Math.min(lo, p.v); hi = Math.max(hi, p.v); if (p.v !== 0) g.push([p.v, t - f]); }
+                });
+                let m = 0;
+                if (g.length) { g.sort((a, b) => a[0] - b[0]); const half = g.reduce((n, x) => n + x[1], 0) / 2; let a = 0; for (const x of g) { a += x[1]; if (a >= half) { m = x[0]; break; } } }
+                out.push({ s, lo: +lo.toFixed(2), hi: +hi.toFixed(2), m: +m.toFixed(2) });
+              }
+              return out;
+            })() };
+            C[K].p.catch(err => { console.error("hvacDev", ID, err); delete C[K]; });
+          }
+          return (await C[K].p).map(x => [x.s, x.m]);
+  - type: custom:apexcharts-card
+    header:
+      show: true
+      title: DETHAC Hall
+      show_states: false
+    graph_span: 8w
+    span:
+      end: week
+    update_interval: 15min
+    yaxis:
+      - decimals: 1
+        min: "~-5"
+        max: "~5"
+    apex_config:
+      chart:
+        height: 280
+        stacked: true
+        animations:
+          enabled: false
+      legend:
+        show: true
+      plotOptions:
+        bar:
+          columnWidth: 55%
+      fill:
+        opacity: [0.85, 0.85, 1]
+      markers:
+        size: 0
+        hover:
+          size: 3
+      dataLabels:
+        enabled: false
+      tooltip:
+        shared: true
+        intersect: false
+        theme: dark
+        custom: |
+          EVAL:function(o){
+            var w = o.w, i = o.dataPointIndex;
+            var d = new Date(w.globals.seriesX[0][i]);
+            var html = '<div style="padding:8px 10px;font-size:12px">' +
+              '<div style="margin-bottom:6px;font-weight:600">Week of ' +
+              d.toLocaleDateString(undefined, {month: 'short', day: 'numeric'}) + '</div>';
+            w.globals.seriesNames.forEach(function(n, k){
+              var v = o.series[k] ? o.series[k][i] : null;
+              html += '<div><span style="display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;background:' +
+                w.globals.colors[k] + '"></span>' + n + ': <b>' +
+                (v == null ? '\u2013' : Number(v).toFixed(1) + '\u00b0') + '</b></div>';
+            });
+            return html + '</div>';
+          }
+      xaxis:
+        type: datetime
+        labels:
+          datetimeUTC: false
+          format: dd MMM
+    series:
+      - entity: sensor.hvac_deviation_dethac_hall
+        name: Max below
+        color: "#1e88e5"
+        type: column
+        stroke_width: 0
+        float_precision: 1
+        data_generator: |
+          const ID = "sensor.hvac_deviation_dethac_hall", K = "hvacDev:" + ID, C = (window.__hvacDevCache ??= {});
+          if (!C[K] || Date.now() - C[K].t > 300000) {
+            C[K] = { t: Date.now(), p: (async () => {
+              const now = new Date(), cur = new Date(now);
+              cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
+              const first = new Date(cur); first.setDate(first.getDate() - 49);
+              const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(first.toISOString()) +
+                "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
+                "&significant_changes_only=0");
+              const pts = (h?.[0] || [])
+                .map(r => ({ t: new Date(r.last_updated).getTime(), v: parseFloat(r.state) }))
+                .filter(r => Number.isFinite(r.t)).sort((a, b) => a.t - b.t);
+              const out = [];
+              for (let w = 7; w >= 0; w--) {
+                const ws = new Date(cur); ws.setDate(ws.getDate() - w * 7);
+                const we = new Date(ws); we.setDate(we.getDate() + 7);
+                const s = ws.getTime(), e = Math.min(we.getTime(), now.getTime());
+                let lo = 0, hi = 0; const g = [];
+                pts.forEach((p, i) => {
+                  const f = Math.max(p.t, s), t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
+                  if (t > f && Number.isFinite(p.v)) { lo = Math.min(lo, p.v); hi = Math.max(hi, p.v); if (p.v !== 0) g.push([p.v, t - f]); }
+                });
+                let m = 0;
+                if (g.length) { g.sort((a, b) => a[0] - b[0]); const half = g.reduce((n, x) => n + x[1], 0) / 2; let a = 0; for (const x of g) { a += x[1]; if (a >= half) { m = x[0]; break; } } }
+                out.push({ s, lo: +lo.toFixed(2), hi: +hi.toFixed(2), m: +m.toFixed(2) });
+              }
+              return out;
+            })() };
+            C[K].p.catch(err => { console.error("hvacDev", ID, err); delete C[K]; });
+          }
+          return (await C[K].p).map(x => [x.s, x.lo]);
+      - entity: sensor.hvac_deviation_dethac_hall
+        name: Max above
+        color: "#e53935"
+        type: column
+        stroke_width: 0
+        float_precision: 1
+        data_generator: |
+          const ID = "sensor.hvac_deviation_dethac_hall", K = "hvacDev:" + ID, C = (window.__hvacDevCache ??= {});
+          if (!C[K] || Date.now() - C[K].t > 300000) {
+            C[K] = { t: Date.now(), p: (async () => {
+              const now = new Date(), cur = new Date(now);
+              cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
+              const first = new Date(cur); first.setDate(first.getDate() - 49);
+              const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(first.toISOString()) +
+                "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
+                "&significant_changes_only=0");
+              const pts = (h?.[0] || [])
+                .map(r => ({ t: new Date(r.last_updated).getTime(), v: parseFloat(r.state) }))
+                .filter(r => Number.isFinite(r.t)).sort((a, b) => a.t - b.t);
+              const out = [];
+              for (let w = 7; w >= 0; w--) {
+                const ws = new Date(cur); ws.setDate(ws.getDate() - w * 7);
+                const we = new Date(ws); we.setDate(we.getDate() + 7);
+                const s = ws.getTime(), e = Math.min(we.getTime(), now.getTime());
+                let lo = 0, hi = 0; const g = [];
+                pts.forEach((p, i) => {
+                  const f = Math.max(p.t, s), t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
+                  if (t > f && Number.isFinite(p.v)) { lo = Math.min(lo, p.v); hi = Math.max(hi, p.v); if (p.v !== 0) g.push([p.v, t - f]); }
+                });
+                let m = 0;
+                if (g.length) { g.sort((a, b) => a[0] - b[0]); const half = g.reduce((n, x) => n + x[1], 0) / 2; let a = 0; for (const x of g) { a += x[1]; if (a >= half) { m = x[0]; break; } } }
+                out.push({ s, lo: +lo.toFixed(2), hi: +hi.toFixed(2), m: +m.toFixed(2) });
+              }
+              return out;
+            })() };
+            C[K].p.catch(err => { console.error("hvacDev", ID, err); delete C[K]; });
+          }
+          return (await C[K].p).map(x => [x.s, x.hi]);
+      - entity: sensor.hvac_deviation_dethac_hall
+        name: Median
+        color: "#ffca28"
+        type: line
+        stroke_width: 1.5
+        curve: straight
+        float_precision: 1
+        data_generator: |
+          const ID = "sensor.hvac_deviation_dethac_hall", K = "hvacDev:" + ID, C = (window.__hvacDevCache ??= {});
+          if (!C[K] || Date.now() - C[K].t > 300000) {
+            C[K] = { t: Date.now(), p: (async () => {
+              const now = new Date(), cur = new Date(now);
+              cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
+              const first = new Date(cur); first.setDate(first.getDate() - 49);
+              const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(first.toISOString()) +
+                "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
+                "&significant_changes_only=0");
+              const pts = (h?.[0] || [])
+                .map(r => ({ t: new Date(r.last_updated).getTime(), v: parseFloat(r.state) }))
+                .filter(r => Number.isFinite(r.t)).sort((a, b) => a.t - b.t);
+              const out = [];
+              for (let w = 7; w >= 0; w--) {
+                const ws = new Date(cur); ws.setDate(ws.getDate() - w * 7);
+                const we = new Date(ws); we.setDate(we.getDate() + 7);
+                const s = ws.getTime(), e = Math.min(we.getTime(), now.getTime());
+                let lo = 0, hi = 0; const g = [];
+                pts.forEach((p, i) => {
+                  const f = Math.max(p.t, s), t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
+                  if (t > f && Number.isFinite(p.v)) { lo = Math.min(lo, p.v); hi = Math.max(hi, p.v); if (p.v !== 0) g.push([p.v, t - f]); }
+                });
+                let m = 0;
+                if (g.length) { g.sort((a, b) => a[0] - b[0]); const half = g.reduce((n, x) => n + x[1], 0) / 2; let a = 0; for (const x of g) { a += x[1]; if (a >= half) { m = x[0]; break; } } }
+                out.push({ s, lo: +lo.toFixed(2), hi: +hi.toFixed(2), m: +m.toFixed(2) });
+              }
+              return out;
+            })() };
+            C[K].p.catch(err => { console.error("hvacDev", ID, err); delete C[K]; });
+          }
+          return (await C[K].p).map(x => [x.s, x.m]);
+  - type: custom:apexcharts-card
+    header:
+      show: true
+      title: Minepoint
+      show_states: false
+    graph_span: 8w
+    span:
+      end: week
+    update_interval: 15min
+    yaxis:
+      - decimals: 1
+        min: "~-5"
+        max: "~5"
+    apex_config:
+      chart:
+        height: 280
+        stacked: true
+        animations:
+          enabled: false
+      legend:
+        show: true
+      plotOptions:
+        bar:
+          columnWidth: 55%
+      fill:
+        opacity: [0.85, 0.85, 1]
+      markers:
+        size: 0
+        hover:
+          size: 3
+      dataLabels:
+        enabled: false
+      tooltip:
+        shared: true
+        intersect: false
+        theme: dark
+        custom: |
+          EVAL:function(o){
+            var w = o.w, i = o.dataPointIndex;
+            var d = new Date(w.globals.seriesX[0][i]);
+            var html = '<div style="padding:8px 10px;font-size:12px">' +
+              '<div style="margin-bottom:6px;font-weight:600">Week of ' +
+              d.toLocaleDateString(undefined, {month: 'short', day: 'numeric'}) + '</div>';
+            w.globals.seriesNames.forEach(function(n, k){
+              var v = o.series[k] ? o.series[k][i] : null;
+              html += '<div><span style="display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;background:' +
+                w.globals.colors[k] + '"></span>' + n + ': <b>' +
+                (v == null ? '\u2013' : Number(v).toFixed(1) + '\u00b0') + '</b></div>';
+            });
+            return html + '</div>';
+          }
+      xaxis:
+        type: datetime
+        labels:
+          datetimeUTC: false
+          format: dd MMM
+    series:
+      - entity: sensor.hvac_deviation_minepoint
+        name: Max below
+        color: "#1e88e5"
+        type: column
+        stroke_width: 0
+        float_precision: 1
+        data_generator: |
+          const ID = "sensor.hvac_deviation_minepoint", K = "hvacDev:" + ID, C = (window.__hvacDevCache ??= {});
+          if (!C[K] || Date.now() - C[K].t > 300000) {
+            C[K] = { t: Date.now(), p: (async () => {
+              const now = new Date(), cur = new Date(now);
+              cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
+              const first = new Date(cur); first.setDate(first.getDate() - 49);
+              const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(first.toISOString()) +
+                "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
+                "&significant_changes_only=0");
+              const pts = (h?.[0] || [])
+                .map(r => ({ t: new Date(r.last_updated).getTime(), v: parseFloat(r.state) }))
+                .filter(r => Number.isFinite(r.t)).sort((a, b) => a.t - b.t);
+              const out = [];
+              for (let w = 7; w >= 0; w--) {
+                const ws = new Date(cur); ws.setDate(ws.getDate() - w * 7);
+                const we = new Date(ws); we.setDate(we.getDate() + 7);
+                const s = ws.getTime(), e = Math.min(we.getTime(), now.getTime());
+                let lo = 0, hi = 0; const g = [];
+                pts.forEach((p, i) => {
+                  const f = Math.max(p.t, s), t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
+                  if (t > f && Number.isFinite(p.v)) { lo = Math.min(lo, p.v); hi = Math.max(hi, p.v); if (p.v !== 0) g.push([p.v, t - f]); }
+                });
+                let m = 0;
+                if (g.length) { g.sort((a, b) => a[0] - b[0]); const half = g.reduce((n, x) => n + x[1], 0) / 2; let a = 0; for (const x of g) { a += x[1]; if (a >= half) { m = x[0]; break; } } }
+                out.push({ s, lo: +lo.toFixed(2), hi: +hi.toFixed(2), m: +m.toFixed(2) });
+              }
+              return out;
+            })() };
+            C[K].p.catch(err => { console.error("hvacDev", ID, err); delete C[K]; });
+          }
+          return (await C[K].p).map(x => [x.s, x.lo]);
+      - entity: sensor.hvac_deviation_minepoint
+        name: Max above
+        color: "#e53935"
+        type: column
+        stroke_width: 0
+        float_precision: 1
+        data_generator: |
+          const ID = "sensor.hvac_deviation_minepoint", K = "hvacDev:" + ID, C = (window.__hvacDevCache ??= {});
+          if (!C[K] || Date.now() - C[K].t > 300000) {
+            C[K] = { t: Date.now(), p: (async () => {
+              const now = new Date(), cur = new Date(now);
+              cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
+              const first = new Date(cur); first.setDate(first.getDate() - 49);
+              const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(first.toISOString()) +
+                "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
+                "&significant_changes_only=0");
+              const pts = (h?.[0] || [])
+                .map(r => ({ t: new Date(r.last_updated).getTime(), v: parseFloat(r.state) }))
+                .filter(r => Number.isFinite(r.t)).sort((a, b) => a.t - b.t);
+              const out = [];
+              for (let w = 7; w >= 0; w--) {
+                const ws = new Date(cur); ws.setDate(ws.getDate() - w * 7);
+                const we = new Date(ws); we.setDate(we.getDate() + 7);
+                const s = ws.getTime(), e = Math.min(we.getTime(), now.getTime());
+                let lo = 0, hi = 0; const g = [];
+                pts.forEach((p, i) => {
+                  const f = Math.max(p.t, s), t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
+                  if (t > f && Number.isFinite(p.v)) { lo = Math.min(lo, p.v); hi = Math.max(hi, p.v); if (p.v !== 0) g.push([p.v, t - f]); }
+                });
+                let m = 0;
+                if (g.length) { g.sort((a, b) => a[0] - b[0]); const half = g.reduce((n, x) => n + x[1], 0) / 2; let a = 0; for (const x of g) { a += x[1]; if (a >= half) { m = x[0]; break; } } }
+                out.push({ s, lo: +lo.toFixed(2), hi: +hi.toFixed(2), m: +m.toFixed(2) });
+              }
+              return out;
+            })() };
+            C[K].p.catch(err => { console.error("hvacDev", ID, err); delete C[K]; });
+          }
+          return (await C[K].p).map(x => [x.s, x.hi]);
+      - entity: sensor.hvac_deviation_minepoint
+        name: Median
+        color: "#ffca28"
+        type: line
+        stroke_width: 1.5
+        curve: straight
+        float_precision: 1
+        data_generator: |
+          const ID = "sensor.hvac_deviation_minepoint", K = "hvacDev:" + ID, C = (window.__hvacDevCache ??= {});
+          if (!C[K] || Date.now() - C[K].t > 300000) {
+            C[K] = { t: Date.now(), p: (async () => {
+              const now = new Date(), cur = new Date(now);
+              cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
+              const first = new Date(cur); first.setDate(first.getDate() - 49);
+              const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(first.toISOString()) +
+                "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
+                "&significant_changes_only=0");
+              const pts = (h?.[0] || [])
+                .map(r => ({ t: new Date(r.last_updated).getTime(), v: parseFloat(r.state) }))
+                .filter(r => Number.isFinite(r.t)).sort((a, b) => a.t - b.t);
+              const out = [];
+              for (let w = 7; w >= 0; w--) {
+                const ws = new Date(cur); ws.setDate(ws.getDate() - w * 7);
+                const we = new Date(ws); we.setDate(we.getDate() + 7);
+                const s = ws.getTime(), e = Math.min(we.getTime(), now.getTime());
+                let lo = 0, hi = 0; const g = [];
+                pts.forEach((p, i) => {
+                  const f = Math.max(p.t, s), t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
+                  if (t > f && Number.isFinite(p.v)) { lo = Math.min(lo, p.v); hi = Math.max(hi, p.v); if (p.v !== 0) g.push([p.v, t - f]); }
+                });
+                let m = 0;
+                if (g.length) { g.sort((a, b) => a[0] - b[0]); const half = g.reduce((n, x) => n + x[1], 0) / 2; let a = 0; for (const x of g) { a += x[1]; if (a >= half) { m = x[0]; break; } } }
+                out.push({ s, lo: +lo.toFixed(2), hi: +hi.toFixed(2), m: +m.toFixed(2) });
+              }
+              return out;
+            })() };
+            C[K].p.catch(err => { console.error("hvacDev", ID, err); delete C[K]; });
+          }
+          return (await C[K].p).map(x => [x.s, x.m]);
+  - type: custom:apexcharts-card
+    header:
+      show: true
+      title: New Offices
+      show_states: false
+    graph_span: 8w
+    span:
+      end: week
+    update_interval: 15min
+    yaxis:
+      - decimals: 1
+        min: "~-5"
+        max: "~5"
+    apex_config:
+      chart:
+        height: 280
+        stacked: true
+        animations:
+          enabled: false
+      legend:
+        show: true
+      plotOptions:
+        bar:
+          columnWidth: 55%
+      fill:
+        opacity: [0.85, 0.85, 1]
+      markers:
+        size: 0
+        hover:
+          size: 3
+      dataLabels:
+        enabled: false
+      tooltip:
+        shared: true
+        intersect: false
+        theme: dark
+        custom: |
+          EVAL:function(o){
+            var w = o.w, i = o.dataPointIndex;
+            var d = new Date(w.globals.seriesX[0][i]);
+            var html = '<div style="padding:8px 10px;font-size:12px">' +
+              '<div style="margin-bottom:6px;font-weight:600">Week of ' +
+              d.toLocaleDateString(undefined, {month: 'short', day: 'numeric'}) + '</div>';
+            w.globals.seriesNames.forEach(function(n, k){
+              var v = o.series[k] ? o.series[k][i] : null;
+              html += '<div><span style="display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;background:' +
+                w.globals.colors[k] + '"></span>' + n + ': <b>' +
+                (v == null ? '\u2013' : Number(v).toFixed(1) + '\u00b0') + '</b></div>';
+            });
+            return html + '</div>';
+          }
+      xaxis:
+        type: datetime
+        labels:
+          datetimeUTC: false
+          format: dd MMM
+    series:
+      - entity: sensor.hvac_deviation_new_offices
+        name: Max below
+        color: "#1e88e5"
+        type: column
+        stroke_width: 0
+        float_precision: 1
+        data_generator: |
+          const ID = "sensor.hvac_deviation_new_offices", K = "hvacDev:" + ID, C = (window.__hvacDevCache ??= {});
+          if (!C[K] || Date.now() - C[K].t > 300000) {
+            C[K] = { t: Date.now(), p: (async () => {
+              const now = new Date(), cur = new Date(now);
+              cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
+              const first = new Date(cur); first.setDate(first.getDate() - 49);
+              const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(first.toISOString()) +
+                "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
+                "&significant_changes_only=0");
+              const pts = (h?.[0] || [])
+                .map(r => ({ t: new Date(r.last_updated).getTime(), v: parseFloat(r.state) }))
+                .filter(r => Number.isFinite(r.t)).sort((a, b) => a.t - b.t);
+              const out = [];
+              for (let w = 7; w >= 0; w--) {
+                const ws = new Date(cur); ws.setDate(ws.getDate() - w * 7);
+                const we = new Date(ws); we.setDate(we.getDate() + 7);
+                const s = ws.getTime(), e = Math.min(we.getTime(), now.getTime());
+                let lo = 0, hi = 0; const g = [];
+                pts.forEach((p, i) => {
+                  const f = Math.max(p.t, s), t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
+                  if (t > f && Number.isFinite(p.v)) { lo = Math.min(lo, p.v); hi = Math.max(hi, p.v); if (p.v !== 0) g.push([p.v, t - f]); }
+                });
+                let m = 0;
+                if (g.length) { g.sort((a, b) => a[0] - b[0]); const half = g.reduce((n, x) => n + x[1], 0) / 2; let a = 0; for (const x of g) { a += x[1]; if (a >= half) { m = x[0]; break; } } }
+                out.push({ s, lo: +lo.toFixed(2), hi: +hi.toFixed(2), m: +m.toFixed(2) });
+              }
+              return out;
+            })() };
+            C[K].p.catch(err => { console.error("hvacDev", ID, err); delete C[K]; });
+          }
+          return (await C[K].p).map(x => [x.s, x.lo]);
+      - entity: sensor.hvac_deviation_new_offices
+        name: Max above
+        color: "#e53935"
+        type: column
+        stroke_width: 0
+        float_precision: 1
+        data_generator: |
+          const ID = "sensor.hvac_deviation_new_offices", K = "hvacDev:" + ID, C = (window.__hvacDevCache ??= {});
+          if (!C[K] || Date.now() - C[K].t > 300000) {
+            C[K] = { t: Date.now(), p: (async () => {
+              const now = new Date(), cur = new Date(now);
+              cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
+              const first = new Date(cur); first.setDate(first.getDate() - 49);
+              const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(first.toISOString()) +
+                "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
+                "&significant_changes_only=0");
+              const pts = (h?.[0] || [])
+                .map(r => ({ t: new Date(r.last_updated).getTime(), v: parseFloat(r.state) }))
+                .filter(r => Number.isFinite(r.t)).sort((a, b) => a.t - b.t);
+              const out = [];
+              for (let w = 7; w >= 0; w--) {
+                const ws = new Date(cur); ws.setDate(ws.getDate() - w * 7);
+                const we = new Date(ws); we.setDate(we.getDate() + 7);
+                const s = ws.getTime(), e = Math.min(we.getTime(), now.getTime());
+                let lo = 0, hi = 0; const g = [];
+                pts.forEach((p, i) => {
+                  const f = Math.max(p.t, s), t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
+                  if (t > f && Number.isFinite(p.v)) { lo = Math.min(lo, p.v); hi = Math.max(hi, p.v); if (p.v !== 0) g.push([p.v, t - f]); }
+                });
+                let m = 0;
+                if (g.length) { g.sort((a, b) => a[0] - b[0]); const half = g.reduce((n, x) => n + x[1], 0) / 2; let a = 0; for (const x of g) { a += x[1]; if (a >= half) { m = x[0]; break; } } }
+                out.push({ s, lo: +lo.toFixed(2), hi: +hi.toFixed(2), m: +m.toFixed(2) });
+              }
+              return out;
+            })() };
+            C[K].p.catch(err => { console.error("hvacDev", ID, err); delete C[K]; });
+          }
+          return (await C[K].p).map(x => [x.s, x.hi]);
+      - entity: sensor.hvac_deviation_new_offices
+        name: Median
+        color: "#ffca28"
+        type: line
+        stroke_width: 1.5
+        curve: straight
+        float_precision: 1
+        data_generator: |
+          const ID = "sensor.hvac_deviation_new_offices", K = "hvacDev:" + ID, C = (window.__hvacDevCache ??= {});
+          if (!C[K] || Date.now() - C[K].t > 300000) {
+            C[K] = { t: Date.now(), p: (async () => {
+              const now = new Date(), cur = new Date(now);
+              cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
+              const first = new Date(cur); first.setDate(first.getDate() - 49);
+              const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(first.toISOString()) +
+                "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
+                "&significant_changes_only=0");
+              const pts = (h?.[0] || [])
+                .map(r => ({ t: new Date(r.last_updated).getTime(), v: parseFloat(r.state) }))
+                .filter(r => Number.isFinite(r.t)).sort((a, b) => a.t - b.t);
+              const out = [];
+              for (let w = 7; w >= 0; w--) {
+                const ws = new Date(cur); ws.setDate(ws.getDate() - w * 7);
+                const we = new Date(ws); we.setDate(we.getDate() + 7);
+                const s = ws.getTime(), e = Math.min(we.getTime(), now.getTime());
+                let lo = 0, hi = 0; const g = [];
+                pts.forEach((p, i) => {
+                  const f = Math.max(p.t, s), t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
+                  if (t > f && Number.isFinite(p.v)) { lo = Math.min(lo, p.v); hi = Math.max(hi, p.v); if (p.v !== 0) g.push([p.v, t - f]); }
+                });
+                let m = 0;
+                if (g.length) { g.sort((a, b) => a[0] - b[0]); const half = g.reduce((n, x) => n + x[1], 0) / 2; let a = 0; for (const x of g) { a += x[1]; if (a >= half) { m = x[0]; break; } } }
+                out.push({ s, lo: +lo.toFixed(2), hi: +hi.toFixed(2), m: +m.toFixed(2) });
+              }
+              return out;
+            })() };
+            C[K].p.catch(err => { console.error("hvacDev", ID, err); delete C[K]; });
+          }
+          return (await C[K].p).map(x => [x.s, x.m]);
+  - type: custom:apexcharts-card
+    header:
+      show: true
+      title: Software Support
+      show_states: false
+    graph_span: 8w
+    span:
+      end: week
+    update_interval: 15min
+    yaxis:
+      - decimals: 1
+        min: "~-5"
+        max: "~5"
+    apex_config:
+      chart:
+        height: 280
+        stacked: true
+        animations:
+          enabled: false
+      legend:
+        show: true
+      plotOptions:
+        bar:
+          columnWidth: 55%
+      fill:
+        opacity: [0.85, 0.85, 1]
+      markers:
+        size: 0
+        hover:
+          size: 3
+      dataLabels:
+        enabled: false
+      tooltip:
+        shared: true
+        intersect: false
+        theme: dark
+        custom: |
+          EVAL:function(o){
+            var w = o.w, i = o.dataPointIndex;
+            var d = new Date(w.globals.seriesX[0][i]);
+            var html = '<div style="padding:8px 10px;font-size:12px">' +
+              '<div style="margin-bottom:6px;font-weight:600">Week of ' +
+              d.toLocaleDateString(undefined, {month: 'short', day: 'numeric'}) + '</div>';
+            w.globals.seriesNames.forEach(function(n, k){
+              var v = o.series[k] ? o.series[k][i] : null;
+              html += '<div><span style="display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;background:' +
+                w.globals.colors[k] + '"></span>' + n + ': <b>' +
+                (v == null ? '\u2013' : Number(v).toFixed(1) + '\u00b0') + '</b></div>';
+            });
+            return html + '</div>';
+          }
+      xaxis:
+        type: datetime
+        labels:
+          datetimeUTC: false
+          format: dd MMM
+    series:
+      - entity: sensor.hvac_deviation_software_support
+        name: Max below
+        color: "#1e88e5"
+        type: column
+        stroke_width: 0
+        float_precision: 1
+        data_generator: |
+          const ID = "sensor.hvac_deviation_software_support", K = "hvacDev:" + ID, C = (window.__hvacDevCache ??= {});
+          if (!C[K] || Date.now() - C[K].t > 300000) {
+            C[K] = { t: Date.now(), p: (async () => {
+              const now = new Date(), cur = new Date(now);
+              cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
+              const first = new Date(cur); first.setDate(first.getDate() - 49);
+              const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(first.toISOString()) +
+                "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
+                "&significant_changes_only=0");
+              const pts = (h?.[0] || [])
+                .map(r => ({ t: new Date(r.last_updated).getTime(), v: parseFloat(r.state) }))
+                .filter(r => Number.isFinite(r.t)).sort((a, b) => a.t - b.t);
+              const out = [];
+              for (let w = 7; w >= 0; w--) {
+                const ws = new Date(cur); ws.setDate(ws.getDate() - w * 7);
+                const we = new Date(ws); we.setDate(we.getDate() + 7);
+                const s = ws.getTime(), e = Math.min(we.getTime(), now.getTime());
+                let lo = 0, hi = 0; const g = [];
+                pts.forEach((p, i) => {
+                  const f = Math.max(p.t, s), t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
+                  if (t > f && Number.isFinite(p.v)) { lo = Math.min(lo, p.v); hi = Math.max(hi, p.v); if (p.v !== 0) g.push([p.v, t - f]); }
+                });
+                let m = 0;
+                if (g.length) { g.sort((a, b) => a[0] - b[0]); const half = g.reduce((n, x) => n + x[1], 0) / 2; let a = 0; for (const x of g) { a += x[1]; if (a >= half) { m = x[0]; break; } } }
+                out.push({ s, lo: +lo.toFixed(2), hi: +hi.toFixed(2), m: +m.toFixed(2) });
+              }
+              return out;
+            })() };
+            C[K].p.catch(err => { console.error("hvacDev", ID, err); delete C[K]; });
+          }
+          return (await C[K].p).map(x => [x.s, x.lo]);
+      - entity: sensor.hvac_deviation_software_support
+        name: Max above
+        color: "#e53935"
+        type: column
+        stroke_width: 0
+        float_precision: 1
+        data_generator: |
+          const ID = "sensor.hvac_deviation_software_support", K = "hvacDev:" + ID, C = (window.__hvacDevCache ??= {});
+          if (!C[K] || Date.now() - C[K].t > 300000) {
+            C[K] = { t: Date.now(), p: (async () => {
+              const now = new Date(), cur = new Date(now);
+              cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
+              const first = new Date(cur); first.setDate(first.getDate() - 49);
+              const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(first.toISOString()) +
+                "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
+                "&significant_changes_only=0");
+              const pts = (h?.[0] || [])
+                .map(r => ({ t: new Date(r.last_updated).getTime(), v: parseFloat(r.state) }))
+                .filter(r => Number.isFinite(r.t)).sort((a, b) => a.t - b.t);
+              const out = [];
+              for (let w = 7; w >= 0; w--) {
+                const ws = new Date(cur); ws.setDate(ws.getDate() - w * 7);
+                const we = new Date(ws); we.setDate(we.getDate() + 7);
+                const s = ws.getTime(), e = Math.min(we.getTime(), now.getTime());
+                let lo = 0, hi = 0; const g = [];
+                pts.forEach((p, i) => {
+                  const f = Math.max(p.t, s), t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
+                  if (t > f && Number.isFinite(p.v)) { lo = Math.min(lo, p.v); hi = Math.max(hi, p.v); if (p.v !== 0) g.push([p.v, t - f]); }
+                });
+                let m = 0;
+                if (g.length) { g.sort((a, b) => a[0] - b[0]); const half = g.reduce((n, x) => n + x[1], 0) / 2; let a = 0; for (const x of g) { a += x[1]; if (a >= half) { m = x[0]; break; } } }
+                out.push({ s, lo: +lo.toFixed(2), hi: +hi.toFixed(2), m: +m.toFixed(2) });
+              }
+              return out;
+            })() };
+            C[K].p.catch(err => { console.error("hvacDev", ID, err); delete C[K]; });
+          }
+          return (await C[K].p).map(x => [x.s, x.hi]);
+      - entity: sensor.hvac_deviation_software_support
+        name: Median
+        color: "#ffca28"
+        type: line
+        stroke_width: 1.5
+        curve: straight
+        float_precision: 1
+        data_generator: |
+          const ID = "sensor.hvac_deviation_software_support", K = "hvacDev:" + ID, C = (window.__hvacDevCache ??= {});
+          if (!C[K] || Date.now() - C[K].t > 300000) {
+            C[K] = { t: Date.now(), p: (async () => {
+              const now = new Date(), cur = new Date(now);
+              cur.setHours(0, 0, 0, 0); cur.setDate(cur.getDate() - cur.getDay());
+              const first = new Date(cur); first.setDate(first.getDate() - 49);
+              const h = await hass.callApi("GET", "history/period/" + encodeURIComponent(first.toISOString()) +
+                "?end_time=" + encodeURIComponent(now.toISOString()) + "&filter_entity_id=" + ID +
+                "&significant_changes_only=0");
+              const pts = (h?.[0] || [])
+                .map(r => ({ t: new Date(r.last_updated).getTime(), v: parseFloat(r.state) }))
+                .filter(r => Number.isFinite(r.t)).sort((a, b) => a.t - b.t);
+              const out = [];
+              for (let w = 7; w >= 0; w--) {
+                const ws = new Date(cur); ws.setDate(ws.getDate() - w * 7);
+                const we = new Date(ws); we.setDate(we.getDate() + 7);
+                const s = ws.getTime(), e = Math.min(we.getTime(), now.getTime());
+                let lo = 0, hi = 0; const g = [];
+                pts.forEach((p, i) => {
+                  const f = Math.max(p.t, s), t = Math.min(i + 1 < pts.length ? pts[i + 1].t : now.getTime(), e);
+                  if (t > f && Number.isFinite(p.v)) { lo = Math.min(lo, p.v); hi = Math.max(hi, p.v); if (p.v !== 0) g.push([p.v, t - f]); }
+                });
+                let m = 0;
+                if (g.length) { g.sort((a, b) => a[0] - b[0]); const half = g.reduce((n, x) => n + x[1], 0) / 2; let a = 0; for (const x of g) { a += x[1]; if (a >= half) { m = x[0]; break; } } }
+                out.push({ s, lo: +lo.toFixed(2), hi: +hi.toFixed(2), m: +m.toFixed(2) });
+              }
+              return out;
+            })() };
+            C[K].p.catch(err => { console.error("hvacDev", ID, err); delete C[K]; });
+          }
+          return (await C[K].p).map(x => [x.s, x.m]);
