@@ -27,10 +27,11 @@ cards:
         #header { padding: 8px 10px 0 !important; }
         #header__states { flex-wrap: nowrap !important; gap: 4px; margin: 0 !important; }
         #header__states > * { margin: 0 !important; }
-        #states__state { flex: 1 1 0 !important; min-width: 0 !important; overflow: hidden; }
-        #state__value > #state { font-size: clamp(12px, 6.5cqw, 25px) !important; }
-        #state__value > #uom { font-size: clamp(8px, 3.2cqw, 14px) !important; }
-        #state__name { font-size: clamp(8px, 3.4cqw, 11px) !important; }
+        #states__state { flex: 1 1 0 !important; min-width: 0 !important; overflow: hidden; text-align: center; }
+        #state__value { display: block !important; text-align: center; }
+        #state__value > #state { font-size: clamp(16px, 10cqw, 34px) !important; }
+        #state__value > #uom { font-size: clamp(10px, 3.8cqw, 16px) !important; }
+        #state__name { font-size: clamp(10px, 3.8cqw, 13px) !important; }
     apex_config:
       chart:
         height: 280
@@ -323,10 +324,11 @@ cards:
         #header { padding: 8px 10px 0 !important; }
         #header__states { flex-wrap: nowrap !important; gap: 4px; margin: 0 !important; }
         #header__states > * { margin: 0 !important; }
-        #states__state { flex: 1 1 0 !important; min-width: 0 !important; overflow: hidden; }
-        #state__value > #state { font-size: clamp(12px, 6.5cqw, 25px) !important; }
-        #state__value > #uom { font-size: clamp(8px, 3.2cqw, 14px) !important; }
-        #state__name { font-size: clamp(8px, 3.4cqw, 11px) !important; }
+        #states__state { flex: 1 1 0 !important; min-width: 0 !important; overflow: hidden; text-align: center; }
+        #state__value { display: block !important; text-align: center; }
+        #state__value > #state { font-size: clamp(16px, 10cqw, 34px) !important; }
+        #state__value > #uom { font-size: clamp(10px, 3.8cqw, 16px) !important; }
+        #state__name { font-size: clamp(10px, 3.8cqw, 13px) !important; }
     apex_config:
       chart:
         height: 280
@@ -619,10 +621,11 @@ cards:
         #header { padding: 8px 10px 0 !important; }
         #header__states { flex-wrap: nowrap !important; gap: 4px; margin: 0 !important; }
         #header__states > * { margin: 0 !important; }
-        #states__state { flex: 1 1 0 !important; min-width: 0 !important; overflow: hidden; }
-        #state__value > #state { font-size: clamp(12px, 6.5cqw, 25px) !important; }
-        #state__value > #uom { font-size: clamp(8px, 3.2cqw, 14px) !important; }
-        #state__name { font-size: clamp(8px, 3.4cqw, 11px) !important; }
+        #states__state { flex: 1 1 0 !important; min-width: 0 !important; overflow: hidden; text-align: center; }
+        #state__value { display: block !important; text-align: center; }
+        #state__value > #state { font-size: clamp(16px, 10cqw, 34px) !important; }
+        #state__value > #uom { font-size: clamp(10px, 3.8cqw, 16px) !important; }
+        #state__name { font-size: clamp(10px, 3.8cqw, 13px) !important; }
     apex_config:
       chart:
         height: 280
@@ -915,10 +918,11 @@ cards:
         #header { padding: 8px 10px 0 !important; }
         #header__states { flex-wrap: nowrap !important; gap: 4px; margin: 0 !important; }
         #header__states > * { margin: 0 !important; }
-        #states__state { flex: 1 1 0 !important; min-width: 0 !important; overflow: hidden; }
-        #state__value > #state { font-size: clamp(12px, 6.5cqw, 25px) !important; }
-        #state__value > #uom { font-size: clamp(8px, 3.2cqw, 14px) !important; }
-        #state__name { font-size: clamp(8px, 3.4cqw, 11px) !important; }
+        #states__state { flex: 1 1 0 !important; min-width: 0 !important; overflow: hidden; text-align: center; }
+        #state__value { display: block !important; text-align: center; }
+        #state__value > #state { font-size: clamp(16px, 10cqw, 34px) !important; }
+        #state__value > #uom { font-size: clamp(10px, 3.8cqw, 16px) !important; }
+        #state__name { font-size: clamp(10px, 3.8cqw, 13px) !important; }
     apex_config:
       chart:
         height: 280
@@ -1211,10 +1215,11 @@ cards:
         #header { padding: 8px 10px 0 !important; }
         #header__states { flex-wrap: nowrap !important; gap: 4px; margin: 0 !important; }
         #header__states > * { margin: 0 !important; }
-        #states__state { flex: 1 1 0 !important; min-width: 0 !important; overflow: hidden; }
-        #state__value > #state { font-size: clamp(12px, 6.5cqw, 25px) !important; }
-        #state__value > #uom { font-size: clamp(8px, 3.2cqw, 14px) !important; }
-        #state__name { font-size: clamp(8px, 3.4cqw, 11px) !important; }
+        #states__state { flex: 1 1 0 !important; min-width: 0 !important; overflow: hidden; text-align: center; }
+        #state__value { display: block !important; text-align: center; }
+        #state__value > #state { font-size: clamp(16px, 10cqw, 34px) !important; }
+        #state__value > #uom { font-size: clamp(10px, 3.8cqw, 16px) !important; }
+        #state__name { font-size: clamp(10px, 3.8cqw, 13px) !important; }
     apex_config:
       chart:
         height: 280
@@ -1507,10 +1512,11 @@ cards:
         #header { padding: 8px 10px 0 !important; }
         #header__states { flex-wrap: nowrap !important; gap: 4px; margin: 0 !important; }
         #header__states > * { margin: 0 !important; }
-        #states__state { flex: 1 1 0 !important; min-width: 0 !important; overflow: hidden; }
-        #state__value > #state { font-size: clamp(12px, 6.5cqw, 25px) !important; }
-        #state__value > #uom { font-size: clamp(8px, 3.2cqw, 14px) !important; }
-        #state__name { font-size: clamp(8px, 3.4cqw, 11px) !important; }
+        #states__state { flex: 1 1 0 !important; min-width: 0 !important; overflow: hidden; text-align: center; }
+        #state__value { display: block !important; text-align: center; }
+        #state__value > #state { font-size: clamp(16px, 10cqw, 34px) !important; }
+        #state__value > #uom { font-size: clamp(10px, 3.8cqw, 16px) !important; }
+        #state__name { font-size: clamp(10px, 3.8cqw, 13px) !important; }
     apex_config:
       chart:
         height: 280
