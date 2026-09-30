@@ -91,12 +91,13 @@ cards:
               const v = pts[i].v;
               if (t > f && Number.isFinite(v)) { lo = Math.min(lo, v); hi = Math.max(hi, v); if (v !== 0) g.push([v, t - f]); }
             }
-            let m = 0;
-            if (g.length) {
-              g.sort((a, b) => a[0] - b[0]);
-              const half = g.reduce((n, x) => n + x[1], 0) / 2;
-              let acc = 0;
-              for (const x of g) { acc += x[1]; if (acc >= half) { m = x[0]; break; } }
+            const BIN = 0.5;
+            const bins = {};
+            for (const x of g) { const k = Math.round(x[0] / BIN) * BIN; bins[k] = (bins[k] || 0) + x[1]; }
+            let m = 0, best = 0;
+            for (const k in bins) {
+              const kv = Number(k);
+              if (bins[k] > best || (bins[k] === best && Math.abs(kv) > Math.abs(m))) { best = bins[k]; m = kv; }
             }
             out.push([s, +(({lo: lo, hi: hi, m: m})["lo"]).toFixed(2)]);
           }
@@ -130,18 +131,19 @@ cards:
               const v = pts[i].v;
               if (t > f && Number.isFinite(v)) { lo = Math.min(lo, v); hi = Math.max(hi, v); if (v !== 0) g.push([v, t - f]); }
             }
-            let m = 0;
-            if (g.length) {
-              g.sort((a, b) => a[0] - b[0]);
-              const half = g.reduce((n, x) => n + x[1], 0) / 2;
-              let acc = 0;
-              for (const x of g) { acc += x[1]; if (acc >= half) { m = x[0]; break; } }
+            const BIN = 0.5;
+            const bins = {};
+            for (const x of g) { const k = Math.round(x[0] / BIN) * BIN; bins[k] = (bins[k] || 0) + x[1]; }
+            let m = 0, best = 0;
+            for (const k in bins) {
+              const kv = Number(k);
+              if (bins[k] > best || (bins[k] === best && Math.abs(kv) > Math.abs(m))) { best = bins[k]; m = kv; }
             }
             out.push([s, +(({lo: lo, hi: hi, m: m})["hi"]).toFixed(2)]);
           }
           return out;
       - entity: sensor.hvac_deviation_sales
-        name: Median
+        name: Mode
         color: "#ffca28"
         type: line
         stroke_width: 1.5
@@ -170,12 +172,13 @@ cards:
               const v = pts[i].v;
               if (t > f && Number.isFinite(v)) { lo = Math.min(lo, v); hi = Math.max(hi, v); if (v !== 0) g.push([v, t - f]); }
             }
-            let m = 0;
-            if (g.length) {
-              g.sort((a, b) => a[0] - b[0]);
-              const half = g.reduce((n, x) => n + x[1], 0) / 2;
-              let acc = 0;
-              for (const x of g) { acc += x[1]; if (acc >= half) { m = x[0]; break; } }
+            const BIN = 0.5;
+            const bins = {};
+            for (const x of g) { const k = Math.round(x[0] / BIN) * BIN; bins[k] = (bins[k] || 0) + x[1]; }
+            let m = 0, best = 0;
+            for (const k in bins) {
+              const kv = Number(k);
+              if (bins[k] > best || (bins[k] === best && Math.abs(kv) > Math.abs(m))) { best = bins[k]; m = kv; }
             }
             out.push([s, +(({lo: lo, hi: hi, m: m})["m"]).toFixed(2)]);
           }
@@ -266,12 +269,13 @@ cards:
               const v = pts[i].v;
               if (t > f && Number.isFinite(v)) { lo = Math.min(lo, v); hi = Math.max(hi, v); if (v !== 0) g.push([v, t - f]); }
             }
-            let m = 0;
-            if (g.length) {
-              g.sort((a, b) => a[0] - b[0]);
-              const half = g.reduce((n, x) => n + x[1], 0) / 2;
-              let acc = 0;
-              for (const x of g) { acc += x[1]; if (acc >= half) { m = x[0]; break; } }
+            const BIN = 0.5;
+            const bins = {};
+            for (const x of g) { const k = Math.round(x[0] / BIN) * BIN; bins[k] = (bins[k] || 0) + x[1]; }
+            let m = 0, best = 0;
+            for (const k in bins) {
+              const kv = Number(k);
+              if (bins[k] > best || (bins[k] === best && Math.abs(kv) > Math.abs(m))) { best = bins[k]; m = kv; }
             }
             out.push([s, +(({lo: lo, hi: hi, m: m})["lo"]).toFixed(2)]);
           }
@@ -305,18 +309,19 @@ cards:
               const v = pts[i].v;
               if (t > f && Number.isFinite(v)) { lo = Math.min(lo, v); hi = Math.max(hi, v); if (v !== 0) g.push([v, t - f]); }
             }
-            let m = 0;
-            if (g.length) {
-              g.sort((a, b) => a[0] - b[0]);
-              const half = g.reduce((n, x) => n + x[1], 0) / 2;
-              let acc = 0;
-              for (const x of g) { acc += x[1]; if (acc >= half) { m = x[0]; break; } }
+            const BIN = 0.5;
+            const bins = {};
+            for (const x of g) { const k = Math.round(x[0] / BIN) * BIN; bins[k] = (bins[k] || 0) + x[1]; }
+            let m = 0, best = 0;
+            for (const k in bins) {
+              const kv = Number(k);
+              if (bins[k] > best || (bins[k] === best && Math.abs(kv) > Math.abs(m))) { best = bins[k]; m = kv; }
             }
             out.push([s, +(({lo: lo, hi: hi, m: m})["hi"]).toFixed(2)]);
           }
           return out;
       - entity: sensor.hvac_deviation_amy
-        name: Median
+        name: Mode
         color: "#ffca28"
         type: line
         stroke_width: 1.5
@@ -345,12 +350,13 @@ cards:
               const v = pts[i].v;
               if (t > f && Number.isFinite(v)) { lo = Math.min(lo, v); hi = Math.max(hi, v); if (v !== 0) g.push([v, t - f]); }
             }
-            let m = 0;
-            if (g.length) {
-              g.sort((a, b) => a[0] - b[0]);
-              const half = g.reduce((n, x) => n + x[1], 0) / 2;
-              let acc = 0;
-              for (const x of g) { acc += x[1]; if (acc >= half) { m = x[0]; break; } }
+            const BIN = 0.5;
+            const bins = {};
+            for (const x of g) { const k = Math.round(x[0] / BIN) * BIN; bins[k] = (bins[k] || 0) + x[1]; }
+            let m = 0, best = 0;
+            for (const k in bins) {
+              const kv = Number(k);
+              if (bins[k] > best || (bins[k] === best && Math.abs(kv) > Math.abs(m))) { best = bins[k]; m = kv; }
             }
             out.push([s, +(({lo: lo, hi: hi, m: m})["m"]).toFixed(2)]);
           }
@@ -441,12 +447,13 @@ cards:
               const v = pts[i].v;
               if (t > f && Number.isFinite(v)) { lo = Math.min(lo, v); hi = Math.max(hi, v); if (v !== 0) g.push([v, t - f]); }
             }
-            let m = 0;
-            if (g.length) {
-              g.sort((a, b) => a[0] - b[0]);
-              const half = g.reduce((n, x) => n + x[1], 0) / 2;
-              let acc = 0;
-              for (const x of g) { acc += x[1]; if (acc >= half) { m = x[0]; break; } }
+            const BIN = 0.5;
+            const bins = {};
+            for (const x of g) { const k = Math.round(x[0] / BIN) * BIN; bins[k] = (bins[k] || 0) + x[1]; }
+            let m = 0, best = 0;
+            for (const k in bins) {
+              const kv = Number(k);
+              if (bins[k] > best || (bins[k] === best && Math.abs(kv) > Math.abs(m))) { best = bins[k]; m = kv; }
             }
             out.push([s, +(({lo: lo, hi: hi, m: m})["lo"]).toFixed(2)]);
           }
@@ -480,18 +487,19 @@ cards:
               const v = pts[i].v;
               if (t > f && Number.isFinite(v)) { lo = Math.min(lo, v); hi = Math.max(hi, v); if (v !== 0) g.push([v, t - f]); }
             }
-            let m = 0;
-            if (g.length) {
-              g.sort((a, b) => a[0] - b[0]);
-              const half = g.reduce((n, x) => n + x[1], 0) / 2;
-              let acc = 0;
-              for (const x of g) { acc += x[1]; if (acc >= half) { m = x[0]; break; } }
+            const BIN = 0.5;
+            const bins = {};
+            for (const x of g) { const k = Math.round(x[0] / BIN) * BIN; bins[k] = (bins[k] || 0) + x[1]; }
+            let m = 0, best = 0;
+            for (const k in bins) {
+              const kv = Number(k);
+              if (bins[k] > best || (bins[k] === best && Math.abs(kv) > Math.abs(m))) { best = bins[k]; m = kv; }
             }
             out.push([s, +(({lo: lo, hi: hi, m: m})["hi"]).toFixed(2)]);
           }
           return out;
       - entity: sensor.hvac_deviation_bruce_break_room
-        name: Median
+        name: Mode
         color: "#ffca28"
         type: line
         stroke_width: 1.5
@@ -520,12 +528,13 @@ cards:
               const v = pts[i].v;
               if (t > f && Number.isFinite(v)) { lo = Math.min(lo, v); hi = Math.max(hi, v); if (v !== 0) g.push([v, t - f]); }
             }
-            let m = 0;
-            if (g.length) {
-              g.sort((a, b) => a[0] - b[0]);
-              const half = g.reduce((n, x) => n + x[1], 0) / 2;
-              let acc = 0;
-              for (const x of g) { acc += x[1]; if (acc >= half) { m = x[0]; break; } }
+            const BIN = 0.5;
+            const bins = {};
+            for (const x of g) { const k = Math.round(x[0] / BIN) * BIN; bins[k] = (bins[k] || 0) + x[1]; }
+            let m = 0, best = 0;
+            for (const k in bins) {
+              const kv = Number(k);
+              if (bins[k] > best || (bins[k] === best && Math.abs(kv) > Math.abs(m))) { best = bins[k]; m = kv; }
             }
             out.push([s, +(({lo: lo, hi: hi, m: m})["m"]).toFixed(2)]);
           }
@@ -616,12 +625,13 @@ cards:
               const v = pts[i].v;
               if (t > f && Number.isFinite(v)) { lo = Math.min(lo, v); hi = Math.max(hi, v); if (v !== 0) g.push([v, t - f]); }
             }
-            let m = 0;
-            if (g.length) {
-              g.sort((a, b) => a[0] - b[0]);
-              const half = g.reduce((n, x) => n + x[1], 0) / 2;
-              let acc = 0;
-              for (const x of g) { acc += x[1]; if (acc >= half) { m = x[0]; break; } }
+            const BIN = 0.5;
+            const bins = {};
+            for (const x of g) { const k = Math.round(x[0] / BIN) * BIN; bins[k] = (bins[k] || 0) + x[1]; }
+            let m = 0, best = 0;
+            for (const k in bins) {
+              const kv = Number(k);
+              if (bins[k] > best || (bins[k] === best && Math.abs(kv) > Math.abs(m))) { best = bins[k]; m = kv; }
             }
             out.push([s, +(({lo: lo, hi: hi, m: m})["lo"]).toFixed(2)]);
           }
@@ -655,18 +665,19 @@ cards:
               const v = pts[i].v;
               if (t > f && Number.isFinite(v)) { lo = Math.min(lo, v); hi = Math.max(hi, v); if (v !== 0) g.push([v, t - f]); }
             }
-            let m = 0;
-            if (g.length) {
-              g.sort((a, b) => a[0] - b[0]);
-              const half = g.reduce((n, x) => n + x[1], 0) / 2;
-              let acc = 0;
-              for (const x of g) { acc += x[1]; if (acc >= half) { m = x[0]; break; } }
+            const BIN = 0.5;
+            const bins = {};
+            for (const x of g) { const k = Math.round(x[0] / BIN) * BIN; bins[k] = (bins[k] || 0) + x[1]; }
+            let m = 0, best = 0;
+            for (const k in bins) {
+              const kv = Number(k);
+              if (bins[k] > best || (bins[k] === best && Math.abs(kv) > Math.abs(m))) { best = bins[k]; m = kv; }
             }
             out.push([s, +(({lo: lo, hi: hi, m: m})["hi"]).toFixed(2)]);
           }
           return out;
       - entity: sensor.hvac_deviation_dethac_hall
-        name: Median
+        name: Mode
         color: "#ffca28"
         type: line
         stroke_width: 1.5
@@ -695,12 +706,13 @@ cards:
               const v = pts[i].v;
               if (t > f && Number.isFinite(v)) { lo = Math.min(lo, v); hi = Math.max(hi, v); if (v !== 0) g.push([v, t - f]); }
             }
-            let m = 0;
-            if (g.length) {
-              g.sort((a, b) => a[0] - b[0]);
-              const half = g.reduce((n, x) => n + x[1], 0) / 2;
-              let acc = 0;
-              for (const x of g) { acc += x[1]; if (acc >= half) { m = x[0]; break; } }
+            const BIN = 0.5;
+            const bins = {};
+            for (const x of g) { const k = Math.round(x[0] / BIN) * BIN; bins[k] = (bins[k] || 0) + x[1]; }
+            let m = 0, best = 0;
+            for (const k in bins) {
+              const kv = Number(k);
+              if (bins[k] > best || (bins[k] === best && Math.abs(kv) > Math.abs(m))) { best = bins[k]; m = kv; }
             }
             out.push([s, +(({lo: lo, hi: hi, m: m})["m"]).toFixed(2)]);
           }
@@ -791,12 +803,13 @@ cards:
               const v = pts[i].v;
               if (t > f && Number.isFinite(v)) { lo = Math.min(lo, v); hi = Math.max(hi, v); if (v !== 0) g.push([v, t - f]); }
             }
-            let m = 0;
-            if (g.length) {
-              g.sort((a, b) => a[0] - b[0]);
-              const half = g.reduce((n, x) => n + x[1], 0) / 2;
-              let acc = 0;
-              for (const x of g) { acc += x[1]; if (acc >= half) { m = x[0]; break; } }
+            const BIN = 0.5;
+            const bins = {};
+            for (const x of g) { const k = Math.round(x[0] / BIN) * BIN; bins[k] = (bins[k] || 0) + x[1]; }
+            let m = 0, best = 0;
+            for (const k in bins) {
+              const kv = Number(k);
+              if (bins[k] > best || (bins[k] === best && Math.abs(kv) > Math.abs(m))) { best = bins[k]; m = kv; }
             }
             out.push([s, +(({lo: lo, hi: hi, m: m})["lo"]).toFixed(2)]);
           }
@@ -830,18 +843,19 @@ cards:
               const v = pts[i].v;
               if (t > f && Number.isFinite(v)) { lo = Math.min(lo, v); hi = Math.max(hi, v); if (v !== 0) g.push([v, t - f]); }
             }
-            let m = 0;
-            if (g.length) {
-              g.sort((a, b) => a[0] - b[0]);
-              const half = g.reduce((n, x) => n + x[1], 0) / 2;
-              let acc = 0;
-              for (const x of g) { acc += x[1]; if (acc >= half) { m = x[0]; break; } }
+            const BIN = 0.5;
+            const bins = {};
+            for (const x of g) { const k = Math.round(x[0] / BIN) * BIN; bins[k] = (bins[k] || 0) + x[1]; }
+            let m = 0, best = 0;
+            for (const k in bins) {
+              const kv = Number(k);
+              if (bins[k] > best || (bins[k] === best && Math.abs(kv) > Math.abs(m))) { best = bins[k]; m = kv; }
             }
             out.push([s, +(({lo: lo, hi: hi, m: m})["hi"]).toFixed(2)]);
           }
           return out;
       - entity: sensor.hvac_deviation_minepoint
-        name: Median
+        name: Mode
         color: "#ffca28"
         type: line
         stroke_width: 1.5
@@ -870,12 +884,13 @@ cards:
               const v = pts[i].v;
               if (t > f && Number.isFinite(v)) { lo = Math.min(lo, v); hi = Math.max(hi, v); if (v !== 0) g.push([v, t - f]); }
             }
-            let m = 0;
-            if (g.length) {
-              g.sort((a, b) => a[0] - b[0]);
-              const half = g.reduce((n, x) => n + x[1], 0) / 2;
-              let acc = 0;
-              for (const x of g) { acc += x[1]; if (acc >= half) { m = x[0]; break; } }
+            const BIN = 0.5;
+            const bins = {};
+            for (const x of g) { const k = Math.round(x[0] / BIN) * BIN; bins[k] = (bins[k] || 0) + x[1]; }
+            let m = 0, best = 0;
+            for (const k in bins) {
+              const kv = Number(k);
+              if (bins[k] > best || (bins[k] === best && Math.abs(kv) > Math.abs(m))) { best = bins[k]; m = kv; }
             }
             out.push([s, +(({lo: lo, hi: hi, m: m})["m"]).toFixed(2)]);
           }
@@ -966,12 +981,13 @@ cards:
               const v = pts[i].v;
               if (t > f && Number.isFinite(v)) { lo = Math.min(lo, v); hi = Math.max(hi, v); if (v !== 0) g.push([v, t - f]); }
             }
-            let m = 0;
-            if (g.length) {
-              g.sort((a, b) => a[0] - b[0]);
-              const half = g.reduce((n, x) => n + x[1], 0) / 2;
-              let acc = 0;
-              for (const x of g) { acc += x[1]; if (acc >= half) { m = x[0]; break; } }
+            const BIN = 0.5;
+            const bins = {};
+            for (const x of g) { const k = Math.round(x[0] / BIN) * BIN; bins[k] = (bins[k] || 0) + x[1]; }
+            let m = 0, best = 0;
+            for (const k in bins) {
+              const kv = Number(k);
+              if (bins[k] > best || (bins[k] === best && Math.abs(kv) > Math.abs(m))) { best = bins[k]; m = kv; }
             }
             out.push([s, +(({lo: lo, hi: hi, m: m})["lo"]).toFixed(2)]);
           }
@@ -1005,18 +1021,19 @@ cards:
               const v = pts[i].v;
               if (t > f && Number.isFinite(v)) { lo = Math.min(lo, v); hi = Math.max(hi, v); if (v !== 0) g.push([v, t - f]); }
             }
-            let m = 0;
-            if (g.length) {
-              g.sort((a, b) => a[0] - b[0]);
-              const half = g.reduce((n, x) => n + x[1], 0) / 2;
-              let acc = 0;
-              for (const x of g) { acc += x[1]; if (acc >= half) { m = x[0]; break; } }
+            const BIN = 0.5;
+            const bins = {};
+            for (const x of g) { const k = Math.round(x[0] / BIN) * BIN; bins[k] = (bins[k] || 0) + x[1]; }
+            let m = 0, best = 0;
+            for (const k in bins) {
+              const kv = Number(k);
+              if (bins[k] > best || (bins[k] === best && Math.abs(kv) > Math.abs(m))) { best = bins[k]; m = kv; }
             }
             out.push([s, +(({lo: lo, hi: hi, m: m})["hi"]).toFixed(2)]);
           }
           return out;
       - entity: sensor.hvac_deviation_new_offices
-        name: Median
+        name: Mode
         color: "#ffca28"
         type: line
         stroke_width: 1.5
@@ -1045,12 +1062,13 @@ cards:
               const v = pts[i].v;
               if (t > f && Number.isFinite(v)) { lo = Math.min(lo, v); hi = Math.max(hi, v); if (v !== 0) g.push([v, t - f]); }
             }
-            let m = 0;
-            if (g.length) {
-              g.sort((a, b) => a[0] - b[0]);
-              const half = g.reduce((n, x) => n + x[1], 0) / 2;
-              let acc = 0;
-              for (const x of g) { acc += x[1]; if (acc >= half) { m = x[0]; break; } }
+            const BIN = 0.5;
+            const bins = {};
+            for (const x of g) { const k = Math.round(x[0] / BIN) * BIN; bins[k] = (bins[k] || 0) + x[1]; }
+            let m = 0, best = 0;
+            for (const k in bins) {
+              const kv = Number(k);
+              if (bins[k] > best || (bins[k] === best && Math.abs(kv) > Math.abs(m))) { best = bins[k]; m = kv; }
             }
             out.push([s, +(({lo: lo, hi: hi, m: m})["m"]).toFixed(2)]);
           }
@@ -1141,12 +1159,13 @@ cards:
               const v = pts[i].v;
               if (t > f && Number.isFinite(v)) { lo = Math.min(lo, v); hi = Math.max(hi, v); if (v !== 0) g.push([v, t - f]); }
             }
-            let m = 0;
-            if (g.length) {
-              g.sort((a, b) => a[0] - b[0]);
-              const half = g.reduce((n, x) => n + x[1], 0) / 2;
-              let acc = 0;
-              for (const x of g) { acc += x[1]; if (acc >= half) { m = x[0]; break; } }
+            const BIN = 0.5;
+            const bins = {};
+            for (const x of g) { const k = Math.round(x[0] / BIN) * BIN; bins[k] = (bins[k] || 0) + x[1]; }
+            let m = 0, best = 0;
+            for (const k in bins) {
+              const kv = Number(k);
+              if (bins[k] > best || (bins[k] === best && Math.abs(kv) > Math.abs(m))) { best = bins[k]; m = kv; }
             }
             out.push([s, +(({lo: lo, hi: hi, m: m})["lo"]).toFixed(2)]);
           }
@@ -1180,18 +1199,19 @@ cards:
               const v = pts[i].v;
               if (t > f && Number.isFinite(v)) { lo = Math.min(lo, v); hi = Math.max(hi, v); if (v !== 0) g.push([v, t - f]); }
             }
-            let m = 0;
-            if (g.length) {
-              g.sort((a, b) => a[0] - b[0]);
-              const half = g.reduce((n, x) => n + x[1], 0) / 2;
-              let acc = 0;
-              for (const x of g) { acc += x[1]; if (acc >= half) { m = x[0]; break; } }
+            const BIN = 0.5;
+            const bins = {};
+            for (const x of g) { const k = Math.round(x[0] / BIN) * BIN; bins[k] = (bins[k] || 0) + x[1]; }
+            let m = 0, best = 0;
+            for (const k in bins) {
+              const kv = Number(k);
+              if (bins[k] > best || (bins[k] === best && Math.abs(kv) > Math.abs(m))) { best = bins[k]; m = kv; }
             }
             out.push([s, +(({lo: lo, hi: hi, m: m})["hi"]).toFixed(2)]);
           }
           return out;
       - entity: sensor.hvac_deviation_software_support
-        name: Median
+        name: Mode
         color: "#ffca28"
         type: line
         stroke_width: 1.5
@@ -1220,12 +1240,13 @@ cards:
               const v = pts[i].v;
               if (t > f && Number.isFinite(v)) { lo = Math.min(lo, v); hi = Math.max(hi, v); if (v !== 0) g.push([v, t - f]); }
             }
-            let m = 0;
-            if (g.length) {
-              g.sort((a, b) => a[0] - b[0]);
-              const half = g.reduce((n, x) => n + x[1], 0) / 2;
-              let acc = 0;
-              for (const x of g) { acc += x[1]; if (acc >= half) { m = x[0]; break; } }
+            const BIN = 0.5;
+            const bins = {};
+            for (const x of g) { const k = Math.round(x[0] / BIN) * BIN; bins[k] = (bins[k] || 0) + x[1]; }
+            let m = 0, best = 0;
+            for (const k in bins) {
+              const kv = Number(k);
+              if (bins[k] > best || (bins[k] === best && Math.abs(kv) > Math.abs(m))) { best = bins[k]; m = kv; }
             }
             out.push([s, +(({lo: lo, hi: hi, m: m})["m"]).toFixed(2)]);
           }
