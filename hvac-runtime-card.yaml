@@ -22,6 +22,11 @@ cards:
       show:
         legend_value: false
         datalabels: false
+    card_mod:
+      style: |
+        #state__value, .state__value { font-size: 16px !important; }
+        #state__uom, .state__uom { font-size: 9px !important; }
+        #state__name, .state__name { font-size: 9px !important; }
     apex_config:
       chart:
         height: 280
@@ -272,6 +277,11 @@ cards:
       show:
         legend_value: false
         datalabels: false
+    card_mod:
+      style: |
+        #state__value, .state__value { font-size: 16px !important; }
+        #state__uom, .state__uom { font-size: 9px !important; }
+        #state__name, .state__name { font-size: 9px !important; }
     apex_config:
       chart:
         height: 280
@@ -522,6 +532,11 @@ cards:
       show:
         legend_value: false
         datalabels: false
+    card_mod:
+      style: |
+        #state__value, .state__value { font-size: 16px !important; }
+        #state__uom, .state__uom { font-size: 9px !important; }
+        #state__name, .state__name { font-size: 9px !important; }
     apex_config:
       chart:
         height: 280
@@ -772,6 +787,11 @@ cards:
       show:
         legend_value: false
         datalabels: false
+    card_mod:
+      style: |
+        #state__value, .state__value { font-size: 16px !important; }
+        #state__uom, .state__uom { font-size: 9px !important; }
+        #state__name, .state__name { font-size: 9px !important; }
     apex_config:
       chart:
         height: 280
@@ -1022,6 +1042,11 @@ cards:
       show:
         legend_value: false
         datalabels: false
+    card_mod:
+      style: |
+        #state__value, .state__value { font-size: 16px !important; }
+        #state__uom, .state__uom { font-size: 9px !important; }
+        #state__name, .state__name { font-size: 9px !important; }
     apex_config:
       chart:
         height: 280
@@ -1272,6 +1297,11 @@ cards:
       show:
         legend_value: false
         datalabels: false
+    card_mod:
+      style: |
+        #state__value, .state__value { font-size: 16px !important; }
+        #state__uom, .state__uom { font-size: 9px !important; }
+        #state__name, .state__name { font-size: 9px !important; }
     apex_config:
       chart:
         height: 280

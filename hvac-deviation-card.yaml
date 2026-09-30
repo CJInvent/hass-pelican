@@ -19,6 +19,11 @@ cards:
       - decimals: 1
         min: "~-5"
         max: "~5"
+    card_mod:
+      style: |
+        #state__value, .state__value { font-size: 16px !important; }
+        #state__uom, .state__uom { font-size: 9px !important; }
+        #state__name, .state__name { font-size: 9px !important; }
     apex_config:
       chart:
         height: 280
@@ -303,6 +308,11 @@ cards:
       - decimals: 1
         min: "~-5"
         max: "~5"
+    card_mod:
+      style: |
+        #state__value, .state__value { font-size: 16px !important; }
+        #state__uom, .state__uom { font-size: 9px !important; }
+        #state__name, .state__name { font-size: 9px !important; }
     apex_config:
       chart:
         height: 280
@@ -587,6 +597,11 @@ cards:
       - decimals: 1
         min: "~-5"
         max: "~5"
+    card_mod:
+      style: |
+        #state__value, .state__value { font-size: 16px !important; }
+        #state__uom, .state__uom { font-size: 9px !important; }
+        #state__name, .state__name { font-size: 9px !important; }
     apex_config:
       chart:
         height: 280
@@ -871,6 +886,11 @@ cards:
       - decimals: 1
         min: "~-5"
         max: "~5"
+    card_mod:
+      style: |
+        #state__value, .state__value { font-size: 16px !important; }
+        #state__uom, .state__uom { font-size: 9px !important; }
+        #state__name, .state__name { font-size: 9px !important; }
     apex_config:
       chart:
         height: 280
@@ -1155,6 +1175,11 @@ cards:
       - decimals: 1
         min: "~-5"
         max: "~5"
+    card_mod:
+      style: |
+        #state__value, .state__value { font-size: 16px !important; }
+        #state__uom, .state__uom { font-size: 9px !important; }
+        #state__name, .state__name { font-size: 9px !important; }
     apex_config:
       chart:
         height: 280
@@ -1439,6 +1464,11 @@ cards:
       - decimals: 1
         min: "~-5"
         max: "~5"
+    card_mod:
+      style: |
+        #state__value, .state__value { font-size: 16px !important; }
+        #state__uom, .state__uom { font-size: 9px !important; }
+        #state__name, .state__name { font-size: 9px !important; }
     apex_config:
       chart:
         height: 280
