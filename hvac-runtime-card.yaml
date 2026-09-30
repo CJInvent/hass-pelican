@@ -22,6 +22,13 @@ cards:
       show:
         legend_value: false
         datalabels: false
+    card_mod:
+      style: |
+        #states, .states { gap: 2px !important; flex-wrap: nowrap !important; }
+        #state, .state { flex: 1 1 0 !important; min-width: 0 !important; }
+        #state__value, .state__value { font-size: 16px !important; }
+        #state__uom, .state__uom { font-size: 9px !important; }
+        #state__name, .state__name { font-size: 9px !important; white-space: normal !important; line-height: 1.1 !important; }
     apex_config:
       chart:
         height: 280
@@ -63,6 +70,10 @@ cards:
             });
             return html + '</div>';
           }
+      grid:
+        padding:
+          left: 6
+          right: 14
       legend:
         show: false
       dataLabels:
@@ -172,7 +183,7 @@ cards:
           }
           return out;
       - entity: climate.sales
-        name: Week before last
+        name: Week before
         color: "#90a4ae"
         show:
           in_chart: false
@@ -226,7 +237,7 @@ cards:
           }
           return [[s, Number(h.toFixed(2))]];
       - entity: climate.sales
-        name: Current week
+        name: This week
         color: "#ab47bc"
         show:
           in_chart: false
@@ -269,6 +280,13 @@ cards:
       show:
         legend_value: false
         datalabels: false
+    card_mod:
+      style: |
+        #states, .states { gap: 2px !important; flex-wrap: nowrap !important; }
+        #state, .state { flex: 1 1 0 !important; min-width: 0 !important; }
+        #state__value, .state__value { font-size: 16px !important; }
+        #state__uom, .state__uom { font-size: 9px !important; }
+        #state__name, .state__name { font-size: 9px !important; white-space: normal !important; line-height: 1.1 !important; }
     apex_config:
       chart:
         height: 280
@@ -310,6 +328,10 @@ cards:
             });
             return html + '</div>';
           }
+      grid:
+        padding:
+          left: 6
+          right: 14
       legend:
         show: false
       dataLabels:
@@ -419,7 +441,7 @@ cards:
           }
           return out;
       - entity: climate.amy
-        name: Week before last
+        name: Week before
         color: "#90a4ae"
         show:
           in_chart: false
@@ -473,7 +495,7 @@ cards:
           }
           return [[s, Number(h.toFixed(2))]];
       - entity: climate.amy
-        name: Current week
+        name: This week
         color: "#ab47bc"
         show:
           in_chart: false
@@ -516,6 +538,13 @@ cards:
       show:
         legend_value: false
         datalabels: false
+    card_mod:
+      style: |
+        #states, .states { gap: 2px !important; flex-wrap: nowrap !important; }
+        #state, .state { flex: 1 1 0 !important; min-width: 0 !important; }
+        #state__value, .state__value { font-size: 16px !important; }
+        #state__uom, .state__uom { font-size: 9px !important; }
+        #state__name, .state__name { font-size: 9px !important; white-space: normal !important; line-height: 1.1 !important; }
     apex_config:
       chart:
         height: 280
@@ -557,6 +586,10 @@ cards:
             });
             return html + '</div>';
           }
+      grid:
+        padding:
+          left: 6
+          right: 14
       legend:
         show: false
       dataLabels:
@@ -666,7 +699,7 @@ cards:
           }
           return out;
       - entity: climate.bruce_break_room
-        name: Week before last
+        name: Week before
         color: "#90a4ae"
         show:
           in_chart: false
@@ -720,7 +753,7 @@ cards:
           }
           return [[s, Number(h.toFixed(2))]];
       - entity: climate.bruce_break_room
-        name: Current week
+        name: This week
         color: "#ab47bc"
         show:
           in_chart: false
@@ -763,6 +796,13 @@ cards:
       show:
         legend_value: false
         datalabels: false
+    card_mod:
+      style: |
+        #states, .states { gap: 2px !important; flex-wrap: nowrap !important; }
+        #state, .state { flex: 1 1 0 !important; min-width: 0 !important; }
+        #state__value, .state__value { font-size: 16px !important; }
+        #state__uom, .state__uom { font-size: 9px !important; }
+        #state__name, .state__name { font-size: 9px !important; white-space: normal !important; line-height: 1.1 !important; }
     apex_config:
       chart:
         height: 280
@@ -804,6 +844,10 @@ cards:
             });
             return html + '</div>';
           }
+      grid:
+        padding:
+          left: 6
+          right: 14
       legend:
         show: false
       dataLabels:
@@ -913,7 +957,7 @@ cards:
           }
           return out;
       - entity: climate.minepoint
-        name: Week before last
+        name: Week before
         color: "#90a4ae"
         show:
           in_chart: false
@@ -967,7 +1011,7 @@ cards:
           }
           return [[s, Number(h.toFixed(2))]];
       - entity: climate.minepoint
-        name: Current week
+        name: This week
         color: "#ab47bc"
         show:
           in_chart: false
@@ -1010,6 +1054,13 @@ cards:
       show:
         legend_value: false
         datalabels: false
+    card_mod:
+      style: |
+        #states, .states { gap: 2px !important; flex-wrap: nowrap !important; }
+        #state, .state { flex: 1 1 0 !important; min-width: 0 !important; }
+        #state__value, .state__value { font-size: 16px !important; }
+        #state__uom, .state__uom { font-size: 9px !important; }
+        #state__name, .state__name { font-size: 9px !important; white-space: normal !important; line-height: 1.1 !important; }
     apex_config:
       chart:
         height: 280
@@ -1051,6 +1102,10 @@ cards:
             });
             return html + '</div>';
           }
+      grid:
+        padding:
+          left: 6
+          right: 14
       legend:
         show: false
       dataLabels:
@@ -1160,7 +1215,7 @@ cards:
           }
           return out;
       - entity: climate.new_offices
-        name: Week before last
+        name: Week before
         color: "#90a4ae"
         show:
           in_chart: false
@@ -1214,7 +1269,7 @@ cards:
           }
           return [[s, Number(h.toFixed(2))]];
       - entity: climate.new_offices
-        name: Current week
+        name: This week
         color: "#ab47bc"
         show:
           in_chart: false
@@ -1257,6 +1312,13 @@ cards:
       show:
         legend_value: false
         datalabels: false
+    card_mod:
+      style: |
+        #states, .states { gap: 2px !important; flex-wrap: nowrap !important; }
+        #state, .state { flex: 1 1 0 !important; min-width: 0 !important; }
+        #state__value, .state__value { font-size: 16px !important; }
+        #state__uom, .state__uom { font-size: 9px !important; }
+        #state__name, .state__name { font-size: 9px !important; white-space: normal !important; line-height: 1.1 !important; }
     apex_config:
       chart:
         height: 280
@@ -1298,6 +1360,10 @@ cards:
             });
             return html + '</div>';
           }
+      grid:
+        padding:
+          left: 6
+          right: 14
       legend:
         show: false
       dataLabels:
@@ -1407,7 +1473,7 @@ cards:
           }
           return out;
       - entity: climate.software_support
-        name: Week before last
+        name: Week before
         color: "#90a4ae"
         show:
           in_chart: false
@@ -1461,7 +1527,7 @@ cards:
           }
           return [[s, Number(h.toFixed(2))]];
       - entity: climate.software_support
-        name: Current week
+        name: This week
         color: "#ab47bc"
         show:
           in_chart: false
