@@ -41,7 +41,22 @@ cards:
       tooltip:
         shared: true
         intersect: false
-        followCursor: true
+        theme: dark
+        custom: |
+          EVAL:function(o){
+            var w = o.w, x = w.globals.seriesX[o.seriesIndex][o.dataPointIndex];
+            var t = new Date(x).toLocaleString(undefined, {month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit'});
+            var html = '<div style="padding:8px 10px;font-size:12px"><div style="margin-bottom:6px;font-weight:600">' + t + '</div>';
+            w.globals.seriesNames.forEach(function(n, k){
+              var xs = w.globals.seriesX[k] || [], best = -1, bd = Infinity;
+              for (var j = 0; j < xs.length; j++) { var dd = Math.abs(xs[j] - x); if (dd < bd) { bd = dd; best = j; } }
+              var v = (best >= 0 && bd <= 1800000 && w.globals.series[k]) ? w.globals.series[k][best] : null;
+              var u = n === 'Humidity' ? '%' : '\u00b0F';
+              html += '<div><span style="display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;background:' +
+                w.globals.colors[k] + '"></span>' + n + ': <b>' + (v == null ? '\u2013' : Number(v).toFixed(1) + u) + '</b></div>';
+            });
+            return html + '</div>';
+          }
       xaxis:
         labels:
           datetimeUTC: false
@@ -159,7 +174,22 @@ cards:
       tooltip:
         shared: true
         intersect: false
-        followCursor: true
+        theme: dark
+        custom: |
+          EVAL:function(o){
+            var w = o.w, x = w.globals.seriesX[o.seriesIndex][o.dataPointIndex];
+            var t = new Date(x).toLocaleString(undefined, {month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit'});
+            var html = '<div style="padding:8px 10px;font-size:12px"><div style="margin-bottom:6px;font-weight:600">' + t + '</div>';
+            w.globals.seriesNames.forEach(function(n, k){
+              var xs = w.globals.seriesX[k] || [], best = -1, bd = Infinity;
+              for (var j = 0; j < xs.length; j++) { var dd = Math.abs(xs[j] - x); if (dd < bd) { bd = dd; best = j; } }
+              var v = (best >= 0 && bd <= 1800000 && w.globals.series[k]) ? w.globals.series[k][best] : null;
+              var u = n === 'Humidity' ? '%' : '\u00b0F';
+              html += '<div><span style="display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;background:' +
+                w.globals.colors[k] + '"></span>' + n + ': <b>' + (v == null ? '\u2013' : Number(v).toFixed(1) + u) + '</b></div>';
+            });
+            return html + '</div>';
+          }
       xaxis:
         labels:
           datetimeUTC: false
@@ -249,7 +279,22 @@ cards:
       tooltip:
         shared: true
         intersect: false
-        followCursor: true
+        theme: dark
+        custom: |
+          EVAL:function(o){
+            var w = o.w, x = w.globals.seriesX[o.seriesIndex][o.dataPointIndex];
+            var t = new Date(x).toLocaleString(undefined, {month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit'});
+            var html = '<div style="padding:8px 10px;font-size:12px"><div style="margin-bottom:6px;font-weight:600">' + t + '</div>';
+            w.globals.seriesNames.forEach(function(n, k){
+              var xs = w.globals.seriesX[k] || [], best = -1, bd = Infinity;
+              for (var j = 0; j < xs.length; j++) { var dd = Math.abs(xs[j] - x); if (dd < bd) { bd = dd; best = j; } }
+              var v = (best >= 0 && bd <= 1800000 && w.globals.series[k]) ? w.globals.series[k][best] : null;
+              var u = n === 'Humidity' ? '%' : '\u00b0F';
+              html += '<div><span style="display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;background:' +
+                w.globals.colors[k] + '"></span>' + n + ': <b>' + (v == null ? '\u2013' : Number(v).toFixed(1) + u) + '</b></div>';
+            });
+            return html + '</div>';
+          }
       xaxis:
         labels:
           datetimeUTC: false
@@ -339,7 +384,22 @@ cards:
       tooltip:
         shared: true
         intersect: false
-        followCursor: true
+        theme: dark
+        custom: |
+          EVAL:function(o){
+            var w = o.w, x = w.globals.seriesX[o.seriesIndex][o.dataPointIndex];
+            var t = new Date(x).toLocaleString(undefined, {month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit'});
+            var html = '<div style="padding:8px 10px;font-size:12px"><div style="margin-bottom:6px;font-weight:600">' + t + '</div>';
+            w.globals.seriesNames.forEach(function(n, k){
+              var xs = w.globals.seriesX[k] || [], best = -1, bd = Infinity;
+              for (var j = 0; j < xs.length; j++) { var dd = Math.abs(xs[j] - x); if (dd < bd) { bd = dd; best = j; } }
+              var v = (best >= 0 && bd <= 1800000 && w.globals.series[k]) ? w.globals.series[k][best] : null;
+              var u = n === 'Humidity' ? '%' : '\u00b0F';
+              html += '<div><span style="display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;background:' +
+                w.globals.colors[k] + '"></span>' + n + ': <b>' + (v == null ? '\u2013' : Number(v).toFixed(1) + u) + '</b></div>';
+            });
+            return html + '</div>';
+          }
       xaxis:
         labels:
           datetimeUTC: false
@@ -429,7 +489,22 @@ cards:
       tooltip:
         shared: true
         intersect: false
-        followCursor: true
+        theme: dark
+        custom: |
+          EVAL:function(o){
+            var w = o.w, x = w.globals.seriesX[o.seriesIndex][o.dataPointIndex];
+            var t = new Date(x).toLocaleString(undefined, {month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit'});
+            var html = '<div style="padding:8px 10px;font-size:12px"><div style="margin-bottom:6px;font-weight:600">' + t + '</div>';
+            w.globals.seriesNames.forEach(function(n, k){
+              var xs = w.globals.seriesX[k] || [], best = -1, bd = Infinity;
+              for (var j = 0; j < xs.length; j++) { var dd = Math.abs(xs[j] - x); if (dd < bd) { bd = dd; best = j; } }
+              var v = (best >= 0 && bd <= 1800000 && w.globals.series[k]) ? w.globals.series[k][best] : null;
+              var u = n === 'Humidity' ? '%' : '\u00b0F';
+              html += '<div><span style="display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;background:' +
+                w.globals.colors[k] + '"></span>' + n + ': <b>' + (v == null ? '\u2013' : Number(v).toFixed(1) + u) + '</b></div>';
+            });
+            return html + '</div>';
+          }
       xaxis:
         labels:
           datetimeUTC: false
@@ -519,7 +594,22 @@ cards:
       tooltip:
         shared: true
         intersect: false
-        followCursor: true
+        theme: dark
+        custom: |
+          EVAL:function(o){
+            var w = o.w, x = w.globals.seriesX[o.seriesIndex][o.dataPointIndex];
+            var t = new Date(x).toLocaleString(undefined, {month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit'});
+            var html = '<div style="padding:8px 10px;font-size:12px"><div style="margin-bottom:6px;font-weight:600">' + t + '</div>';
+            w.globals.seriesNames.forEach(function(n, k){
+              var xs = w.globals.seriesX[k] || [], best = -1, bd = Infinity;
+              for (var j = 0; j < xs.length; j++) { var dd = Math.abs(xs[j] - x); if (dd < bd) { bd = dd; best = j; } }
+              var v = (best >= 0 && bd <= 1800000 && w.globals.series[k]) ? w.globals.series[k][best] : null;
+              var u = n === 'Humidity' ? '%' : '\u00b0F';
+              html += '<div><span style="display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;background:' +
+                w.globals.colors[k] + '"></span>' + n + ': <b>' + (v == null ? '\u2013' : Number(v).toFixed(1) + u) + '</b></div>';
+            });
+            return html + '</div>';
+          }
       xaxis:
         labels:
           datetimeUTC: false
@@ -614,7 +704,22 @@ cards:
       tooltip:
         shared: true
         intersect: false
-        followCursor: true
+        theme: dark
+        custom: |
+          EVAL:function(o){
+            var w = o.w, x = w.globals.seriesX[o.seriesIndex][o.dataPointIndex];
+            var t = new Date(x).toLocaleString(undefined, {month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit'});
+            var html = '<div style="padding:8px 10px;font-size:12px"><div style="margin-bottom:6px;font-weight:600">' + t + '</div>';
+            w.globals.seriesNames.forEach(function(n, k){
+              var xs = w.globals.seriesX[k] || [], best = -1, bd = Infinity;
+              for (var j = 0; j < xs.length; j++) { var dd = Math.abs(xs[j] - x); if (dd < bd) { bd = dd; best = j; } }
+              var v = (best >= 0 && bd <= 1800000 && w.globals.series[k]) ? w.globals.series[k][best] : null;
+              var u = n === 'Humidity' ? '%' : '\u00b0F';
+              html += '<div><span style="display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;background:' +
+                w.globals.colors[k] + '"></span>' + n + ': <b>' + (v == null ? '\u2013' : Number(v).toFixed(1) + u) + '</b></div>';
+            });
+            return html + '</div>';
+          }
       xaxis:
         labels:
           datetimeUTC: false
