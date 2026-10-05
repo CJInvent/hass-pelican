@@ -1,17 +1,20 @@
 blueprint:
   name: Pelican – rotate units toward occupancy schedules
   description: >-
-    Every 15 minutes, aligned to the hour, runs at most a set number of
-    thermostats and holds every other online unit Off. Slots are filled in
-    priority order: cooling overrides (highest priority first), then manual
-    on-demand requests, then units still inside their minimum run time, then the
-    units furthest outside their schedule's heat/cool band. When something
-    higher-priority needs a slot and none are free, the unit that has been
-    running longest is turned off. Offline thermostats are ignored.
+    Every 5 minutes, runs at most a set number of thermostats and holds every
+    other online unit Off. A unit given a slot is driven to actually run: put in
+    cool or heat with its setpoint pushed past the room temperature, so the
+    compressor runs for as long as it holds the slot, until the room is a margin
+    inside its schedule's band. Slots are filled in priority order: cooling
+    overrides (highest priority first), then manual on-demand requests, then
+    units inside their minimum run time, then the rooms furthest from their
+    goal. When something higher-priority needs a slot and none are free, the
+    unit that has been running longest is turned off. Offline thermostats are
+    ignored.
 
 
-    Schedules are Home Assistant Schedule helpers, edited on their own graphical
-    weekly calendar. Add as many as you need, each with any number of blocks.
+    Add as many schedules as you need, each either a YAML table of start times
+    and setpoints or a Schedule helper edited on HA's graphical weekly calendar.
 
 
     Written for the Pelican Wireless integration
@@ -72,21 +75,46 @@ blueprint:
           description: Active cooling overrides can raise this by their offsets.
           default: 2
           selector: {number: {min: 0, max: 100, mode: box}}
+        run_margin:
+          name: Run margin
+          description: >-
+            A unit with a slot keeps running until its room is this far inside its
+            schedule's band: below the cool setpoint by this much, or above the
+            heat setpoint. Rooms are ranked by how far they are from that goal.
+          default: 1.0
+          selector: {number: {min: 0, max: 5, step: 0.5, unit_of_measurement: "°", mode: box}}
+        call_margin:
+          name: Call margin
+          description: >-
+            How far past the goal the thermostat setpoint is written, so the unit
+            calls for cooling or heating the whole time it holds a slot instead of
+            idling at its own setpoint. Clamped to the thermostat's limits.
+          default: 2
+          selector: {number: {min: 1, max: 10, step: 1, unit_of_measurement: "°", mode: box}}
         second_unit_min_error:
           name: Minimum error for additional units
           description: >-
-            The first schedule-driven unit runs whenever it is outside its band at
-            all. Each additional one must be at least this far outside its band.
-          default: 1.0
+            The first schedule-driven unit runs whenever its room is past the goal
+            at all. Each additional one must be at least this far past it. 0 keeps
+            every slot in use while any room needs it.
+          default: 0
           selector: {number: {min: 0, max: 10, step: 0.1, unit_of_measurement: "°", mode: box}}
         min_run_minutes:
           name: Minimum run time
           description: >-
             A unit turned on stays on at least this long, so it can't be cycled
-            off after a single 15-minute window. Cooling overrides and manual
-            requests can still displace it. 0 disables.
+            off after a single short run. Cooling overrides and manual requests
+            can still displace it. 0 disables.
           default: 30
           selector: {number: {min: 0, max: 240, step: 5, unit_of_measurement: min, mode: box}}
+        min_off_minutes:
+          name: Minimum off time
+          description: >-
+            A unit turned off waits at least this long before it can be given a
+            slot again, so it can't flap off and straight back on. Cooling
+            overrides and manual requests ignore this. 0 disables.
+          default: 10
+          selector: {number: {min: 0, max: 120, step: 5, unit_of_measurement: min, mode: box}}
     manual_section:
       name: Manual on-demand
       icon: mdi:hand-back-right
@@ -102,7 +130,7 @@ blueprint:
         lock_keypads:
           name: Keep these keypads locked
           description: >-
-            Their keypads are locked again every 15 minutes. A locked thermostat
+            Their keypads are locked again on every run. A locked thermostat
             can't be adjusted at the unit, so it never enters manual override.
           default: []
           selector: {entity: {multiple: true, filter: [{domain: climate}]}}
@@ -160,7 +188,7 @@ trigger_variables:
 
 triggers:
   - trigger: time_pattern
-    minutes: "/15"            # :00 :15 :30 :45
+    minutes: "/5"
   - trigger: homeassistant
     event: start
   # A template trigger only fires on a false -> true transition, so both of these
@@ -193,7 +221,10 @@ triggers:
 variables:
   max_running: !input max_running
   min_error: !input second_unit_min_error
+  run_margin: !input run_margin
+  call_margin: !input call_margin
   min_run_minutes: !input min_run_minutes
+  min_off_minutes: !input min_off_minutes
   lock_keypads: !input lock_keypads
 
   # thermostat -> index of the first schedule that lists it.
@@ -296,16 +327,41 @@ variables:
     {% endfor %}
     {{ ns.out }}
 
-  # Error = distance outside the band; 0 inside it. Decimals kept.
-  ranked: >-
-    {% set ns = namespace(rows=[]) %}
+  # Rooms that need a unit, as thermostat -> {mode, error, setpoint}. The goal is
+  # run_margin inside the band; error is how far the room is past it. The written
+  # setpoint is call_margin beyond the goal, so a unit holding a slot keeps
+  # calling until we take the slot back. Clamping to the thermostat's limits
+  # happens when it is written, since those limits depend on its current mode.
+  demand: >-
+    {% set ns = namespace(m={}) %}
     {% for e in online if e in targets %}
       {% set t = state_attr(e, 'current_temperature') | float %}
-      {% set b = targets[e] %}
-      {% set ns.rows = ns.rows + [{'entity': e,
-          'error': ([t - b.cool, b.heat - t, 0] | max) | round(2)}] %}
+      {% set cool_goal = targets[e].cool - run_margin | float %}
+      {% set heat_goal = targets[e].heat + run_margin | float %}
+      {% if t > cool_goal and t - cool_goal >= heat_goal - t %}
+        {% set ns.m = dict(ns.m, **{e: {'mode': 'cool', 'error': (t - cool_goal) | round(2),
+            'setpoint': ((cool_goal - call_margin | float) | round(0, 'floor')) | int}}) %}
+      {% elif t < heat_goal %}
+        {% set ns.m = dict(ns.m, **{e: {'mode': 'heat', 'error': (heat_goal - t) | round(2),
+            'setpoint': ((heat_goal + call_margin | float) | round(0, 'ceil')) | int}}) %}
+      {% endif %}
     {% endfor %}
-    {{ ns.rows | sort(attribute='error', reverse=true) }}
+    {{ ns.m }}
+
+  # Thermostats with demand, furthest from their goal first.
+  ranked: >-
+    {% set ns = namespace(rows=[]) %}
+    {% for e, d in demand.items() %}{% set ns.rows = ns.rows + [{'entity': e, 'error': d.error}] %}{% endfor %}
+    {{ ns.rows | sort(attribute='error', reverse=true) | map(attribute='entity') | list }}
+
+  # thermostat -> minutes since it was turned Off, while inside min_off_minutes.
+  resting: >-
+    {% set ns = namespace(m={}) %}
+    {% for e in online if is_state(e, 'off') %}
+      {% set mins = (now() - (expand(e) | first).last_changed).total_seconds() / 60 %}
+      {% if mins < min_off_minutes | float %}{% set ns.m = dict(ns.m, **{e: mins | round(1)}) %}{% endif %}
+    {% endfor %}
+    {{ ns.m }}
 
   # Active overrides, as thermostat -> {priority, target}. A thermostat in several
   # follows the highest priority; equal priorities take the lowest setpoint.
@@ -334,7 +390,8 @@ variables:
   # Slot order: overrides by priority, then manual requests (earliest first),
   # then running units. If the running units no longer fit, the ones running
   # longest go first; otherwise units inside their minimum run time stay, and the
-  # rest compete with idle units by error.
+  # rest compete with idle units by how far their rooms are from the goal. Units
+  # still inside their minimum off time wait.
   selected: >-
     {% set ns = namespace(picks=[]) %}
     {% set by_priority = forced.items() | sort(attribute='1.priority', reverse=true) | list %}
@@ -359,11 +416,11 @@ variables:
       {% for e in ns2.inc if runtime[e] < min_run_minutes | float %}
         {% set ns.picks = ns.picks + [e] %}
       {% endfor %}
-      {% for row in ranked %}
-        {% if row.entity not in ns.picks and row.entity not in manual and row.entity not in forced
-              and ns.picks | count < limit and row.error > 0
-              and (not ns.picks or row.error >= min_error) %}
-          {% set ns.picks = ns.picks + [row.entity] %}
+      {% for e in ranked %}
+        {% if e not in ns.picks and e not in manual and e not in forced and e not in resting
+              and ns.picks | count < limit
+              and (not ns.picks or demand[e].error >= min_error | float) %}
+          {% set ns.picks = ns.picks + [e] %}
         {% endif %}
       {% endfor %}
     {% endif %}
@@ -383,15 +440,20 @@ actions:
               target: {entity_id: "{{ repeat.item }}"}
               data: {hvac_mode: "off"}
 
-  # 2) Selected units get their mode, then their setpoints. Only what differs.
-  #    Manual units are left exactly as the person set them.
+  # 2) Selected units are driven so they actually run: overrides to their cooling
+  #    setpoint, everything else to cool or heat with the setpoint pushed past the
+  #    room. Only what differs is written. Manual units are left as the person set
+  #    them, and a unit kept only by its minimum run time is left running as is.
   - repeat:
-      for_each: "{{ selected | reject('in', manual) | list }}"
+      for_each: >-
+        {{ selected | reject('in', manual)
+           | select('in', (forced | list) + (demand | list)) | list }}
       sequence:
         - variables:
             override_unit: "{{ repeat.item in forced }}"
-            want_mode: "{{ 'cool' if override_unit else 'heat_cool' }}"
-        # Mode first: a unit in Off only accepts a single setpoint.
+            want_mode: "{{ 'cool' if override_unit else demand[repeat.item].mode }}"
+            want_temp: "{{ forced[repeat.item].target if override_unit else demand[repeat.item].setpoint }}"
+        # Mode first: the setpoint limits depend on it.
         - if:
             - "{{ not is_state(repeat.item, want_mode) }}"
           then:
@@ -399,28 +461,18 @@ actions:
               continue_on_error: true
               target: {entity_id: "{{ repeat.item }}"}
               data: {hvac_mode: "{{ want_mode }}"}
+        - variables:
+            write_temp: >-
+              {% set lo = state_attr(repeat.item, 'min_temp') | float(want_temp) %}
+              {% set hi = state_attr(repeat.item, 'max_temp') | float(want_temp) %}
+              {{ ([[want_temp | float, lo] | max, hi] | min) | int }}
         - if:
-            - "{{ override_unit }}"
+            - "{{ state_attr(repeat.item, 'temperature') | float(0) != write_temp | float }}"
           then:
-            - if:
-                - "{{ state_attr(repeat.item, 'temperature') | float(0) != forced[repeat.item].target }}"
-              then:
-                - action: climate.set_temperature
-                  continue_on_error: true
-                  target: {entity_id: "{{ repeat.item }}"}
-                  data: {temperature: "{{ forced[repeat.item].target }}"}
-          else:
-            - if:
-                - >-
-                  {{ state_attr(repeat.item, 'target_temp_low') | float(0) != targets[repeat.item].heat
-                     or state_attr(repeat.item, 'target_temp_high') | float(0) != targets[repeat.item].cool }}
-              then:
-                - action: climate.set_temperature
-                  continue_on_error: true
-                  target: {entity_id: "{{ repeat.item }}"}
-                  data:
-                    target_temp_low: "{{ targets[repeat.item].heat }}"
-                    target_temp_high: "{{ targets[repeat.item].cool }}"
+            - action: climate.set_temperature
+              continue_on_error: true
+              target: {entity_id: "{{ repeat.item }}"}
+              data: {temperature: "{{ write_temp }}"}
 
   # 3) Re-lock keypads every run. Skipped for units in a manual window, because
   #    writing to them would end the override.
@@ -441,16 +493,15 @@ actions:
   - variables:
       misses: >-
         {% set ns = namespace(out=[]) %}
-        {% for e in selected | reject('in', manual) %}
-          {% if e in forced %}
-            {% set ok = state_attr(e, 'temperature') | float(0) == forced[e].target %}
-          {% else %}
-            {% set ok = state_attr(e, 'target_temp_low') | float(0) == targets[e].heat
-                        and state_attr(e, 'target_temp_high') | float(0) == targets[e].cool %}
-          {% endif %}
-          {% if not ok %}
-            {% set ns.out = ns.out + [state_attr(e, 'friendly_name') ~ ' (allowed '
-                ~ state_attr(e, 'min_temp') ~ '–' ~ state_attr(e, 'max_temp') ~ ')'] %}
+        {% for e in selected | reject('in', manual) | select('in', (forced | list) + (demand | list)) %}
+          {% set mode = 'cool' if e in forced else demand[e].mode %}
+          {% set want = forced[e].target if e in forced else demand[e].setpoint %}
+          {% set lo = state_attr(e, 'min_temp') | float(want) %}
+          {% set hi = state_attr(e, 'max_temp') | float(want) %}
+          {% set expect = ([[want | float, lo] | max, hi] | min) | int %}
+          {% if not is_state(e, mode) or state_attr(e, 'temperature') | float(0) != expect %}
+            {% set ns.out = ns.out + [state_attr(e, 'friendly_name') ~ ' (wanted ' ~ mode ~ ' '
+                ~ expect ~ ', allowed ' ~ state_attr(e, 'min_temp') ~ '–' ~ state_attr(e, 'max_temp') ~ ')'] %}
           {% endif %}
         {% endfor %}
         {{ ns.out }}
@@ -462,8 +513,8 @@ actions:
           notification_id: pelican_unit_rotation
           title: Thermostat setpoints not applied
           message: >-
-            Selected but not at their scheduled setpoints, usually because a
-            scheduled value is outside the thermostat's allowed range:
+            Given a slot, but not in the mode and setpoint written to them,
+            usually because a write failed or the thermostat is refusing changes:
             {{ misses | join(', ') }}
     else:
       - action: persistent_notification.dismiss
