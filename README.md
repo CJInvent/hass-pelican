@@ -156,8 +156,14 @@ automation:
 
 An optional automation blueprint for sites where only a few HVAC units may run
 at once. It is a blueprint, not part of the integration: schedules live in
-Home Assistant automations (dev rule 32). Every 15 minutes, aligned to the hour,
-it fills a limited number of slots in this order:
+Home Assistant automations (dev rule 32).
+
+Every 5 minutes it gives at most a set number of units a slot and holds every
+other online unit Off. **A unit with a slot actually runs:** it is put in cool or
+heat with its setpoint pushed past the room temperature, so the compressor runs
+the whole time it holds the slot, until the room is a margin (1° by default)
+inside its schedule's band. The thermostat never idles in a slot. Slots go, in
+order, to:
 
 1. **Cooling overrides**, highest priority first. Each override is an entity
    (input_boolean, switch or binary_sensor), any number of thermostats, a
@@ -167,25 +173,35 @@ it fills a limited number of slots in this order:
    integration's *Set by* sensor reads `Station`), it is left exactly as they set
    it for an hour by default, ahead of schedule-driven units, then returns to
    schedule.
-3. **Units inside their minimum run time** (30 minutes by default), so nothing is
-   cycled off after a single window.
-4. **The units furthest outside their schedule's band.**
+3. **Units inside their minimum run time** (30 minutes by default).
+4. **The rooms furthest from their goal.** A unit turned off rests for a minimum
+   off time (10 minutes by default) before it can get a slot again.
 
 When a higher tier needs a slot and none are free, the unit that has been running
 longest is turned off. Offline thermostats are ignored, and chosen keypads are
 re-locked every run.
 
-**Schedules are native Schedule helpers**, edited on their own graphical weekly
-calendar: any number of schedules, each with any number of time blocks. Give each
-block its setpoints under **Advanced settings → Additional data** as `heat: 68`
-and `cool: 75`. Outside every block, thermostats use the setpoints entered for
-that schedule in the blueprint. Keep block times on :00/:15/:30/:45 — changes
-apply at the next 15-minute window.
+**Any number of schedules, each defined one of two ways.** A setpoints table in
+YAML — `weekday:` and `weekend:` maps of start time to `[heat, cool]`, plus
+`mon:` … `sun:` for any day that differs; each entry holds until the next,
+overnight included:
 
-Schedules and overrides are both repeatable forms in the automation editor, so
-nothing is configured in YAML. If a selected thermostat doesn't land on its
-setpoints — usually a value outside its Pelican limits — a persistent
-notification names it and its allowed range.
+```yaml
+weekday:
+  "04:00": [56, 85]
+  "08:00": [68, 75]
+  "18:00": [56, 85]
+weekend:
+  "00:00": [56, 85]
+```
+
+Or a native Schedule helper, drawn on HA's graphical weekly calendar, with
+`heat: 68` and `cool: 75` under each block's **More options → Additional data**,
+plus setpoints for outside its blocks. Changes apply at the next 5-minute run.
+
+Schedules and overrides are repeatable forms in the automation editor. If a
+unit given a slot isn't in the mode and setpoint written to it, a persistent
+notification names it, what was wanted, and its allowed range.
 
 Manual import: **Settings → Automations & Scenes → Blueprints → Import
 blueprint**, and paste `https://github.com/CJInvent/hass-pelican/blob/main/blueprints/automation/pelican/rotate_units.yaml`.
