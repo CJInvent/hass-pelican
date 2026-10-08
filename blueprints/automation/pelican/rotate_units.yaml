@@ -15,6 +15,9 @@ blueprint:
 
     Add as many schedules as you need, each either a YAML table of start times
     and setpoints or a Schedule helper edited on HA's graphical weekly calendar.
+    Schedule overrides swap in a different schedule while they are active, for
+    holidays, closures or events. Any override can run for a set time from a
+    single tap on a dashboard toggle or button.
 
 
     Written for the Pelican Wireless integration
@@ -35,7 +38,8 @@ blueprint:
         each entry holds until the next, overnight included. Or a Schedule helper,
         drawn on its graphical weekly calendar, with `heat: 68` and `cool: 75`
         under each block's More options → Additional data, and the setpoints
-        below for outside its blocks. A table wins if both are given. Each
+        below for outside its blocks. A table wins if both are given; with
+        neither, the setpoints below apply all the time. Each
         thermostat may be in only one schedule: the form can't check that, so
         the automation checks it when you save. If one is listed twice it says
         which, and changes nothing until that is fixed.
@@ -141,10 +145,22 @@ blueprint:
       icon: mdi:snowflake-alert
       collapsed: true
       description: >-
-        While an override's trigger entity is on, its thermostats cool to the
-        override setpoint and take slots ahead of everything else, highest
-        priority first. The unit-limit offsets of all active overrides stack. A
-        thermostat in several active overrides follows the highest-priority one.
+        While a cooling override is active, its thermostats cool to its setpoint
+        and take slots ahead of everything else, highest priority first.
+
+
+        An override, cooling or schedule, is active while its trigger entity is
+        on: a toggle, switch, sensor, calendar event or Schedule helper block.
+        Give it a duration and it lasts that long instead, for one-tap use from a
+        dashboard or a phone widget: an input_boolean turned on is turned back
+        off when the time is up (turn it off to end early), and each press of an
+        input_button starts the time over.
+
+
+        Unit-limit offsets of all active overrides stack. A thermostat covered by
+        several active overrides follows the one with the highest priority,
+        whichever kind it is. At equal priority a cooling override beats a
+        schedule override, and the lower setpoint wins between cooling overrides.
       input:
         overrides:
           name: Overrides
@@ -160,9 +176,12 @@ blueprint:
                   required: true
                   selector: {text: {}}
                 switch:
-                  label: Trigger entity (active while on)
+                  label: Trigger entity (on, or pressed for a button)
                   required: true
-                  selector: {entity: {filter: [{domain: [input_boolean, switch, binary_sensor]}]}}
+                  selector: {entity: {filter: [{domain: [input_boolean, input_button, button, switch, binary_sensor, calendar, schedule]}]}}
+                duration:
+                  label: Duration in minutes after it turns on or is pressed (0 = while on)
+                  selector: {number: {min: 0, max: 10080, step: 5, unit_of_measurement: min, mode: box}}
                 thermostats:
                   label: Thermostats to cool
                   required: true
@@ -171,6 +190,62 @@ blueprint:
                   label: Cooling setpoint
                   required: true
                   selector: {number: {min: 40, max: 90, unit_of_measurement: "°", mode: box}}
+                priority:
+                  label: Priority (higher is more critical, default 0)
+                  selector: {number: {min: 0, max: 100, mode: box}}
+                unit_offset:
+                  label: Unit limit offset while active (default 0)
+                  selector: {number: {min: -20, max: 20, mode: box}}
+    schedule_overrides_section:
+      name: Schedule overrides
+      icon: mdi:calendar-alert
+      collapsed: true
+      description: >-
+        While a schedule override is active, its thermostats follow its schedule
+        instead of their own: a holiday or closure band, or a tighter one for an
+        event. Define it like a schedule (a setpoints table, a Schedule helper,
+        or just a heat and cool setpoint for the whole time it is active). Its
+        thermostats still compete for slots by how far their rooms are from the
+        goal; for a guaranteed slot, use a cooling override. Activation,
+        durations, priority and offsets work as described under cooling
+        overrides. At equal priority, the first listed wins.
+      input:
+        schedule_overrides:
+          name: Schedule overrides
+          default: []
+          selector:
+            object:
+              multiple: true
+              label_field: name
+              description_field: switch
+              fields:
+                name:
+                  label: Name
+                  required: true
+                  selector: {text: {}}
+                switch:
+                  label: Trigger entity (on, or pressed for a button)
+                  required: true
+                  selector: {entity: {filter: [{domain: [input_boolean, input_button, button, switch, binary_sensor, calendar, schedule]}]}}
+                duration:
+                  label: Duration in minutes after it turns on or is pressed (0 = while on)
+                  selector: {number: {min: 0, max: 10080, step: 5, unit_of_measurement: min, mode: box}}
+                thermostats:
+                  label: Thermostats
+                  required: true
+                  selector: {entity: {multiple: true, filter: [{domain: climate}]}}
+                heat:
+                  label: Heat setpoint (all the time, or outside helper blocks)
+                  selector: {number: {min: 40, max: 90, unit_of_measurement: "°", mode: box}}
+                cool:
+                  label: Cool setpoint (all the time, or outside helper blocks)
+                  selector: {number: {min: 40, max: 90, unit_of_measurement: "°", mode: box}}
+                setpoints:
+                  label: Or a setpoints table (YAML)
+                  selector: {object: {}}
+                schedule:
+                  label: Or a Schedule helper
+                  selector: {entity: {filter: [{domain: schedule}]}}
                 priority:
                   label: Priority (higher is more critical, default 0)
                   selector: {number: {min: 0, max: 100, mode: box}}
@@ -186,6 +261,7 @@ max_exceeded: silent
 trigger_variables:
   zones: !input zones
   overrides: !input overrides
+  schedule_overrides: !input schedule_overrides
   manual_minutes: !input manual_minutes
 
 triggers:
@@ -199,19 +275,30 @@ triggers:
     event_type: automation_reloaded
   # A template trigger only fires on a false -> true transition, so both of these
   # are true for the minute after the event they detect.
-  # Any override turning on or off:
+  # Any override turning on or off, being pressed, or its duration running out:
   - trigger: template
     value_template: >-
-      {% set ids = overrides | map(attribute='switch') | select | list %}
-      {{ ids | count > 0 and expand(ids)
-         | selectattr('last_changed', 'gt', now() - timedelta(seconds=60))
-         | list | count > 0 }}
+      {% set ns = namespace(hit=false) %}
+      {% for o in overrides + schedule_overrides if o.get('switch') %}
+        {% set s = expand(o.switch) | first %}
+        {% if s %}
+          {% set dur = o.get('duration', 0) | float(0) * 60 %}
+          {% set button = o.switch.split('.')[0] in ['input_button', 'button'] %}
+          {% set start = as_datetime(s.state, none) if button else (s.last_changed if s.state == 'on' else none) %}
+          {% set age = (now() - start).total_seconds() if start is not none else -1 %}
+          {% if (now() - s.last_changed).total_seconds() < 60
+                or (dur > 0 and age >= dur and age < dur + 60) %}
+            {% set ns.hit = true %}
+          {% endif %}
+        {% endif %}
+      {% endfor %}
+      {{ ns.hit }}
   # A manual change at a unit, or a manual override expiring:
   - trigger: template
     value_template: >-
       {% set ns = namespace(ids=[], hit=false) %}
       {% for z in zones %}{% set ns.ids = ns.ids + ([z.thermostats] if z.thermostats is string else (z.thermostats or [])) %}{% endfor %}
-      {% for o in overrides %}{% set ns.ids = ns.ids + ([o.thermostats] if o.thermostats is string else (o.thermostats or [])) %}{% endfor %}
+      {% for o in overrides + schedule_overrides %}{% set ns.ids = ns.ids + ([o.thermostats] if o.thermostats is string else (o.thermostats or [])) %}{% endfor %}
       {% if manual_minutes | int(0) > 0 %}
         {% for e in ns.ids | unique %}
           {% set sb = device_entities(device_id(e) or '') | select('match', 'sensor[.].*_set_by$') | first %}
@@ -260,11 +347,77 @@ variables:
     {% endfor %}
     {{ ns.m }}
 
+  # Overrides active right now, both kinds. Active while the trigger entity is
+  # on, or for `duration` minutes after it turned on; a button is active for
+  # `duration` minutes after its last press.
+  active_overrides: >-
+    {% set ns = namespace(out=[]) %}
+    {% for kind, items in [('cool', overrides), ('schedule', schedule_overrides)] %}
+      {% for o in items %}
+        {% set i = loop.index0 %}
+        {% set s = expand(o.get('switch') or []) | first %}
+        {% if s %}
+          {% set dur = o.get('duration', 0) | float(0) * 60 %}
+          {% if o.switch.split('.')[0] in ['input_button', 'button'] %}
+            {% set start = as_datetime(s.state, none) %}
+            {% set on = start is not none and dur > 0 %}
+          {% else %}
+            {% set start = s.last_changed %}
+            {% set on = s.state == 'on' %}
+          {% endif %}
+          {% if on and (dur == 0 or (now() - start).total_seconds() < dur) %}
+            {% set ns.out = ns.out + [{'kind': kind, 'index': i,
+                'name': o.get('name') or o.switch,
+                'priority': o.get('priority', 0) | float(0),
+                'offset': o.get('unit_offset', 0) | int(0),
+                'target': o.get('cool_target') | float(0),
+                'thermostats': [o.thermostats] if o.thermostats is string else (o.thermostats or [])}] %}
+          {% endif %}
+        {% endif %}
+      {% endfor %}
+    {% endfor %}
+    {{ ns.out }}
+
+  # thermostat -> the active override that decides it: highest priority. Cooling
+  # overrides come first in active_overrides and a later entry must be strictly
+  # better, so at equal priority cooling beats schedule, the lower cooling
+  # setpoint wins between cooling overrides, and the first listed between
+  # schedule overrides.
+  governing: >-
+    {% set ns = namespace(m={}) %}
+    {% for a in active_overrides %}
+      {% for e in a.thermostats %}
+        {% set cur = ns.m.get(e) %}
+        {% if not cur or a.priority > cur.priority
+              or (a.priority == cur.priority and a.kind == 'cool' and a.target < cur.target) %}
+          {% set ns.m = dict(ns.m, **{e: {'kind': a.kind, 'index': a.index,
+              'priority': a.priority, 'target': a.target}}) %}
+        {% endif %}
+      {% endfor %}
+    {% endfor %}
+    {{ ns.m }}
+
+  # thermostat -> index of the highest-priority active schedule override
+  # covering it (first listed at equal priority). Its schedule replaces the
+  # regular one. While a cooling override decides the unit, this is still the
+  # schedule it returns to and the one reported.
+  schedule_source: >-
+    {% set ns = namespace(m={}, p={}) %}
+    {% for a in active_overrides if a.kind == 'schedule' %}
+      {% for e in a.thermostats %}
+        {% if e not in ns.m or a.priority > ns.p[e] %}
+          {% set ns.m = dict(ns.m, **{e: a.index}) %}
+          {% set ns.p = dict(ns.p, **{e: a.priority}) %}
+        {% endif %}
+      {% endfor %}
+    {% endfor %}
+    {{ ns.m }}
+
   # Everything this automation controls: scheduled thermostats plus any that
   # only appear in an override.
   managed: >-
     {% set ns = namespace(out=assignment | list) %}
-    {% for o in overrides %}
+    {% for o in overrides + schedule_overrides %}
       {% for e in ([o.thermostats] if o.thermostats is string else (o.thermostats or [])) %}
         {% if e not in ns.out %}{% set ns.out = ns.out + [e] %}{% endif %}
       {% endfor %}
@@ -306,21 +459,28 @@ variables:
     {% endif %}
     {{ ns.m }}
 
-  # thermostat -> {heat, cool} in effect right now. From the schedule's setpoints
-  # table when it has one: that day's entries (mon..sun, else weekday/weekend),
-  # the latest start at or before now, or yesterday's last entry before today's
-  # first. Otherwise from its Schedule helper: the active block's data, or the
-  # outside-block setpoints. A thermostat with neither gets no target.
+  # thermostat -> {heat, cool} in effect right now, from its active schedule
+  # override if it has one, else its schedule. From a setpoints table: that
+  # day's entries (mon..sun, else weekday/weekend), the latest start at or
+  # before now, or yesterday's last entry before today's first. From a Schedule
+  # helper: the active block's data. Otherwise the fixed setpoints, if given.
+  # An override that yields nothing falls back to the regular schedule. A
+  # thermostat with no source gets no target.
   targets: >-
     {% set days = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] %}
     {% set wd = now().weekday() %}
     {% set yd = (wd - 1) % 7 %}
     {% set hm = now().strftime('%H:%M') %}
     {% set ns = namespace(out={}) %}
-    {% for e, zi in assignment.items() %}
-      {% set z = zones[zi] %}
-      {% set sp = z.get('setpoints') %}
+    {% for e in managed %}
+      {% set src = namespace(list=[]) %}
+      {% if e in schedule_source %}{% set src.list = [schedule_overrides[schedule_source[e]]] %}{% endif %}
+      {% if e in assignment %}{% set src.list = src.list + [zones[assignment[e]]] %}{% endif %}
       {% set pick = namespace(t='', band=none) %}
+      {% for z in src.list if pick.band is none %}
+      {% set sp = z.get('setpoints') %}
+      {% set fixed_heat = z.get('heat') if z.get('heat') is not none else z.get('unoccupied_heat') %}
+      {% set fixed_cool = z.get('cool') if z.get('cool') is not none else z.get('unoccupied_cool') %}
       {% if sp is mapping %}
         {% set today = sp.get(days[wd]) or sp.get('weekend' if wd >= 5 else 'weekday') or {} %}
         {% for k, v in today.items() if k is string and ':' in k %}
@@ -339,10 +499,12 @@ variables:
         {% set c = state_attr(z.schedule, 'cool') | float(none) %}
         {% if is_state(z.schedule, 'on') and h is number and c is number %}
           {% set pick.band = [h, c] %}
-        {% elif z.get('unoccupied_heat') is not none and z.get('unoccupied_cool') is not none %}
-          {% set pick.band = [z.unoccupied_heat, z.unoccupied_cool] %}
         {% endif %}
       {% endif %}
+      {% if pick.band is none and fixed_heat is not none and fixed_cool is not none %}
+        {% set pick.band = [fixed_heat, fixed_cool] %}
+      {% endif %}
+      {% endfor %}
       {% if pick.band is not none and pick.band | count == 2 %}
         {% set ns.out = dict(ns.out, **{e: {'heat': pick.band[0] | float, 'cool': pick.band[1] | float}}) %}
       {% endif %}
@@ -385,29 +547,18 @@ variables:
     {% endfor %}
     {{ ns.m }}
 
-  # Active overrides, as thermostat -> {priority, target}. A thermostat in several
-  # follows the highest priority; equal priorities take the lowest setpoint.
+  # Online thermostats decided by a cooling override, as thermostat ->
+  # {priority, target}.
   forced: >-
     {% set ns = namespace(m={}) %}
-    {% for o in overrides if o.switch and is_state(o.switch, 'on') %}
-      {% set p = o.get('priority', 0) | float(0) %}
-      {% set t = o.cool_target | float %}
-      {% for e in ([o.thermostats] if o.thermostats is string else (o.thermostats or [])) if e in online %}
-        {% set cur = ns.m.get(e) %}
-        {% if not cur or p > cur.priority or (p == cur.priority and t < cur.target) %}
-          {% set ns.m = dict(ns.m, **{e: {'priority': p, 'target': t}}) %}
-        {% endif %}
-      {% endfor %}
+    {% for e, g in governing.items() if g.kind == 'cool' and e in online %}
+      {% set ns.m = dict(ns.m, **{e: {'priority': g.priority, 'target': g.target}}) %}
     {% endfor %}
     {{ ns.m }}
 
   # Base maximum plus the stacked offsets of every active override.
   limit: >-
-    {% set ns = namespace(offset=0) %}
-    {% for o in overrides if o.switch and is_state(o.switch, 'on') %}
-      {% set ns.offset = ns.offset + (o.get('unit_offset', 0) | int(0)) %}
-    {% endfor %}
-    {{ [max_running | int + ns.offset, 0] | max }}
+    {{ [max_running | int + active_overrides | sum(attribute='offset'), 0] | max }}
 
   # Slot order: overrides by priority, then manual requests (earliest first),
   # then running units. If the running units no longer fit, the ones running
@@ -470,6 +621,25 @@ actions:
     else:
       - action: persistent_notification.dismiss
         data: {notification_id: pelican_unit_rotation_config}
+
+  # 0b) Timed overrides on an input_boolean: turn the toggle back off once its
+  #     time is up, so the dashboard shows it ended. Already treated as inactive.
+  - repeat:
+      for_each: >-
+        {% set ns = namespace(out=[]) %}
+        {% for o in overrides + schedule_overrides %}
+          {% set ent = o.get('switch') or '' %}
+          {% set dur = o.get('duration', 0) | float(0) * 60 %}
+          {% if ent.startswith('input_boolean.') and dur > 0 and is_state(ent, 'on')
+                and (now() - (expand(ent) | first).last_changed).total_seconds() >= dur %}
+            {% set ns.out = ns.out + [ent] %}
+          {% endif %}
+        {% endfor %}
+        {{ ns.out | unique | list }}
+      sequence:
+        - action: input_boolean.turn_off
+          continue_on_error: true
+          target: {entity_id: "{{ repeat.item }}"}
 
   # 1) Everything not selected goes Off first, so the limit is never exceeded.
   #    A manual unit that is still Off is simply left alone by the Off check.
@@ -571,6 +741,7 @@ actions:
       selected: "{{ selected }}"
       manual: "{{ manual | list }}"
       forced: "{{ forced | list }}"
+      overrides: "{{ active_overrides | map(attribute='name') | list }}"
       thermostats: >-
         {% set ns = namespace(out={}) %}
         {% for e in online if e in targets %}

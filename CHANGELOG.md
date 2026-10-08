@@ -10,6 +10,19 @@ with no matching section.
 
 ## [Unreleased]
 
+### Added
+- **Unit-rotation blueprint: schedule overrides.** While active, an override
+  replaces its thermostats' regular schedule with its own (a setpoints table, a
+  Schedule helper, or a fixed heat and cool setpoint), for holidays, closures
+  and events. Priority decides between overrides of either kind: a thermostat
+  covered by several follows the highest-priority one, so a higher-priority
+  cooling override wins over a holiday schedule for the units it covers.
+- **Unit-rotation blueprint: timed overrides for one-tap use.** Any override can
+  have a duration. A toggle turned on is turned back off when the time is up,
+  and each press of an input_button starts the time over, so a dashboard tile
+  or phone widget can start an override for a preset time. Overrides can now
+  also be triggered by a calendar event or a Schedule helper.
+
 ### Changed
 - **Unit-rotation blueprint: a thermostat may be in only one schedule.** One
   listed in two used to follow the first without a word. Now a persistent

@@ -165,9 +165,9 @@ the whole time it holds the slot, until the room is a margin (1° by default)
 inside its schedule's band. The thermostat never idles in a slot. Slots go, in
 order, to:
 
-1. **Cooling overrides**, highest priority first. Each override is an entity
-   (input_boolean, switch or binary_sensor), any number of thermostats, a
-   cooling setpoint, a priority, and a unit-limit offset. Offsets of all active
+1. **Cooling overrides**, highest priority first. Each override is a trigger
+   entity, an optional duration, any number of thermostats, a cooling
+   setpoint, a priority, and a unit-limit offset. Offsets of all active
    overrides stack.
 2. **Manual on-demand.** When someone changes a thermostat at the unit (the
    integration's *Set by* sensor reads `Station`), it is left exactly as they set
@@ -206,6 +206,36 @@ every run. If a thermostat is listed in two, a persistent notification names it
 and the schedules, and the rotation stops, changing no unit, until it is fixed.
 An override is not a schedule: a thermostat can be in a schedule and in any
 number of overrides.
+
+**Schedule overrides** swap in a different schedule while they are active: a
+wide band for a holiday or closure, a tight one for an event. Each covers any
+number of thermostats and is defined like a schedule (a setpoints table, a
+Schedule helper, or a plain heat and cool setpoint). Its thermostats still
+compete for slots by how far they are from the goal; a cooling override is the
+way to guarantee a slot.
+
+**Activating an override.** Either kind is active while its trigger entity is
+on: an input_boolean, switch, binary_sensor, a calendar (on during an event,
+handy for holidays) or a Schedule helper. Give it a **duration** and it lasts
+that long instead, which makes it a one-tap control:
+
+- an **input_boolean** toggle turned on is turned back off when the time is up,
+  so the dashboard shows when it ends; turn it off to end early;
+- each press of an **input_button** (or a device button) starts the time over.
+
+Anything that can turn on an input_boolean or press an input_button can start
+one: a dashboard tile, a companion-app widget, an NFC tag, a wall button. A
+button's last press survives a Home Assistant restart; a toggle's timer starts
+over after a restart.
+
+**Priority decides between overrides.** A thermostat covered by several active
+overrides follows the one with the highest priority, whichever kind it is. For
+example, a holiday schedule override at priority 2 covering every thermostat,
+and a cooling override at priority 3 covering three of them: while both are on,
+those three cool to the cooling override's setpoint and the rest follow the
+holiday band. At equal priority a cooling override beats a schedule override,
+the lower setpoint wins between cooling overrides, and the first listed wins
+between schedule overrides. Unit-limit offsets of all active overrides stack.
 
 Schedules and overrides are repeatable forms in the automation editor. If a
 unit given a slot isn't in the mode and setpoint written to it, a persistent
