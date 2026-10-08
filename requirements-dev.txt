@@ -3,4 +3,4 @@
 # local-gates.sh reads the pins out of ci.yml and will complain if they drift.
 pytest-homeassistant-custom-component==0.13.364
 ruff==0.16.6
-mypy==2.3.1
+mypy==2.4.0
