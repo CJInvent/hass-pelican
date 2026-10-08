@@ -10,6 +10,14 @@ with no matching section.
 
 ## [Unreleased]
 
+### Changed
+- **Unit-rotation blueprint: a thermostat may be in only one schedule.** One
+  listed in two used to follow the first without a word. Now a persistent
+  notification names the thermostat and its schedules, and the rotation stops
+  without changing any unit until it is fixed. The check runs the moment an
+  automation is saved, so the mistake shows up while the editor is still open,
+  and saved schedule changes now apply at once rather than at the next run.
+
 ## [0.1.0] - 2026-09-24
 
 First release.

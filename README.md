@@ -197,7 +197,15 @@ weekend:
 
 Or a native Schedule helper, drawn on HA's graphical weekly calendar, with
 `heat: 68` and `cool: 75` under each block's **More options → Additional data**,
-plus setpoints for outside its blocks. Changes apply at the next 5-minute run.
+plus setpoints for outside its blocks. A change to a Schedule helper applies at
+the next 5-minute run; a change saved in the automation editor applies at once.
+
+**Each thermostat may be in only one schedule.** The editor's form cannot check
+one schedule against another, so the automation checks when it is saved and on
+every run. If a thermostat is listed in two, a persistent notification names it
+and the schedules, and the rotation stops, changing no unit, until it is fixed.
+An override is not a schedule: a thermostat can be in a schedule and in any
+number of overrides.
 
 Schedules and overrides are repeatable forms in the automation editor. If a
 unit given a slot isn't in the mode and setpoint written to it, a persistent

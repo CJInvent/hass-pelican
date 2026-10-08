@@ -35,8 +35,10 @@ blueprint:
         each entry holds until the next, overnight included. Or a Schedule helper,
         drawn on its graphical weekly calendar, with `heat: 68` and `cool: 75`
         under each block's More options → Additional data, and the setpoints
-        below for outside its blocks. A table wins if both are given. A
-        thermostat listed under two schedules follows the first one.
+        below for outside its blocks. A table wins if both are given. Each
+        thermostat may be in only one schedule: the form can't check that, so
+        the automation checks it when you save. If one is listed twice it says
+        which, and changes nothing until that is fixed.
       input:
         zones:
           name: Schedules
@@ -191,6 +193,10 @@ triggers:
     minutes: "/5"
   - trigger: homeassistant
     event: start
+  # Saving an automation in the editor reloads it and fires this, so a schedule
+  # mistake is reported at once and a schedule change applies at once.
+  - trigger: event
+    event_type: automation_reloaded
   # A template trigger only fires on a false -> true transition, so both of these
   # are true for the minute after the event they detect.
   # Any override turning on or off:
@@ -227,7 +233,23 @@ variables:
   min_off_minutes: !input min_off_minutes
   lock_keypads: !input lock_keypads
 
-  # thermostat -> index of the first schedule that lists it.
+  # thermostat -> names of every schedule that lists it, for thermostats listed
+  # in more than one. Anything here stops the run before it touches a unit.
+  duplicates: >-
+    {% set ns = namespace(seen={}, dup={}) %}
+    {% for z in zones %}
+      {% set label = z.get('name') or 'Schedule ' ~ loop.index %}
+      {% for e in ([z.thermostats] if z.thermostats is string else (z.thermostats or [])) | unique %}
+        {% if e in ns.seen %}
+          {% set ns.dup = dict(ns.dup, **{e: ns.dup.get(e, [ns.seen[e]]) + [label]}) %}
+        {% else %}
+          {% set ns.seen = dict(ns.seen, **{e: label}) %}
+        {% endif %}
+      {% endfor %}
+    {% endfor %}
+    {{ ns.dup }}
+
+  # thermostat -> index of the schedule that lists it.
   assignment: >-
     {% set ns = namespace(m={}) %}
     {% for z in zones %}
@@ -427,6 +449,28 @@ variables:
     {{ ns.picks }}
 
 actions:
+  # 0) A thermostat in two schedules has no single target. Say which, and stop
+  #    before any unit is touched. A stop inside an if ends the whole run.
+  - if:
+      - "{{ duplicates | count > 0 }}"
+    then:
+      - action: persistent_notification.create
+        data:
+          notification_id: pelican_unit_rotation_config
+          title: Thermostat in more than one schedule
+          message: >-
+            {% set ns = namespace(lines=[]) %}
+            {% for e, names in duplicates.items() %}
+              {% set ns.lines = ns.lines + ['- ' ~ (state_attr(e, 'friendly_name') or e) ~ ': ' ~ names | join(', ')] %}
+            {% endfor %}
+            The unit rotation is stopped until each thermostat is in only one
+            schedule. Units stay as they are and nothing is being rotated.
+            {{ '\n\n' ~ ns.lines | join('\n') }}
+      - stop: A thermostat is listed in more than one schedule.
+    else:
+      - action: persistent_notification.dismiss
+        data: {notification_id: pelican_unit_rotation_config}
+
   # 1) Everything not selected goes Off first, so the limit is never exceeded.
   #    A manual unit that is still Off is simply left alone by the Off check.
   - repeat:
